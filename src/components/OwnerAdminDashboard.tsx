@@ -20,11 +20,13 @@ import {
   Users, 
   DollarSign, 
   Eye, 
+  EyeOff,
   CheckCircle2, 
   FileText,
   Sliders,
   ExternalLink,
   Shield,
+  ShieldAlert,
   UserCheck,
   UserX,
   UserPlus,
@@ -66,8 +68,17 @@ export const OwnerAdminDashboard: React.FC = () => {
     deleteUser,
     updateOrderStatus,
     updateOrderPaymentStatus,
+    isAdminAuthenticated,
+    authenticateAdmin,
+    logoutAdmin,
+    setRole,
     showNotification
   } = useApp();
+
+  // Inline auth state for direct dashboard access
+  const [inlinePassword, setInlinePassword] = useState('');
+  const [showInlinePassword, setShowInlinePassword] = useState(false);
+  const [inlineError, setInlineError] = useState('');
 
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'listings' | 'sellers' | 'transactions' | 'roles' | 'banking'>('overview');
   
@@ -167,6 +178,129 @@ export const OwnerAdminDashboard: React.FC = () => {
     });
   };
 
+  const handleInlineAuthSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inlinePassword.trim()) {
+      setInlineError('Please enter administrator password.');
+      return;
+    }
+    const success = authenticateAdmin(inlinePassword);
+    if (!success) {
+      setInlineError('Incorrect password. Access denied.');
+      setInlinePassword('');
+    } else {
+      setInlineError('');
+      setInlinePassword('');
+    }
+  };
+
+  // If not authenticated as Admin, show lock barrier
+  if (!isAdminAuthenticated) {
+    return (
+      <div className="min-h-[85vh] bg-slate-950 flex items-center justify-center p-4 sm:p-6">
+        <div className="w-full max-w-md bg-slate-900 border border-amber-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-black/80 relative overflow-hidden">
+          <div className="absolute -top-20 -right-20 w-44 h-44 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-20 -left-20 w-44 h-44 bg-red-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="flex items-center gap-3.5 mb-6">
+            <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center text-slate-950 shadow-lg shadow-amber-500/20 flex-shrink-0">
+              <Lock className="w-6 h-6" />
+            </div>
+            <div>
+              <span className="text-[10px] font-black tracking-widest uppercase px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                Security Enforced
+              </span>
+              <h2 className="text-xl font-black text-white tracking-tight mt-0.5">
+                Admin Hub Protected
+              </h2>
+              <p className="text-xs text-slate-400">
+                Authentication required for platform authority
+              </p>
+            </div>
+          </div>
+
+          <div className="mb-6 p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 text-xs text-slate-300 flex items-start gap-3">
+            <ShieldAlert className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-white">Administrator Access Required</p>
+              <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
+                Enter the master password to access system settings, developer banking configurations, seller subscription management, and user permissions.
+              </p>
+            </div>
+          </div>
+
+          <form onSubmit={handleInlineAuthSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-200 mb-1.5 flex items-center gap-1.5">
+                <KeyRound className="w-3.5 h-3.5 text-amber-400" />
+                Master Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showInlinePassword ? 'text' : 'password'}
+                  value={inlinePassword}
+                  onChange={(e) => {
+                    setInlinePassword(e.target.value);
+                    if (inlineError) setInlineError('');
+                  }}
+                  placeholder="Enter administrator password..."
+                  className={`w-full pl-4 pr-11 py-3 bg-slate-950 border rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none transition-all ${
+                    inlineError
+                      ? 'border-red-500/80 focus:ring-2 focus:ring-red-500/30'
+                      : 'border-slate-800 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20'
+                  }`}
+                  autoFocus
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowInlinePassword(!showInlinePassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 p-1"
+                  title={showInlinePassword ? 'Hide password' : 'Show password'}
+                >
+                  {showInlinePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {inlineError && (
+                <p className="mt-2 text-xs text-red-400 flex items-center gap-1.5 font-medium animate-in fade-in">
+                  <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>{inlineError}</span>
+                </p>
+              )}
+            </div>
+
+            <div className="pt-2 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setRole('buyer')}
+                className="flex-1 py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold transition-colors"
+              >
+                Back to Marketplace
+              </button>
+              <button
+                type="submit"
+                className="flex-1 py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Unlock className="w-4 h-4" />
+                <span>Unlock Hub</span>
+              </button>
+            </div>
+          </form>
+
+          <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500">
+            <span className="flex items-center gap-1">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              Encrypted Session
+            </span>
+            <span className="font-mono text-[10px] text-slate-400">
+              Role: Master Super Admin
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 pb-20">
       
@@ -194,25 +328,40 @@ export const OwnerAdminDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Dev App Indicator & Switcher */}
-            <div className="flex items-center gap-3 bg-slate-950 p-2.5 rounded-2xl border border-slate-800 shadow-inner">
-              <div className="flex items-center gap-2 text-xs">
-                <span className={`h-2.5 w-2.5 rounded-full ${isDevApp ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' : 'bg-slate-600'}`}></span>
-                <span className="font-semibold text-slate-300">
-                  {isDevApp ? 'Dev Context (Unlocked)' : 'Production (Locked)'}
-                </span>
+            {/* Action Buttons: Dev App Indicator & Lock Session */}
+            <div className="flex flex-wrap items-center gap-3">
+              
+              {/* Dev App Toggle */}
+              <div className="flex items-center gap-3 bg-slate-950 p-2.5 rounded-2xl border border-slate-800 shadow-inner">
+                <div className="flex items-center gap-2 text-xs">
+                  <span className={`h-2.5 w-2.5 rounded-full ${isDevApp ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' : 'bg-slate-600'}`}></span>
+                  <span className="font-semibold text-slate-300">
+                    {isDevApp ? 'Dev Context (Unlocked)' : 'Production (Locked)'}
+                  </span>
+                </div>
+                <button
+                  onClick={() => {
+                    const nextState = !isDevApp;
+                    setIsDevApp(nextState);
+                    showNotification('Dev Mode Toggled', nextState ? 'Dev environment banking configuration unlocked.' : 'Production security lock applied.', 'info');
+                  }}
+                  className="text-[10px] px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold uppercase tracking-wider rounded-lg border border-slate-700 transition-colors flex items-center gap-1.5"
+                >
+                  {isDevApp ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
+                  <span>Toggle Dev Mode</span>
+                </button>
               </div>
+
+              {/* Secure Lock Admin Session Button */}
               <button
-                onClick={() => {
-                  const nextState = !isDevApp;
-                  setIsDevApp(nextState);
-                  showNotification('Dev Mode Toggled', nextState ? 'Dev environment banking configuration unlocked.' : 'Production security lock applied.', 'info');
-                }}
-                className="text-[10px] px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold uppercase tracking-wider rounded-lg border border-slate-700 transition-colors flex items-center gap-1.5"
+                onClick={logoutAdmin}
+                className="px-3.5 py-2.5 rounded-2xl bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-500/30 text-xs font-bold transition-all flex items-center gap-2 shadow-sm hover:border-red-500/50"
+                title="Lock Administrator Hub and return to Marketplace"
               >
-                {isDevApp ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
-                <span>Toggle Dev Mode</span>
+                <Lock className="w-4 h-4 text-red-400" />
+                <span>Lock Session</span>
               </button>
+
             </div>
 
           </div>

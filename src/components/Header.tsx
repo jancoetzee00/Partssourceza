@@ -18,7 +18,9 @@ import {
   ChevronRight,
   Download,
   Smartphone,
-  Monitor
+  Monitor,
+  Lock,
+  Unlock
 } from 'lucide-react';
 import { UserRole } from '../types';
 
@@ -37,9 +39,20 @@ export const Header: React.FC = () => {
     setIsSubscriptionModalOpen,
     setIsRequestPartOpen,
     setIsInstallModalOpen,
+    isAdminAuthenticated,
+    setIsAdminAuthModalOpen,
+    logoutAdmin,
     filters,
     setFilters
   } = useApp();
+
+  const handleAdminClick = () => {
+    if (isAdminAuthenticated) {
+      setRole('admin');
+    } else {
+      setIsAdminAuthModalOpen(true);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-xl border-b border-slate-800/80 shadow-lg shadow-black/30">
@@ -208,15 +221,25 @@ export const Header: React.FC = () => {
               </button>
 
               <button
-                onClick={() => setRole('admin')}
+                onClick={handleAdminClick}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                  role === 'admin' || role === 'owner'
+                  (role === 'admin' || role === 'owner') && isAdminAuthenticated
                     ? 'bg-amber-500 text-slate-950 font-black shadow-[0_0_12px_rgba(245,158,11,0.4)]'
                     : 'text-slate-400 hover:text-amber-400 hover:bg-amber-500/10'
                 }`}
+                title={isAdminAuthenticated ? "Administrator Dashboard Active" : "Admin Hub (Password Protected)"}
               >
-                <ShieldCheck className="w-3.5 h-3.5" />
+                {isAdminAuthenticated ? (
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                ) : (
+                  <Lock className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-400" />
+                )}
                 <span>Admin Hub</span>
+                {!isAdminAuthenticated && (
+                  <span className="text-[9px] px-1 py-0.2 rounded bg-slate-800 text-amber-400/80 font-mono">
+                    🔒
+                  </span>
+                )}
               </button>
             </nav>
 

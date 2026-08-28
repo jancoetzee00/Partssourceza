@@ -76,6 +76,12 @@ interface AppContextType {
   setIsRequestPartOpen: (open: boolean) => void;
   isInstallModalOpen: boolean;
   setIsInstallModalOpen: (open: boolean) => void;
+  isAdminAuthModalOpen: boolean;
+  setIsAdminAuthModalOpen: (open: boolean) => void;
+  isAdminAuthenticated: boolean;
+  setIsAdminAuthenticated: (auth: boolean) => void;
+  authenticateAdmin: (password: string) => boolean;
+  logoutAdmin: () => void;
   isWhatsAppModalOpen: boolean;
   setIsWhatsAppModalOpen: (open: boolean) => void;
   whatsAppModalData: WhatsAppModalData | null;
@@ -213,6 +219,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
   const [isRequestPartOpen, setIsRequestPartOpen] = useState<boolean>(false);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState<boolean>(false);
+  const [isAdminAuthModalOpen, setIsAdminAuthModalOpen] = useState<boolean>(false);
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('partsource_admin_authenticated') === 'true';
+    }
+    return false;
+  });
+
+  const ADMIN_PASSWORD = 'Mad006werk@';
+
+  const authenticateAdmin = (enteredPassword: string): boolean => {
+    if (enteredPassword === ADMIN_PASSWORD) {
+      setIsAdminAuthenticated(true);
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('partsource_admin_authenticated', 'true');
+      }
+      setRole('admin');
+      setIsAdminAuthModalOpen(false);
+      showNotification('Admin Authenticated', 'Master administrator privileges unlocked.', 'success');
+      return true;
+    } else {
+      showNotification('Access Denied', 'Incorrect administrator password.', 'warning');
+      return false;
+    }
+  };
+
+  const logoutAdmin = () => {
+    setIsAdminAuthenticated(false);
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('partsource_admin_authenticated');
+    }
+    setRole('buyer');
+    showNotification('Admin Session Locked', 'You have been logged out of the Administrator Hub.', 'info');
+  };
+
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState<boolean>(false);
   const [whatsAppModalData, setWhatsAppModalData] = useState<WhatsAppModalData | null>(null);
 
@@ -570,6 +611,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsRequestPartOpen,
         isInstallModalOpen,
         setIsInstallModalOpen,
+        isAdminAuthModalOpen,
+        setIsAdminAuthModalOpen,
+        isAdminAuthenticated,
+        setIsAdminAuthenticated,
+        authenticateAdmin,
+        logoutAdmin,
         isWhatsAppModalOpen,
         setIsWhatsAppModalOpen,
         whatsAppModalData,

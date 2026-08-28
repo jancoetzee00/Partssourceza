@@ -18,6 +18,7 @@ import { PartRequestModal } from './components/PartRequestModal';
 import { InstallAppModal } from './components/InstallAppModal';
 import { WhatsAppDirectModal } from './components/WhatsAppDirectModal';
 import { WhatsAppQuickWidget } from './components/WhatsAppQuickWidget';
+import { AdminAuthModal } from './components/AdminAuthModal';
 import { CheckCircle2, AlertCircle, Info, Car, Heart, ShieldCheck, Download, Smartphone, Monitor } from 'lucide-react';
 
 const MainContent: React.FC = () => {
@@ -45,6 +46,7 @@ const MainContent: React.FC = () => {
       <PartRequestModal />
       <InstallAppModal />
       <WhatsAppDirectModal />
+      <AdminAuthModal />
 
       {/* Floating Direct WhatsApp Widget */}
       <WhatsAppQuickWidget />
