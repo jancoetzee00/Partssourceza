@@ -1,0 +1,6 @@
+{
+  "name": "Part Source ZA",
+  "description": "South African advertising marketplace for car and truck parts with direct WhatsApp buyer-to-seller communication, supplier subscriptions, and parts comparison.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
