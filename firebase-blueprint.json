@@ -1,0 +1,189 @@
+{
+  "entities": {
+    "Listing": {
+      "title": "Listing",
+      "description": "Automotive or commercial vehicle part advertised for sale by a verified scrap yard or supplier in South Africa.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 256 },
+        "partNumber": { "type": "string", "maxLength": 128 },
+        "oemNumber": { "type": "string", "maxLength": 128 },
+        "make": { "type": "string", "maxLength": 100 },
+        "model": { "type": "string", "maxLength": 100 },
+        "yearStart": { "type": "number" },
+        "yearEnd": { "type": "number" },
+        "engineSpec": { "type": "string", "maxLength": 200 },
+        "vehicleType": { "type": "string", "enum": ["car", "bakkie", "truck", "suv", "commercial"] },
+        "category": { "type": "string", "maxLength": 100 },
+        "condition": { "type": "string", "maxLength": 100 },
+        "priceZAR": { "type": "number" },
+        "originalPriceZAR": { "type": "number" },
+        "warrantyMonths": { "type": "number" },
+        "stockCount": { "type": "number" },
+        "locationCity": { "type": "string", "maxLength": 100 },
+        "locationProvince": { "type": "string", "maxLength": 50 },
+        "images": { "type": "array" },
+        "description": { "type": "string", "maxLength": 2000 },
+        "sellerId": { "type": "string", "maxLength": 128 },
+        "sellerName": { "type": "string", "maxLength": 150 },
+        "sellerPhone": { "type": "string", "maxLength": 50 },
+        "sellerWhatsApp": { "type": "string", "maxLength": 50 },
+        "sellerEmail": { "type": "string", "maxLength": 100 },
+        "sellerRating": { "type": "number" },
+        "sellerVerified": { "type": "boolean" },
+        "isFeatured": { "type": "boolean" },
+        "dateAdded": { "type": "string", "maxLength": 50 },
+        "views": { "type": "number" },
+        "inquiriesCount": { "type": "number" },
+        "isNationwideDelivery": { "type": "boolean" },
+        "deliveryDaysEstimate": { "type": "string", "maxLength": 100 },
+        "deliveryCostZAR": { "type": "number" }
+      },
+      "required": ["id", "title", "make", "model", "priceZAR", "sellerId", "category"]
+    },
+    "SellerAccount": {
+      "title": "SellerAccount",
+      "description": "Verified auto scrap yard or commercial parts supplier profile in South Africa.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "businessName": { "type": "string", "maxLength": 150 },
+        "registrationNumber": { "type": "string", "maxLength": 60 },
+        "contactPerson": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 100 },
+        "phone": { "type": "string", "maxLength": 50 },
+        "whatsapp": { "type": "string", "maxLength": 50 },
+        "province": { "type": "string", "maxLength": 50 },
+        "city": { "type": "string", "maxLength": 100 },
+        "address": { "type": "string", "maxLength": 250 },
+        "rating": { "type": "number" },
+        "totalReviews": { "type": "number" },
+        "verified": { "type": "boolean" },
+        "subscriptionTier": { "type": "string", "enum": ["starter", "pro", "enterprise"] },
+        "subscriptionStatus": { "type": "string", "enum": ["active", "past_due", "trial"] },
+        "subscriptionRenewsAt": { "type": "string", "maxLength": 50 },
+        "joinedDate": { "type": "string", "maxLength": 50 },
+        "totalSalesZAR": { "type": "number" },
+        "activeListingsCount": { "type": "number" }
+      },
+      "required": ["id", "businessName", "email", "phone", "whatsapp", "city", "province"]
+    },
+    "BuyerInquiry": {
+      "title": "BuyerInquiry",
+      "description": "Direct inquiry or WhatsApp lead submitted by a buyer for a part.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "listingId": { "type": "string", "maxLength": 128 },
+        "partTitle": { "type": "string", "maxLength": 256 },
+        "sellerId": { "type": "string", "maxLength": 128 },
+        "sellerName": { "type": "string", "maxLength": 150 },
+        "buyerName": { "type": "string", "maxLength": 100 },
+        "buyerPhone": { "type": "string", "maxLength": 50 },
+        "buyerEmail": { "type": "string", "maxLength": 100 },
+        "message": { "type": "string", "maxLength": 2000 },
+        "channel": { "type": "string", "enum": ["whatsapp", "web_form", "phone"] },
+        "status": { "type": "string", "enum": ["new", "contacted", "closed"] },
+        "createdAt": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "listingId", "buyerName", "buyerPhone", "message"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "E-commerce or direct delivery order placed on Part Source ZA.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "listingId": { "type": "string", "maxLength": 128 },
+        "partTitle": { "type": "string", "maxLength": 256 },
+        "partNumber": { "type": "string", "maxLength": 128 },
+        "buyerName": { "type": "string", "maxLength": 100 },
+        "buyerPhone": { "type": "string", "maxLength": 50 },
+        "buyerEmail": { "type": "string", "maxLength": 100 },
+        "sellerId": { "type": "string", "maxLength": 128 },
+        "sellerName": { "type": "string", "maxLength": 150 },
+        "amountZAR": { "type": "number" },
+        "deliveryFeeZAR": { "type": "number" },
+        "totalAmountZAR": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "dispatched", "completed", "cancelled"] },
+        "paymentMethod": { "type": "string", "maxLength": 100 },
+        "paymentStatus": { "type": "string", "enum": ["paid", "pending_verification", "unpaid"] },
+        "deliveryAddress": { "type": "string", "maxLength": 300 },
+        "province": { "type": "string", "maxLength": 50 },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "listingId", "buyerName", "buyerPhone", "totalAmountZAR", "status"]
+    },
+    "PlatformUser": {
+      "title": "PlatformUser",
+      "description": "Registered buyer, seller, admin, or platform owner account.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 100 },
+        "phone": { "type": "string", "maxLength": 50 },
+        "role": { "type": "string", "enum": ["buyer", "seller", "admin", "owner"] },
+        "status": { "type": "string", "enum": ["active", "suspended", "pending_verification"] },
+        "joinedDate": { "type": "string", "maxLength": 50 },
+        "province": { "type": "string", "maxLength": 50 },
+        "city": { "type": "string", "maxLength": 100 },
+        "associatedBusinessName": { "type": "string", "maxLength": 150 },
+        "ordersCount": { "type": "number" },
+        "totalSpentZAR": { "type": "number" },
+        "lastActive": { "type": "string", "maxLength": 50 },
+        "notes": { "type": "string", "maxLength": 1000 }
+      },
+      "required": ["id", "name", "email", "role", "status"]
+    },
+    "AppBankingDetails": {
+      "title": "AppBankingDetails",
+      "description": "Platform administrator banking details for subscription fees and direct bank transfers.",
+      "type": "object",
+      "properties": {
+        "bankName": { "type": "string", "maxLength": 100 },
+        "accountHolder": { "type": "string", "maxLength": 150 },
+        "accountNumber": { "type": "string", "maxLength": 50 },
+        "branchCode": { "type": "string", "maxLength": 20 },
+        "branchName": { "type": "string", "maxLength": 100 },
+        "accountType": { "type": "string", "maxLength": 50 },
+        "swiftCode": { "type": "string", "maxLength": 30 },
+        "referenceFormat": { "type": "string", "maxLength": 50 },
+        "vatRegistrationNumber": { "type": "string", "maxLength": 50 },
+        "sellerFeeNotice": { "type": "string", "maxLength": 500 },
+        "supportContact": { "type": "string", "maxLength": 100 },
+        "lastUpdated": { "type": "string", "maxLength": 50 },
+        "updatedBy": { "type": "string", "maxLength": 100 }
+      },
+      "required": ["bankName", "accountHolder", "accountNumber", "branchCode"]
+    }
+  },
+  "firestore": {
+    "/listings/{listingId}": {
+      "schema": { "$ref": "#/entities/Listing" },
+      "description": "Collection of all automotive and truck parts listed on the marketplace."
+    },
+    "/sellers/{sellerId}": {
+      "schema": { "$ref": "#/entities/SellerAccount" },
+      "description": "Collection of registered scrap yards and parts suppliers."
+    },
+    "/inquiries/{inquiryId}": {
+      "schema": { "$ref": "#/entities/BuyerInquiry" },
+      "description": "Collection of buyer inquiries and WhatsApp lead logs."
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Collection of parts orders and fulfillment transactions."
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/PlatformUser" },
+      "description": "Collection of platform user accounts."
+    },
+    "/system/{configId}": {
+      "schema": { "$ref": "#/entities/AppBankingDetails" },
+      "description": "System configuration documents including platform banking details."
+    }
+  }
+}
