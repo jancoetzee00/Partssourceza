@@ -93,6 +93,8 @@ interface AppContextType {
   setIsRequestPartOpen: (open: boolean) => void;
   isInstallModalOpen: boolean;
   setIsInstallModalOpen: (open: boolean) => void;
+  isSearchEngineModalOpen: boolean;
+  setIsSearchEngineModalOpen: (open: boolean) => void;
   isAdminAuthModalOpen: boolean;
   setIsAdminAuthModalOpen: (open: boolean) => void;
   isAdminAuthenticated: boolean;
@@ -237,6 +239,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
   const [isRequestPartOpen, setIsRequestPartOpen] = useState<boolean>(false);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState<boolean>(false);
+  const [isSearchEngineModalOpen, setIsSearchEngineModalOpen] = useState<boolean>(false);
   const [isAdminAuthModalOpen, setIsAdminAuthModalOpen] = useState<boolean>(false);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -827,6 +830,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsRequestPartOpen,
         isInstallModalOpen,
         setIsInstallModalOpen,
+        isSearchEngineModalOpen,
+        setIsSearchEngineModalOpen,
         isAdminAuthModalOpen,
         setIsAdminAuthModalOpen,
         isAdminAuthenticated,

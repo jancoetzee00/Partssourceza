@@ -19,10 +19,11 @@ import { InstallAppModal } from './components/InstallAppModal';
 import { WhatsAppDirectModal } from './components/WhatsAppDirectModal';
 import { WhatsAppQuickWidget } from './components/WhatsAppQuickWidget';
 import { AdminAuthModal } from './components/AdminAuthModal';
-import { CheckCircle2, AlertCircle, Info, Car, Heart, ShieldCheck, Download, Smartphone, Monitor } from 'lucide-react';
+import { SearchEngineExposureModal } from './components/SearchEngineExposureModal';
+import { CheckCircle2, AlertCircle, Info, Car, Heart, ShieldCheck, Download, Smartphone, Monitor, Globe } from 'lucide-react';
 
 const MainContent: React.FC = () => {
-  const { role, activeNotification, setIsInstallModalOpen } = useApp();
+  const { role, activeNotification, setIsInstallModalOpen, setIsSearchEngineModalOpen } = useApp();
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-slate-950">
@@ -47,6 +48,7 @@ const MainContent: React.FC = () => {
       <InstallAppModal />
       <WhatsAppDirectModal />
       <AdminAuthModal />
+      <SearchEngineExposureModal />
 
       {/* Floating Direct WhatsApp Widget */}
       <WhatsAppQuickWidget />
@@ -90,7 +92,16 @@ const MainContent: React.FC = () => {
             <span>South Africa Car & Truck Spares Advertising Platform</span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-[11px]">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-[11px]">
+            <button
+              onClick={() => setIsSearchEngineModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 transition-colors font-semibold"
+              title="Search Engine & Web Exposure Indexer"
+            >
+              <Globe className="w-3.5 h-3.5" />
+              <span>Search Engine & SEO Hub</span>
+            </button>
+
             <button
               onClick={() => setIsInstallModalOpen(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 transition-colors font-semibold"

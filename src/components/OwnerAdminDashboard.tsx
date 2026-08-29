@@ -20,7 +20,7 @@ import {
   Users, 
   DollarSign, 
   Eye, 
-  EyeOff,
+  EyeOff, 
   CheckCircle2, 
   FileText,
   Sliders,
@@ -39,7 +39,8 @@ import {
   AlertCircle,
   HelpCircle,
   KeyRound,
-  Filter
+  Filter,
+  Globe
 } from 'lucide-react';
 import { AppBankingDetails, SellerTier, UserRole, PlatformUser, Order } from '../types';
 import { SUBSCRIPTION_PLANS, SA_PROVINCES, ROLE_PERMISSIONS_MATRIX } from '../data/mockData';
@@ -60,6 +61,7 @@ export const OwnerAdminDashboard: React.FC = () => {
     updateBankingDetails,
     isDevApp,
     setIsDevApp,
+    setIsSearchEngineModalOpen,
     updateSellerSubscription,
     updateSellerStatus,
     updateUserStatus,
@@ -328,9 +330,20 @@ export const OwnerAdminDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Action Buttons: Dev App Indicator & Lock Session */}
+            {/* Action Buttons: SEO Engine, Dev App Indicator & Lock Session */}
             <div className="flex flex-wrap items-center gap-3">
               
+              {/* Search Engine & SEO Exposure Hub Button */}
+              <button
+                onClick={() => setIsSearchEngineModalOpen(true)}
+                className="px-3.5 py-2.5 rounded-2xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 text-xs font-bold transition-all flex items-center gap-2 shadow-sm hover:border-blue-500/50"
+                title="Open Search Engine & Google SEO Hub"
+              >
+                <Globe className="w-4 h-4 text-blue-400" />
+                <span>Search Engine & SEO</span>
+                <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-400 text-[9px]">Live</span>
+              </button>
+
               {/* Dev App Toggle */}
               <div className="flex items-center gap-3 bg-slate-950 p-2.5 rounded-2xl border border-slate-800 shadow-inner">
                 <div className="flex items-center gap-2 text-xs">
@@ -659,6 +672,40 @@ export const OwnerAdminDashboard: React.FC = () => {
               </div>
             </div>
 
+          </div>
+
+          {/* Search Engine & Google Web Exposure Status Card */}
+          <div className="bg-gradient-to-r from-blue-950/40 via-slate-900 to-amber-950/30 border border-blue-500/30 rounded-2xl p-6 shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-blue-500/20 border border-blue-500/40 flex items-center justify-center text-blue-400">
+                  <Globe className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-sm font-bold text-white uppercase tracking-wider">
+                      Search Engine & Web Exposure Indexer
+                    </h4>
+                    <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/30">
+                      Googlebot Ready
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Dynamic XML sitemap (`/sitemap.xml`), robots directives (`/robots.txt`), Google Sitelinks SearchAction & South African keywords live.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsSearchEngineModalOpen(true)}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-blue-600/20 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Globe className="w-4 h-4" />
+                  <span>Open Search Engine Hub</span>
+                </button>
+              </div>
+            </div>
           </div>
 
         </div>

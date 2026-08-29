@@ -20,7 +20,8 @@ import {
   Smartphone,
   Monitor,
   Lock,
-  Unlock
+  Unlock,
+  Globe
 } from 'lucide-react';
 import { UserRole } from '../types';
 
@@ -39,6 +40,8 @@ export const Header: React.FC = () => {
     setIsSubscriptionModalOpen,
     setIsRequestPartOpen,
     setIsInstallModalOpen,
+    isSearchEngineModalOpen,
+    setIsSearchEngineModalOpen,
     isAdminAuthenticated,
     setIsAdminAuthModalOpen,
     logoutAdmin,
@@ -147,6 +150,20 @@ export const Header: React.FC = () => {
               <span>Install App</span>
               <span className="hidden xl:inline-block px-1.5 py-0.2 bg-amber-400/20 text-amber-300 rounded text-[9px] font-mono uppercase tracking-wider ml-0.5">
                 📱+💻
+              </span>
+            </button>
+
+            {/* Search Engine & SEO Web Exposure Hub Trigger */}
+            <button
+              onClick={() => setIsSearchEngineModalOpen(true)}
+              className="relative px-3 py-2 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 hover:text-blue-200 border border-blue-500/30 hover:border-blue-500/50 transition-all flex items-center gap-1.5 text-xs font-bold shadow-sm group"
+              title="Search Engine Optimization & Google Web Indexing Hub"
+            >
+              <Globe className="w-4 h-4 text-blue-400 group-hover:rotate-12 transition-transform" />
+              <span className="hidden md:inline">Search Engine / SEO</span>
+              <span className="md:hidden">SEO</span>
+              <span className="hidden lg:inline-block px-1 py-0.2 bg-emerald-500/20 text-emerald-300 rounded text-[9px] font-bold">
+                Google
               </span>
             </button>
 
