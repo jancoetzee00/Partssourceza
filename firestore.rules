@@ -66,11 +66,19 @@ service cloud.firestore {
       allow delete: if isValidId(userId);
     }
 
-    // System Settings & Banking
+    // System Settings, Banking & Subscription Discounts
     match /system/{configId} {
       allow read: if true;
       allow create, update: if isValidId(configId);
       allow delete: if false;
+    }
+
+    // Direct Subscription Discounts Collection
+    match /subscription_discounts/{discountId} {
+      allow read: if true;
+      allow create, update: if isValidId(discountId)
+        && request.resource.data.code is string;
+      allow delete: if isValidId(discountId);
     }
   }
 }

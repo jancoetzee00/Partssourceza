@@ -41,10 +41,22 @@ import {
   Shield,
   GitPullRequest,
   CircleDot,
-  Droplets
+  Droplets,
+  Navigation,
+  LocateFixed,
+  Compass,
+  Building2,
+  AlertCircle,
+  Loader2,
+  CheckCircle,
+  Share2,
+  Globe,
+  Link as LinkIcon,
+  QrCode
 } from 'lucide-react';
 import { Listing, VehicleType, PartCategory, SouthAfricanProvince, PartCondition } from '../types';
 import { SA_PROVINCES, POPULAR_MAKES, POPULAR_MODELS_BY_MAKE, CATEGORIES } from '../data/mockData';
+import { SA_PROVINCES_GEO, detectUserProvince, GeolocationResult } from '../utils/geolocation';
 
 // Available model fitment years (current down to older platforms)
 const FITMENT_YEARS = [
@@ -77,11 +89,46 @@ export const BuyerCatalog: React.FC = () => {
     setIsRequestPartOpen,
     setIsCheckoutOpen,
     setIsInstallModalOpen,
-    openWhatsAppChat
+    openWhatsAppChat,
+    openWebLinkGenerator
   } = useApp();
 
   const [isAdvancedFiltersOpen, setIsAdvancedFiltersOpen] = useState(false);
   const [modelSearchQuery, setModelSearchQuery] = useState('');
+  const [isLocating, setIsLocating] = useState(false);
+  const [geoFeedback, setGeoFeedback] = useState<{ type: 'success' | 'error' | 'info'; message: string; details?: string } | null>(null);
+
+  // Trigger GPS Geolocation to detect user's South African province
+  const handleDetectLocation = async () => {
+    setIsLocating(true);
+    setGeoFeedback(null);
+    try {
+      const result: GeolocationResult = await detectUserProvince();
+      setIsLocating(false);
+      if (result.success && result.province) {
+        setFilters(prev => ({ ...prev, province: result.province! }));
+        const geoInfo = SA_PROVINCES_GEO[result.province];
+        setGeoFeedback({
+          type: 'success',
+          message: `Location detected: ${result.province}${result.city ? ` (${result.city})` : ''}`,
+          details: geoInfo ? geoInfo.tagline : `Showing parts available in ${result.province}`
+        });
+      } else {
+        setGeoFeedback({
+          type: 'error',
+          message: result.error || 'Could not detect your exact location.',
+          details: 'Please select your South African province manually from the list below.'
+        });
+      }
+    } catch (err: any) {
+      setIsLocating(false);
+      setGeoFeedback({
+        type: 'error',
+        message: 'Location access timed out or was denied.',
+        details: 'You can still choose any of South Africa\'s 9 provinces manually.'
+      });
+    }
+  };
 
   // Available models dynamically computed based on selected make or across all listings
   const availableModels = useMemo(() => {
@@ -200,6 +247,35 @@ export const BuyerCatalog: React.FC = () => {
     });
     return counts;
   }, [listings, filters.make, filters.vehicleType, filters.year]);
+
+  // Real-time province counts based on search query, make, model & category
+  const provinceCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    SA_PROVINCES.forEach(p => {
+      counts[p] = listings.filter(item => {
+        if (filters.search) {
+          const query = filters.search.toLowerCase().trim();
+          const matchesSearch = 
+            item.title.toLowerCase().includes(query) ||
+            item.partNumber.toLowerCase().includes(query) ||
+            (item.oemNumber && item.oemNumber.toLowerCase().includes(query)) ||
+            item.make.toLowerCase().includes(query) ||
+            item.model.toLowerCase().includes(query) ||
+            item.locationCity.toLowerCase().includes(query);
+          if (!matchesSearch) return false;
+        }
+        if (filters.make && item.make.toLowerCase() !== filters.make.toLowerCase()) return false;
+        if (filters.model) {
+          const m = filters.model.toLowerCase().trim();
+          if (!item.model.toLowerCase().includes(m) && !item.title.toLowerCase().includes(m)) return false;
+        }
+        if (filters.vehicleType && item.vehicleType !== filters.vehicleType) return false;
+        if (filters.category && item.category !== filters.category) return false;
+        return item.locationProvince === p;
+      }).length;
+    });
+    return counts;
+  }, [listings, filters.search, filters.make, filters.model, filters.vehicleType, filters.category]);
 
   // Active filter count calculation
   const activeFilterCount = useMemo(() => {
@@ -440,18 +516,18 @@ export const BuyerCatalog: React.FC = () => {
 
             </div>
 
-            {/* Keyword Search Bar + Advanced Filters Toggle + Actions */}
-            <div className="pt-2 border-t border-slate-800/80 flex flex-col md:flex-row items-center justify-between gap-3">
+            {/* Keyword Search Bar + Geolocation Province Selector + Actions */}
+            <div className="pt-2 border-t border-slate-800/80 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
               
               {/* Search text input */}
-              <div className="relative w-full md:max-w-md">
+              <div className="relative flex-1 min-w-[240px]">
                 <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="Part name, OEM code, engine spec (e.g. 1GD-FTV, caliper)..."
                   value={filters.search}
                   onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                  className="w-full pl-10 pr-8 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                  className="w-full pl-10 pr-8 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
                 />
                 {filters.search && (
                   <button
@@ -463,31 +539,107 @@ export const BuyerCatalog: React.FC = () => {
                 )}
               </div>
 
+              {/* Geolocation Province Quick Dropdown & GPS Auto-Locate Trigger */}
+              <div className="flex items-center gap-2">
+                
+                {/* Province Dropdown */}
+                <div className="relative min-w-[170px] sm:min-w-[190px]">
+                  <select
+                    value={filters.province}
+                    onChange={(e) => {
+                      setFilters(prev => ({ ...prev, province: e.target.value }));
+                      setGeoFeedback(null);
+                    }}
+                    className={`w-full pl-8 pr-7 py-2.5 bg-slate-950 border rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-amber-500 transition-all appearance-none cursor-pointer ${
+                      filters.province
+                        ? 'border-amber-500/60 text-amber-300 bg-amber-500/5'
+                        : 'border-slate-800 text-slate-300'
+                    }`}
+                  >
+                    <option value="">🇿🇦 All 9 Provinces</option>
+                    {SA_PROVINCES.map(p => {
+                      const count = provinceCounts[p] ?? 0;
+                      return (
+                        <option key={p} value={p}>
+                          📍 {p} ({count})
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <MapPin className={`w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none ${filters.province ? 'text-amber-400' : 'text-slate-500'}`} />
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+
+                {/* GPS Auto-Detect Button with Radar Pulse Effect */}
+                <button
+                  type="button"
+                  onClick={handleDetectLocation}
+                  disabled={isLocating}
+                  className={`px-3 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all shrink-0 cursor-pointer shadow-sm ${
+                    isLocating
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse'
+                      : filters.province
+                      ? 'bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30'
+                      : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-amber-500/20'
+                  }`}
+                  title="Detect your South African province via GPS"
+                >
+                  {isLocating ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                      <span className="hidden sm:inline">Locating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <LocateFixed className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">GPS Locate</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
               {/* Action Buttons: Advanced toggle, Reset, Request */}
-              <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
+              <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-end">
                 
                 {/* Advanced Filter Toggle Button */}
                 <button
                   onClick={() => setIsAdvancedFiltersOpen(prev => !prev)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                    isAdvancedFiltersOpen || filters.minPrice !== '' || filters.maxPrice !== '' || filters.province || filters.condition || filters.verifiedOnly
+                  className={`px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                    isAdvancedFiltersOpen || filters.minPrice !== '' || filters.maxPrice !== '' || filters.condition || filters.verifiedOnly
                       ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-inner'
                       : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
                   }`}
                 >
                   <SlidersHorizontal className="w-3.5 h-3.5" />
-                  <span>Price Range & More Filters</span>
-                  {(filters.minPrice !== '' || filters.maxPrice !== '' || filters.province || filters.condition || filters.verifiedOnly || filters.inStockOnly) && (
+                  <span className="hidden sm:inline">More Filters</span>
+                  {(filters.minPrice !== '' || filters.maxPrice !== '' || filters.condition || filters.verifiedOnly || filters.inStockOnly) && (
                     <span className="w-2 h-2 rounded-full bg-amber-400"></span>
                   )}
                   {isAdvancedFiltersOpen ? <ChevronUp className="w-3.5 h-3.5 ml-0.5" /> : <ChevronDown className="w-3.5 h-3.5 ml-0.5" />}
+                </button>
+
+                {/* Share Search Link & Web Visibility button */}
+                <button
+                  onClick={() => openWebLinkGenerator({
+                    initialSearch: filters.search,
+                    initialMake: filters.make,
+                    initialModel: filters.model,
+                    initialCategory: filters.category,
+                    initialProvince: filters.province
+                  })}
+                  className="px-3.5 py-2.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 hover:text-amber-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all border border-amber-500/40 shadow-sm group"
+                  title="Generate easy web search link & QR code (partssource.co.za)"
+                >
+                  <Share2 className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
+                  <span className="hidden sm:inline">Share Search Link</span>
+                  <span className="sm:hidden">Share</span>
                 </button>
 
                 {/* Reset Filters button if any active */}
                 {activeFilterCount > 0 && (
                   <button
                     onClick={resetFilters}
-                    className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors border border-slate-700"
+                    className="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors border border-slate-700"
                     title="Reset all search and filter criteria"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
@@ -498,14 +650,41 @@ export const BuyerCatalog: React.FC = () => {
                 {/* Broadcast part request */}
                 <button
                   onClick={() => setIsRequestPartOpen(true)}
-                  className="px-3.5 py-2 bg-slate-800/80 hover:bg-slate-700 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
+                  className="px-3.5 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
                 >
                   <HelpCircle className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Broadcast Request</span>
+                  <span>Request</span>
                 </button>
               </div>
 
             </div>
+
+            {/* Geolocation Feedback Banner (if detected or error) */}
+            {geoFeedback && (
+              <div className={`p-3 rounded-xl border text-xs flex items-center justify-between gap-3 animate-fade-in ${
+                geoFeedback.type === 'success'
+                  ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300'
+                  : 'bg-amber-950/40 border-amber-500/40 text-amber-300'
+              }`}>
+                <div className="flex items-center gap-2">
+                  {geoFeedback.type === 'success' ? (
+                    <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                  )}
+                  <div>
+                    <span className="font-bold mr-1.5">{geoFeedback.message}</span>
+                    {geoFeedback.details && <span className="opacity-90 text-[11px]">{geoFeedback.details}</span>}
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setGeoFeedback(null)}
+                  className="text-slate-400 hover:text-white shrink-0 p-1"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
 
             {/* Expandable Advanced Filters Drawer / Section (Price Range, Province, Condition, Toggles) */}
             {isAdvancedFiltersOpen && (
@@ -605,20 +784,39 @@ export const BuyerCatalog: React.FC = () => {
                 {/* Secondary Filters: Province, Condition, Quality Toggles */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-3 border-t border-slate-800">
                   
-                  {/* Province selector */}
+                  {/* Province selector with GPS Locate integration */}
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                      Province / Scrap Yard Location
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        Province / Scrap Yard Location
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleDetectLocation}
+                        disabled={isLocating}
+                        className="text-[10px] text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 hover:underline cursor-pointer"
+                      >
+                        <LocateFixed className="w-3 h-3" />
+                        <span>{isLocating ? 'Detecting...' : 'Detect GPS'}</span>
+                      </button>
+                    </div>
                     <select
                       value={filters.province}
-                      onChange={(e) => setFilters(prev => ({ ...prev, province: e.target.value }))}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                      onChange={(e) => {
+                        setFilters(prev => ({ ...prev, province: e.target.value }));
+                        setGeoFeedback(null);
+                      }}
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer"
                     >
-                      <option value="">All 9 Provinces (Nationwide)</option>
-                      {SA_PROVINCES.map(p => (
-                        <option key={p} value={p}>{p}</option>
-                      ))}
+                      <option value="">🇿🇦 All 9 Provinces (Nationwide)</option>
+                      {SA_PROVINCES.map(p => {
+                        const count = provinceCounts[p] ?? 0;
+                        return (
+                          <option key={p} value={p}>
+                            {p} ({count} spares available)
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
 
@@ -725,6 +923,125 @@ export const BuyerCatalog: React.FC = () => {
               })}
             </div>
           </div>
+
+          {/* Quick South African Province Geolocation Fast-Switcher Bar */}
+          <div className="mt-4 pt-3 border-t border-slate-800/80">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-amber-400" />
+                <span>Search by Province & Scrap Yard Hub</span>
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleDetectLocation}
+                  disabled={isLocating}
+                  className="text-[11px] text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 hover:underline cursor-pointer"
+                >
+                  <LocateFixed className="w-3 h-3" />
+                  <span>{isLocating ? 'Detecting Location...' : 'Auto-Detect via GPS'}</span>
+                </button>
+                {filters.province && (
+                  <button
+                    onClick={() => {
+                      setFilters(prev => ({ ...prev, province: '' }));
+                      setGeoFeedback(null);
+                    }}
+                    className="text-[11px] text-slate-400 hover:text-white hover:underline"
+                  >
+                    View All South Africa
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+              {/* All South Africa Chip */}
+              <button
+                onClick={() => {
+                  setFilters(prev => ({ ...prev, province: '' }));
+                  setGeoFeedback(null);
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition-all shrink-0 ${
+                  !filters.province
+                    ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20'
+                    : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800'
+                }`}
+              >
+                <span>🇿🇦 All South Africa</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                  !filters.province ? 'bg-slate-950/30 text-slate-950 font-bold' : 'bg-slate-800 text-slate-400'
+                }`}>
+                  {listings.length}
+                </span>
+              </button>
+
+              {/* 9 Provinces Chips */}
+              {SA_PROVINCES.map(province => {
+                const isSelected = filters.province === province;
+                const count = provinceCounts[province] ?? 0;
+
+                return (
+                  <button
+                    key={province}
+                    onClick={() => {
+                      setFilters(prev => ({
+                        ...prev,
+                        province: isSelected ? '' : province
+                      }));
+                      setGeoFeedback(null);
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition-all shrink-0 ${
+                      isSelected
+                        ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20'
+                        : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800'
+                    }`}
+                  >
+                    <MapPin className={`w-3 h-3 ${isSelected ? 'text-slate-950' : 'text-amber-400'}`} />
+                    <span>{province}</span>
+                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                      isSelected ? 'bg-slate-950/30 text-slate-950 font-bold' : 'bg-slate-800 text-slate-400'
+                    }`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Active Province Hub Banner */}
+          {filters.province && (
+            <div className="mt-3 p-3.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-slate-900 to-blue-950/20 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
+                  <MapPin className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-white uppercase tracking-wider text-[11px]">
+                      Showing Scrap Yards & Spares in {filters.province}
+                    </span>
+                    <span className="px-2 py-0.2 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/30">
+                      {filteredListings.length} {filteredListings.length === 1 ? 'part' : 'parts'} found
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    {SA_PROVINCES_GEO[filters.province as SouthAfricanProvince]?.tagline || 'Verified suppliers & scrap yards'} · Hubs: {SA_PROVINCES_GEO[filters.province as SouthAfricanProvince]?.majorHubs?.join(', ')}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setFilters(prev => ({ ...prev, province: '' }));
+                  setGeoFeedback(null);
+                }}
+                className="text-amber-400 hover:text-amber-300 font-semibold underline text-[11px] whitespace-nowrap self-end sm:self-auto cursor-pointer"
+              >
+                Clear Location (Search Nationwide)
+              </button>
+            </div>
+          )}
 
         </div>
       </section>
@@ -965,9 +1282,15 @@ export const BuyerCatalog: React.FC = () => {
                         <span className="px-2 py-0.5 rounded bg-black/80 backdrop-blur-sm border border-white/10">
                           {listing.warrantyMonths} Mo Warranty
                         </span>
-                        <span className="px-2 py-0.5 rounded bg-black/80 backdrop-blur-sm border border-white/10 flex items-center gap-1">
-                          <MapPin className="w-3 h-3 text-amber-500" />
-                          {listing.locationProvince}
+                        <span className={`px-2 py-0.5 rounded backdrop-blur-sm border flex items-center gap-1 ${
+                          filters.province && listing.locationProvince === filters.province
+                            ? 'bg-amber-500 text-slate-950 font-bold border-amber-400 shadow-sm'
+                            : 'bg-black/80 text-white border-white/10'
+                        }`}>
+                          <MapPin className={`w-3 h-3 ${filters.province && listing.locationProvince === filters.province ? 'text-slate-950' : 'text-amber-500'}`} />
+                          <span>
+                            {listing.locationCity ? `${listing.locationCity}, ` : ''}{listing.locationProvince}
+                          </span>
                         </span>
                       </div>
                     </div>
@@ -1089,21 +1412,39 @@ export const BuyerCatalog: React.FC = () => {
           /* Empty Search State with Actionable Guidance */
           <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-10 text-center my-12 max-w-2xl mx-auto">
             <Car className="w-12 h-12 text-amber-400 mx-auto mb-4 stroke-1" />
-            <h3 className="text-xl font-bold text-white mb-2">No matching car or truck parts found</h3>
+            <h3 className="text-xl font-bold text-white mb-2">
+              {filters.province
+                ? `No matching spares found in ${filters.province}`
+                : 'No matching car or truck parts found'}
+            </h3>
             <p className="text-sm text-slate-400 mb-6">
-              We couldn’t find an exact match for your selected make, model, year, category, or price range. Try clearing specific filters or broadcast an instant rare part request to our nationwide network of South African auto dismantlers.
+              {filters.province
+                ? `There are currently no listings in ${filters.province} matching your exact filters. You can expand your search to all 9 South African provinces (many scrap yards offer nationwide courier delivery) or broadcast a direct part request.`
+                : 'We couldn’t find an exact match for your selected make, model, year, category, or price range. Try clearing specific filters or broadcast an instant rare part request to our nationwide network of South African auto dismantlers.'}
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
+              {filters.province && (
+                <button
+                  onClick={() => {
+                    setFilters(prev => ({ ...prev, province: '' }));
+                    setGeoFeedback(null);
+                  }}
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs transition-colors flex items-center gap-1.5 shadow-md shadow-amber-500/20 cursor-pointer"
+                >
+                  <MapPin className="w-3.5 h-3.5" />
+                  <span>Search All 9 Provinces Nationwide</span>
+                </button>
+              )}
               <button
                 onClick={resetFilters}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5"
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>Clear All Filters</span>
               </button>
               <button
                 onClick={() => setIsRequestPartOpen(true)}
-                className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs transition-colors flex items-center gap-1.5"
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
               >
                 <HelpCircle className="w-3.5 h-3.5" />
                 <span>Broadcast Part Request to Suppliers</span>

@@ -20,8 +20,15 @@ import {
   RefreshCw,
   Clock,
   Layers,
-  FileText,
-  Download
+  FileText, 
+  Download,
+  FileSpreadsheet,
+  UploadCloud,
+  Sliders,
+  Share2,
+  QrCode,
+  Globe,
+  Link as LinkIcon
 } from 'lucide-react';
 import { SUBSCRIPTION_PLANS } from '../data/mockData';
 import { Listing } from '../types';
@@ -34,6 +41,8 @@ export const SellerDashboard: React.FC = () => {
     listings, 
     deleteListing, 
     setIsAddEditModalOpen, 
+    setIsBulkUploadModalOpen,
+    openWebLinkGenerator,
     setEditingListing, 
     setIsSubscriptionModalOpen,
     setIsInstallModalOpen,
@@ -128,6 +137,27 @@ export const SellerDashboard: React.FC = () => {
               </button>
 
               <button
+                onClick={() => openWebLinkGenerator({
+                  initialProvince: currentSeller.province,
+                  initialPartId: ''
+                })}
+                className="px-3.5 py-2 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/40 rounded-lg text-xs font-bold transition-all shadow-md flex items-center gap-1.5"
+                title="Generate Web Link & QR Code for Part Source ZA search & physical store"
+              >
+                <Share2 className="w-4 h-4 text-amber-400" />
+                <span className="hidden sm:inline">Web Link & QR</span>
+              </button>
+
+              <button
+                onClick={() => setIsBulkUploadModalOpen(true)}
+                className="px-3.5 py-2 bg-slate-800/90 hover:bg-slate-700 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-bold transition-all shadow-md flex items-center gap-1.5"
+                title="Bulk Upload or Export Spares via CSV/Excel"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-amber-400" />
+                <span className="hidden sm:inline">Bulk CSV / Excel</span>
+              </button>
+
+              <button
                 onClick={() => {
                   setEditingListing(null);
                   setIsAddEditModalOpen(true);
@@ -135,7 +165,7 @@ export const SellerDashboard: React.FC = () => {
                 className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg text-xs transition-all shadow-lg shadow-amber-600/20 flex items-center gap-1.5"
               >
                 <PlusCircle className="w-4 h-4" />
-                <span>+ ADD PART LISTING</span>
+                <span>+ ADD PART</span>
               </button>
             </div>
 
@@ -264,7 +294,8 @@ export const SellerDashboard: React.FC = () => {
       {activeTab === 'listings' && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
           
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          {/* Inventory Top Filter & Actions */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
             <div className="relative flex-1 max-w-md">
               <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
@@ -276,16 +307,26 @@ export const SellerDashboard: React.FC = () => {
               />
             </div>
 
-            <button
-              onClick={() => {
-                setEditingListing(null);
-                setIsAddEditModalOpen(true);
-              }}
-              className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg text-xs transition-all shadow-lg shadow-amber-600/20 flex items-center justify-center gap-1.5"
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span>+ LIST NEW AUTO PART</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => setIsBulkUploadModalOpen(true)}
+                className="px-3.5 py-2 bg-slate-800/90 hover:bg-slate-700 text-amber-300 border border-amber-500/40 rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5"
+              >
+                <UploadCloud className="w-4 h-4 text-amber-400" />
+                <span>Bulk CSV/Excel Tools</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setEditingListing(null);
+                  setIsAddEditModalOpen(true);
+                }}
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl text-xs transition-all shadow-lg shadow-amber-600/20 flex items-center justify-center gap-1.5"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>+ LIST NEW AUTO PART</span>
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -367,13 +408,27 @@ export const SellerDashboard: React.FC = () => {
 
                             {/* Edit & Delete Action Buttons */}
                             <td className="py-3 px-4 text-right">
-                              <div className="flex items-center justify-end gap-2">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  onClick={() => openWebLinkGenerator({
+                                    initialPartId: item.id,
+                                    initialMake: item.make,
+                                    initialModel: item.model,
+                                    initialCategory: item.category,
+                                    initialProvince: currentSeller.province
+                                  })}
+                                  className="text-amber-400 hover:text-amber-300 font-semibold text-xs px-2 py-1 rounded bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-colors flex items-center gap-1"
+                                  title="Generate shareable web link and QR code for this specific part"
+                                >
+                                  <Share2 className="w-3 h-3 text-amber-400" />
+                                  <span>Link/QR</span>
+                                </button>
                                 <button
                                   onClick={() => {
                                     setEditingListing(item);
                                     setIsAddEditModalOpen(true);
                                   }}
-                                  className="text-amber-500 hover:text-amber-400 font-semibold text-xs px-2 py-1 rounded hover:bg-amber-500/10 transition-colors"
+                                  className="text-slate-300 hover:text-white font-semibold text-xs px-2 py-1 rounded hover:bg-slate-800 transition-colors"
                                   title="Edit listing details"
                                 >
                                   Edit
@@ -399,21 +454,32 @@ export const SellerDashboard: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-16 bg-slate-900 rounded-2xl border border-slate-800 shadow-xl">
-                  <Package className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                  <h3 className="text-base font-bold text-white">No spares listed yet</h3>
-                  <p className="text-xs text-slate-400 mt-1 mb-4">
-                    Start listing your scrap yard or shop inventory to receive direct WhatsApp and telephone calls.
+                <div className="text-center py-16 bg-slate-900 rounded-2xl border border-slate-800 shadow-xl px-4">
+                  <div className="h-16 w-16 rounded-3xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mx-auto mb-3">
+                    <Package className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-base font-bold text-white">No spares listed in catalog yet</h3>
+                  <p className="text-xs text-slate-400 mt-1 mb-6 max-w-md mx-auto">
+                    Start listing your scrap yard or auto shop parts individually, or upload your entire spreadsheet inventory in seconds using our bulk CSV/Excel manager.
                   </p>
-                  <button
-                    onClick={() => {
-                      setEditingListing(null);
-                      setIsAddEditModalOpen(true);
-                    }}
-                    className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg text-xs transition-colors"
-                  >
-                    Publish First Part
-                  </button>
+                  <div className="flex flex-wrap items-center justify-center gap-3">
+                    <button
+                      onClick={() => setIsBulkUploadModalOpen(true)}
+                      className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-transform active:scale-95"
+                    >
+                      <UploadCloud className="w-4 h-4" />
+                      <span>Bulk Upload CSV / Excel File</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingListing(null);
+                        setIsAddEditModalOpen(true);
+                      }}
+                      className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs border border-slate-700 transition-colors"
+                    >
+                      + Add Single Part Manually
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

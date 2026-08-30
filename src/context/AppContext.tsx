@@ -10,7 +10,9 @@ import {
   SellerTier,
   PlatformUser,
   WhatsAppModalData,
-  WhatsAppIntentType
+  WhatsAppIntentType,
+  SubscriptionDiscount,
+  WebLinkModalData
 } from '../types';
 import { 
   INITIAL_LISTINGS, 
@@ -19,6 +21,7 @@ import {
   INITIAL_ORDERS, 
   INITIAL_INQUIRIES,
   INITIAL_PLATFORM_USERS,
+  INITIAL_SUBSCRIPTION_DISCOUNTS,
   SUBSCRIPTION_PLANS
 } from '../data/mockData';
 import { 
@@ -46,6 +49,10 @@ interface AppContextType {
   firebaseConnected: boolean;
   listings: Listing[];
   addListing: (listing: Omit<Listing, 'id' | 'dateAdded' | 'views' | 'inquiriesCount'>) => Listing;
+  bulkAddOrUpdateListings: (
+    items: Omit<Listing, 'id' | 'dateAdded' | 'views' | 'inquiriesCount'>[], 
+    strategy?: 'upsert' | 'append' | 'skip_existing'
+  ) => Promise<{ added: number; updated: number; skipped: number }>;
   updateListing: (id: string, updates: Partial<Listing>) => void;
   deleteListing: (id: string) => void;
   sellers: SellerAccount[];
@@ -53,6 +60,19 @@ interface AppContextType {
   setCurrentSellerId: (id: string) => void;
   updateSellerSubscription: (sellerId: string, tier: SellerTier) => void;
   updateSellerStatus: (sellerId: string, status: 'active' | 'past_due' | 'trial', verified?: boolean) => void;
+  subscriptionDiscounts: SubscriptionDiscount[];
+  addSubscriptionDiscount: (discount: Omit<SubscriptionDiscount, 'id' | 'createdAt' | 'usageCount'>) => SubscriptionDiscount;
+  updateSubscriptionDiscount: (id: string, updates: Partial<SubscriptionDiscount>) => void;
+  deleteSubscriptionDiscount: (id: string) => void;
+  toggleDiscountActive: (id: string) => void;
+  toggleDiscountFeatured: (id: string) => void;
+  validateAndApplyPromoCode: (code: string, tier: SellerTier) => { 
+    valid: boolean; 
+    discount?: SubscriptionDiscount; 
+    finalPriceZAR?: number; 
+    discountAmountZAR?: number; 
+    message?: string 
+  };
   users: PlatformUser[];
   updateUserStatus: (userId: string, status: 'active' | 'suspended' | 'pending_verification') => void;
   updateUserRole: (userId: string, role: UserRole) => void;
@@ -83,6 +103,8 @@ interface AppContextType {
   setIsCompareOpen: (open: boolean) => void;
   isAddEditModalOpen: boolean;
   setIsAddEditModalOpen: (open: boolean) => void;
+  isBulkUploadModalOpen: boolean;
+  setIsBulkUploadModalOpen: (open: boolean) => void;
   editingListing: Listing | null;
   setEditingListing: (listing: Listing | null) => void;
   isSubscriptionModalOpen: boolean;
@@ -95,6 +117,11 @@ interface AppContextType {
   setIsInstallModalOpen: (open: boolean) => void;
   isSearchEngineModalOpen: boolean;
   setIsSearchEngineModalOpen: (open: boolean) => void;
+  isWebLinkModalOpen: boolean;
+  setIsWebLinkModalOpen: (open: boolean) => void;
+  webLinkModalData: WebLinkModalData | null;
+  setWebLinkModalData: (data: WebLinkModalData | null) => void;
+  openWebLinkGenerator: (data?: WebLinkModalData) => void;
   isAdminAuthModalOpen: boolean;
   setIsAdminAuthModalOpen: (open: boolean) => void;
   isAdminAuthenticated: boolean;
@@ -184,6 +211,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [currentSellerId, setCurrentSellerId] = useState<string>('seller-jhb-01');
 
+  // Persistent subscription discounts & promotional specials
+  const [subscriptionDiscounts, setSubscriptionDiscounts] = useState<SubscriptionDiscount[]>(() => {
+    try {
+      const saved = localStorage.getItem('partsource_subscription_discounts');
+      return saved ? JSON.parse(saved) : INITIAL_SUBSCRIPTION_DISCOUNTS;
+    } catch {
+      return INITIAL_SUBSCRIPTION_DISCOUNTS;
+    }
+  });
+
   // Persistent banking details
   const [bankingDetails, setBankingDetails] = useState<AppBankingDetails>(() => {
     try {
@@ -234,12 +271,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [isCompareOpen, setIsCompareOpen] = useState<boolean>(false);
   const [isAddEditModalOpen, setIsAddEditModalOpen] = useState<boolean>(false);
+  const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState<boolean>(false);
   const [editingListing, setEditingListing] = useState<Listing | null>(null);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState<boolean>(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
   const [isRequestPartOpen, setIsRequestPartOpen] = useState<boolean>(false);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState<boolean>(false);
   const [isSearchEngineModalOpen, setIsSearchEngineModalOpen] = useState<boolean>(false);
+  const [isWebLinkModalOpen, setIsWebLinkModalOpen] = useState<boolean>(false);
+  const [webLinkModalData, setWebLinkModalData] = useState<WebLinkModalData | null>(null);
+
+  const openWebLinkGenerator = (data?: WebLinkModalData) => {
+    if (data) {
+      setWebLinkModalData(data);
+    } else {
+      setWebLinkModalData({
+        initialSearch: filters.search,
+        initialMake: filters.make,
+        initialModel: filters.model,
+        initialCategory: filters.category,
+        initialProvince: filters.province,
+        initialPartId: selectedListing?.id || ''
+      });
+    }
+    setIsWebLinkModalOpen(true);
+  };
   const [isAdminAuthModalOpen, setIsAdminAuthModalOpen] = useState<boolean>(false);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -339,6 +395,78 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, 4500);
   };
 
+  // URL SEARCH PARAMETERS PARSER & INITIALIZATION (Supports direct search links & deep-linking)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        
+        const q = params.get('search') || params.get('q');
+        const makeParam = params.get('make');
+        const modelParam = params.get('model');
+        const catParam = params.get('category') || params.get('cat');
+        const provParam = params.get('province');
+        const typeParam = params.get('type');
+        const partParam = params.get('part') || params.get('partId');
+        const sellerParam = params.get('seller') || params.get('sellerId');
+        const roleParam = params.get('role');
+
+        if (roleParam && (roleParam === 'buyer' || roleParam === 'seller' || roleParam === 'admin')) {
+          setRole(roleParam as UserRole);
+        }
+
+        if (sellerParam) {
+          setCurrentSellerId(sellerParam);
+        }
+
+        if (q || makeParam || modelParam || catParam || provParam || typeParam) {
+          setFilters(prev => ({
+            ...prev,
+            ...(q ? { search: q } : {}),
+            ...(makeParam ? { make: makeParam } : {}),
+            ...(modelParam ? { model: modelParam } : {}),
+            ...(catParam ? { category: catParam } : {}),
+            ...(provParam ? { province: provParam } : {}),
+            ...(typeParam ? { vehicleType: typeParam } : {})
+          }));
+        }
+
+        if (partParam) {
+          const match = listings.find(l => l.id === partParam);
+          if (match) {
+            setSelectedListing(match);
+          }
+        }
+      } catch (err) {
+        console.error('Error parsing URL parameters:', err);
+      }
+    }
+  }, []);
+
+  // Sync address bar URL with active search query without reload
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.history && window.history.replaceState) {
+      try {
+        const params = new URLSearchParams();
+
+        if (filters.search) params.set('search', filters.search);
+        if (filters.make) params.set('make', filters.make);
+        if (filters.model) params.set('model', filters.model);
+        if (filters.category) params.set('category', filters.category);
+        if (filters.province) params.set('province', filters.province);
+        if (filters.vehicleType) params.set('type', filters.vehicleType);
+        if (selectedListing) params.set('part', selectedListing.id);
+        if (role !== 'buyer') params.set('role', role);
+
+        const newQuery = params.toString();
+        const newUrl = newQuery ? `${window.location.pathname}?${newQuery}` : window.location.pathname;
+        window.history.replaceState(null, '', newUrl);
+      } catch (err) {
+        // silent fallback
+      }
+    }
+  }, [filters.search, filters.make, filters.model, filters.category, filters.province, filters.vehicleType, selectedListing?.id, role]);
+
   // FIRESTORE LIVE REAL-TIME LISTENERS & INITIAL CLOUD SEEDING
   useEffect(() => {
     let unsubListings: (() => void) | null = null;
@@ -347,6 +475,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     let unsubInquiries: (() => void) | null = null;
     let unsubUsers: (() => void) | null = null;
     let unsubBanking: (() => void) | null = null;
+    let unsubDiscounts: (() => void) | null = null;
 
     try {
       // 1. Listings Real-time Listener
@@ -469,6 +598,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         handleFirestoreError(err, OperationType.GET, 'system/banking');
       });
 
+      // 7. Subscription Discounts System Listener
+      unsubDiscounts = onSnapshot(doc(db, 'system', 'subscription_discounts'), (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data && Array.isArray(data.discounts)) {
+            setSubscriptionDiscounts(data.discounts as SubscriptionDiscount[]);
+          }
+        } else {
+          setDoc(doc(db, 'system', 'subscription_discounts'), {
+            discounts: INITIAL_SUBSCRIPTION_DISCOUNTS,
+            lastUpdated: new Date().toISOString()
+          }).catch(err => {
+            handleFirestoreError(err, OperationType.WRITE, 'system/subscription_discounts');
+          });
+        }
+      }, (err) => {
+        handleFirestoreError(err, OperationType.GET, 'system/subscription_discounts');
+      });
+
     } catch (err) {
       console.warn('Firebase initialization notice:', err);
     }
@@ -480,6 +628,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (unsubInquiries) unsubInquiries();
       if (unsubUsers) unsubUsers();
       if (unsubBanking) unsubBanking();
+      if (unsubDiscounts) unsubDiscounts();
     };
   }, []);
 
@@ -491,6 +640,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     localStorage.setItem('partsource_sellers', JSON.stringify(sellers));
   }, [sellers]);
+
+  useEffect(() => {
+    localStorage.setItem('partsource_subscription_discounts', JSON.stringify(subscriptionDiscounts));
+  }, [subscriptionDiscounts]);
 
   useEffect(() => {
     localStorage.setItem('partsource_banking_details', JSON.stringify(bankingDetails));
@@ -543,6 +696,87 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     showNotification('Listing Created', `"${newListing.title}" is saved to Firestore & searchable.`, 'success');
     return newListing;
+  };
+
+  const bulkAddOrUpdateListings = async (
+    items: Omit<Listing, 'id' | 'dateAdded' | 'views' | 'inquiriesCount'>[], 
+    strategy: 'upsert' | 'append' | 'skip_existing' = 'upsert'
+  ): Promise<{ added: number; updated: number; skipped: number }> => {
+    let addedCount = 0;
+    let updatedCount = 0;
+    let skippedCount = 0;
+
+    const currentListingsMap = new Map<string, Listing>();
+    listings.forEach(l => {
+      // Key by sellerId + partNumber for unique identification
+      currentListingsMap.set(`${l.sellerId}_${l.partNumber.toLowerCase()}`, l);
+    });
+
+    const newListingsToAdd: Listing[] = [];
+    const updatedListingsMap = new Map<string, Listing>();
+    const firestoreBatch = writeBatch(db);
+
+    items.forEach((item, index) => {
+      const matchKey = `${item.sellerId}_${item.partNumber.toLowerCase()}`;
+      const existing = currentListingsMap.get(matchKey);
+
+      if (existing && strategy === 'skip_existing') {
+        skippedCount++;
+        return;
+      }
+
+      if (existing && strategy === 'upsert') {
+        const merged: Listing = {
+          ...existing,
+          ...item,
+          id: existing.id,
+          dateAdded: existing.dateAdded,
+          views: existing.views,
+          inquiriesCount: existing.inquiriesCount
+        };
+        updatedListingsMap.set(existing.id, merged);
+        updatedCount++;
+
+        const ref = doc(db, 'listings', existing.id);
+        firestoreBatch.set(ref, merged, { merge: true });
+      } else {
+        // Append or new item
+        const newId = `part-${Date.now().toString().slice(-4)}-${index + 100}-${Math.floor(Math.random() * 899 + 100)}`;
+        const created: Listing = {
+          ...item,
+          id: newId,
+          dateAdded: new Date().toISOString().split('T')[0],
+          views: 1,
+          inquiriesCount: 0
+        };
+        newListingsToAdd.push(created);
+        addedCount++;
+
+        const ref = doc(db, 'listings', newId);
+        firestoreBatch.set(ref, created);
+      }
+    });
+
+    // Commit to Firestore in background
+    firestoreBatch.commit().catch(err => {
+      handleFirestoreError(err, OperationType.WRITE, 'listings/bulk_batch');
+    });
+
+    // Update local React state
+    setListings(prev => {
+      // 1. Update existing
+      const updatedPrev = prev.map(l => updatedListingsMap.get(l.id) || l);
+      // 2. Prepend newly added
+      return [...newListingsToAdd, ...updatedPrev];
+    });
+
+    // Update seller activeListingsCount
+    if (addedCount > 0 && items.length > 0) {
+      const primarySellerId = items[0].sellerId;
+      setSellers(prev => prev.map(s => s.id === primarySellerId ? { ...s, activeListingsCount: s.activeListingsCount + addedCount } : s));
+    }
+
+    return { added: addedCount, updated: updatedCount, skipped: skippedCount };
   };
 
   const updateListing = (id: string, updates: Partial<Listing>) => {
@@ -773,6 +1007,145 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return false;
   };
 
+  const saveSubscriptionDiscountsToCloud = (discountsList: SubscriptionDiscount[]) => {
+    setSubscriptionDiscounts(discountsList);
+    setDoc(doc(db, 'system', 'subscription_discounts'), {
+      discounts: discountsList,
+      lastUpdated: new Date().toISOString()
+    }).catch(err => {
+      handleFirestoreError(err, OperationType.WRITE, 'system/subscription_discounts');
+    });
+  };
+
+  const addSubscriptionDiscount = (discountData: Omit<SubscriptionDiscount, 'id' | 'createdAt' | 'usageCount'>): SubscriptionDiscount => {
+    const newDiscount: SubscriptionDiscount = {
+      ...discountData,
+      id: `disc-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
+      code: discountData.code.trim().toUpperCase(),
+      usageCount: 0,
+      createdAt: new Date().toISOString()
+    };
+    const updated = [newDiscount, ...subscriptionDiscounts];
+    saveSubscriptionDiscountsToCloud(updated);
+    showNotification('Special Created', `Promo code ${newDiscount.code} is now live and ready.`, 'success');
+    return newDiscount;
+  };
+
+  const updateSubscriptionDiscount = (id: string, updates: Partial<SubscriptionDiscount>) => {
+    const updated = subscriptionDiscounts.map(d => {
+      if (d.id === id) {
+        return {
+          ...d,
+          ...updates,
+          code: updates.code ? updates.code.trim().toUpperCase() : d.code
+        };
+      }
+      return d;
+    });
+    saveSubscriptionDiscountsToCloud(updated);
+    showNotification('Special Updated', 'Subscription discount rules saved.', 'success');
+  };
+
+  const deleteSubscriptionDiscount = (id: string) => {
+    const updated = subscriptionDiscounts.filter(d => d.id !== id);
+    saveSubscriptionDiscountsToCloud(updated);
+    showNotification('Special Removed', 'Subscription discount code was deleted.', 'warning');
+  };
+
+  const toggleDiscountActive = (id: string) => {
+    const target = subscriptionDiscounts.find(d => d.id === id);
+    if (!target) return;
+    const updated = subscriptionDiscounts.map(d => d.id === id ? { ...d, isActive: !d.isActive } : d);
+    saveSubscriptionDiscountsToCloud(updated);
+    showNotification(
+      !target.isActive ? 'Special Activated' : 'Special Paused',
+      `Promo code ${target.code} is now ${!target.isActive ? 'active' : 'paused'}.`,
+      'info'
+    );
+  };
+
+  const toggleDiscountFeatured = (id: string) => {
+    const target = subscriptionDiscounts.find(d => d.id === id);
+    if (!target) return;
+    const updated = subscriptionDiscounts.map(d => d.id === id ? { ...d, isFeaturedOnCheckout: !d.isFeaturedOnCheckout } : d);
+    saveSubscriptionDiscountsToCloud(updated);
+    showNotification(
+      !target.isFeaturedOnCheckout ? 'Featured on Checkout' : 'Unfeatured from Checkout',
+      `Special "${target.title}" ${!target.isFeaturedOnCheckout ? 'will be highlighted' : 'hidden'} on seller checkout.`,
+      'success'
+    );
+  };
+
+  const validateAndApplyPromoCode = (
+    code: string, 
+    tier: SellerTier
+  ): { 
+    valid: boolean; 
+    discount?: SubscriptionDiscount; 
+    finalPriceZAR?: number; 
+    discountAmountZAR?: number; 
+    message?: string 
+  } => {
+    const cleanCode = code.trim().toUpperCase();
+    if (!cleanCode) {
+      return { valid: false, message: 'Please enter a promo code.' };
+    }
+
+    const plan = SUBSCRIPTION_PLANS.find(p => p.id === tier);
+    if (!plan) {
+      return { valid: false, message: 'Invalid subscription tier selected.' };
+    }
+
+    const discount = subscriptionDiscounts.find(d => d.code.toUpperCase() === cleanCode);
+    if (!discount) {
+      return { valid: false, message: `Promo code "${cleanCode}" was not found.` };
+    }
+
+    if (!discount.isActive) {
+      return { valid: false, message: `Promo code "${cleanCode}" is currently inactive or paused.` };
+    }
+
+    if (discount.validUntil && new Date(discount.validUntil).getTime() < new Date().setHours(0,0,0,0)) {
+      return { valid: false, message: `Promo code "${cleanCode}" expired on ${discount.validUntil}.` };
+    }
+
+    if (discount.usageLimit > 0 && discount.usageCount >= discount.usageLimit) {
+      return { valid: false, message: `Promo code "${cleanCode}" has reached its maximum redemptions (${discount.usageLimit}).` };
+    }
+
+    const tierMatches = discount.applicableTiers.includes('all') || discount.applicableTiers.includes(tier);
+    if (!tierMatches) {
+      return { 
+        valid: false, 
+        message: `Promo code "${cleanCode}" is only applicable to ${discount.applicableTiers.map(t => t.toUpperCase()).join(', ')} tiers.` 
+      };
+    }
+
+    let discountAmountZAR = 0;
+    let finalPriceZAR = plan.priceMonthlyZAR;
+
+    if (discount.discountType === 'percentage') {
+      discountAmountZAR = Math.round((plan.priceMonthlyZAR * discount.discountValue) / 100);
+      finalPriceZAR = Math.max(0, plan.priceMonthlyZAR - discountAmountZAR);
+    } else if (discount.discountType === 'fixed_amount') {
+      discountAmountZAR = Math.min(plan.priceMonthlyZAR, discount.discountValue);
+      finalPriceZAR = Math.max(0, plan.priceMonthlyZAR - discountAmountZAR);
+    } else if (discount.discountType === 'trial_days') {
+      discountAmountZAR = 0;
+      finalPriceZAR = plan.priceMonthlyZAR;
+    }
+
+    return {
+      valid: true,
+      discount,
+      finalPriceZAR,
+      discountAmountZAR,
+      message: discount.discountType === 'trial_days'
+        ? `Applied! You get ${discount.discountValue} extra free trial days.`
+        : `Applied! You save R${discountAmountZAR} with "${cleanCode}".`
+    };
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -783,6 +1156,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         firebaseConnected,
         listings,
         addListing,
+        bulkAddOrUpdateListings,
         updateListing,
         deleteListing,
         sellers,
@@ -790,6 +1164,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setCurrentSellerId,
         updateSellerSubscription,
         updateSellerStatus,
+        subscriptionDiscounts,
+        addSubscriptionDiscount,
+        updateSubscriptionDiscount,
+        deleteSubscriptionDiscount,
+        toggleDiscountActive,
+        toggleDiscountFeatured,
+        validateAndApplyPromoCode,
         users,
         updateUserStatus,
         updateUserRole,
@@ -820,6 +1201,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsCompareOpen,
         isAddEditModalOpen,
         setIsAddEditModalOpen,
+        isBulkUploadModalOpen,
+        setIsBulkUploadModalOpen,
         editingListing,
         setEditingListing,
         isSubscriptionModalOpen,
@@ -832,6 +1215,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsInstallModalOpen,
         isSearchEngineModalOpen,
         setIsSearchEngineModalOpen,
+        isWebLinkModalOpen,
+        setIsWebLinkModalOpen,
+        webLinkModalData,
+        setWebLinkModalData,
+        openWebLinkGenerator,
         isAdminAuthModalOpen,
         setIsAdminAuthModalOpen,
         isAdminAuthenticated,

@@ -11,10 +11,15 @@ import {
   HelpCircle, 
   Copy,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  Tag,
+  Percent,
+  Flame,
+  Gift,
+  AlertCircle
 } from 'lucide-react';
 import { SUBSCRIPTION_PLANS } from '../data/mockData';
-import { SellerTier } from '../types';
+import { SellerTier, SubscriptionDiscount } from '../types';
 
 export const SubscriptionModal: React.FC = () => {
   const { 
@@ -23,6 +28,8 @@ export const SubscriptionModal: React.FC = () => {
     currentSeller, 
     updateSellerSubscription,
     bankingDetails,
+    subscriptionDiscounts,
+    validateAndApplyPromoCode,
     showNotification
   } = useApp();
 
@@ -31,9 +38,46 @@ export const SubscriptionModal: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<'eft' | 'instant'>('eft');
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
+  // Promo code discount state
+  const [promoInput, setPromoInput] = useState('');
+  const [appliedDiscount, setAppliedDiscount] = useState<SubscriptionDiscount | null>(null);
+  const [discountSavingsZAR, setDiscountSavingsZAR] = useState(0);
+  const [finalDiscountedPriceZAR, setFinalDiscountedPriceZAR] = useState<number | null>(null);
+  const [promoMessage, setPromoMessage] = useState<string | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+
   if (!isSubscriptionModalOpen) return null;
 
   const currentPlan = SUBSCRIPTION_PLANS.find(p => p.id === selectedTier) || SUBSCRIPTION_PLANS[1];
+
+  const handleApplyPromo = (codeToApply = promoInput) => {
+    setPromoError(null);
+    setPromoMessage(null);
+    const res = validateAndApplyPromoCode(codeToApply, selectedTier);
+    if (res.valid && res.discount) {
+      setAppliedDiscount(res.discount);
+      setDiscountSavingsZAR(res.discountAmountZAR || 0);
+      setFinalDiscountedPriceZAR(res.finalPriceZAR ?? currentPlan.priceMonthlyZAR);
+      setPromoMessage(res.message || 'Promo code applied!');
+      setPromoInput(res.discount.code);
+      showNotification('Voucher Applied!', res.message || 'Discount applied to monthly billing.', 'success');
+    } else {
+      setAppliedDiscount(null);
+      setDiscountSavingsZAR(0);
+      setFinalDiscountedPriceZAR(null);
+      setPromoError(res.message || 'Invalid promo code for this tier.');
+      showNotification('Voucher Error', res.message || 'Unable to apply code.', 'warning');
+    }
+  };
+
+  const handleRemovePromo = () => {
+    setAppliedDiscount(null);
+    setDiscountSavingsZAR(0);
+    setFinalDiscountedPriceZAR(null);
+    setPromoMessage(null);
+    setPromoError(null);
+    setPromoInput('');
+  };
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -44,10 +88,23 @@ export const SubscriptionModal: React.FC = () => {
 
   const handleConfirmSubscription = () => {
     updateSellerSubscription(currentSeller.id, selectedTier);
+    if (appliedDiscount) {
+      showNotification(
+        'Subscription Activated with Special', 
+        `Plan updated with voucher ${appliedDiscount.code}. Savings: R${discountSavingsZAR}/mo.`, 
+        'success'
+      );
+    }
     setIsSubscriptionModalOpen(false);
   };
 
+  const activePayablePrice = finalDiscountedPriceZAR !== null ? finalDiscountedPriceZAR : currentPlan.priceMonthlyZAR;
   const paymentReference = `PS-SUB-${currentSeller.id.replace('seller-', '').toUpperCase()}`;
+
+  // Featured checkout discounts that apply to the selected tier or all tiers
+  const featuredDiscounts = subscriptionDiscounts.filter(
+    d => d.isActive && d.isFeaturedOnCheckout && (d.applicableTiers.includes('all') || d.applicableTiers.includes(selectedTier))
+  );
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6">
@@ -81,6 +138,56 @@ export const SubscriptionModal: React.FC = () => {
           
           {paymentStep === 'select' ? (
             <div className="space-y-6">
+              
+              {/* Featured Checkout Specials Banner */}
+              {featuredDiscounts.length > 0 && (
+                <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-slate-950 border border-amber-500/30 rounded-2xl p-4 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                      <Flame className="w-3.5 h-3.5" />
+                      Available Promotional Specials for Auto Dismantlers:
+                    </span>
+                    <span className="text-[10px] font-semibold text-slate-400">1-Click Apply</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {featuredDiscounts.map(d => (
+                      <div 
+                        key={d.id}
+                        className="bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 flex items-center justify-between hover:border-amber-500/50 transition-all"
+                      >
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono font-bold text-amber-300 text-xs">{d.code}</span>
+                            {d.badgeText && (
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500 text-slate-950">
+                                {d.badgeText}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-slate-400 block line-clamp-1 mt-0.5">{d.title}</span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPromoInput(d.code);
+                            handleApplyPromo(d.code);
+                          }}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                            appliedDiscount?.code === d.code
+                              ? 'bg-emerald-500 text-slate-950 font-black'
+                              : 'bg-amber-500/20 text-amber-400 hover:bg-amber-500 hover:text-slate-950 border border-amber-500/30'
+                          }`}
+                        >
+                          {appliedDiscount?.code === d.code ? '✓ Applied' : 'Apply'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div>
                 <h3 className="text-sm font-bold text-white">Select Monthly Advertising Plan</h3>
                 <p className="text-xs text-slate-400 mt-0.5">
@@ -93,11 +200,29 @@ export const SubscriptionModal: React.FC = () => {
                 {SUBSCRIPTION_PLANS.map(plan => {
                   const isSelected = selectedTier === plan.id;
                   const isCurrent = currentSeller?.subscriptionTier === plan.id;
+                  
+                  // If selected and discount is applied
+                  const hasDiscount = isSelected && appliedDiscount;
 
                   return (
                     <div
                       key={plan.id}
-                      onClick={() => setSelectedTier(plan.id)}
+                      onClick={() => {
+                        setSelectedTier(plan.id);
+                        if (appliedDiscount) {
+                          // revalidate for newly selected tier
+                          const res = validateAndApplyPromoCode(appliedDiscount.code, plan.id);
+                          if (res.valid && res.discount) {
+                            setDiscountSavingsZAR(res.discountAmountZAR || 0);
+                            setFinalDiscountedPriceZAR(res.finalPriceZAR ?? plan.priceMonthlyZAR);
+                          } else {
+                            setAppliedDiscount(null);
+                            setDiscountSavingsZAR(0);
+                            setFinalDiscountedPriceZAR(null);
+                            setPromoMessage(null);
+                          }
+                        }
+                      }}
                       className={`rounded-2xl p-5 border cursor-pointer transition-all flex flex-col justify-between ${
                         isSelected
                           ? 'bg-amber-500/10 border-amber-500 ring-2 ring-amber-500/50 shadow-lg shadow-amber-500/10'
@@ -113,10 +238,30 @@ export const SubscriptionModal: React.FC = () => {
                             </span>
                           )}
                         </div>
-                        <div className="text-2xl font-black text-amber-400 mb-3 font-sans">
-                          R{plan.priceMonthlyZAR}
-                          <span className="text-xs text-slate-400 font-normal"> /mo</span>
+
+                        <div className="mb-3">
+                          {hasDiscount && finalDiscountedPriceZAR !== null ? (
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-2xl font-black text-amber-400 font-sans">
+                                  R{finalDiscountedPriceZAR}
+                                </span>
+                                <span className="text-xs text-slate-500 line-through font-sans">
+                                  R{plan.priceMonthlyZAR}
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-emerald-400 font-bold block">
+                                {appliedDiscount.badgeText || `Save R${discountSavingsZAR}/mo`}
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="text-2xl font-black text-amber-400 font-sans">
+                              R{plan.priceMonthlyZAR}
+                              <span className="text-xs text-slate-400 font-normal"> /mo</span>
+                            </div>
+                          )}
                         </div>
+
                         <ul className="space-y-2 text-slate-300">
                           {plan.features.map((feat, idx) => (
                             <li key={idx} className="flex items-center gap-1.5">
@@ -142,6 +287,56 @@ export const SubscriptionModal: React.FC = () => {
                 })}
               </div>
 
+              {/* Promo Code Input Box */}
+              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-slate-300 font-bold uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                    <Tag className="w-3.5 h-3.5 text-amber-400" />
+                    Have a Special Promo / Discount Code?
+                  </label>
+                  {appliedDiscount && (
+                    <button
+                      type="button"
+                      onClick={handleRemovePromo}
+                      className="text-[10px] text-red-400 hover:underline"
+                    >
+                      Remove Code
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Enter code (e.g. SCRAPYARD25, PROMO25)"
+                    value={promoInput}
+                    onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+                    className="flex-1 px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-amber-400 font-mono font-bold text-xs uppercase focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder-slate-600"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleApplyPromo()}
+                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-amber-400 hover:text-white border border-amber-500/30 rounded-xl text-xs font-bold transition-all flex items-center gap-1"
+                  >
+                    <span>Apply Code</span>
+                  </button>
+                </div>
+
+                {promoMessage && (
+                  <div className="text-[11px] text-emerald-400 flex items-center gap-1.5 pt-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span>{promoMessage}</span>
+                  </div>
+                )}
+
+                {promoError && (
+                  <div className="text-[11px] text-red-400 flex items-center gap-1.5 pt-1">
+                    <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span>{promoError}</span>
+                  </div>
+                )}
+              </div>
+
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
                 <button
                   type="button"
@@ -155,7 +350,7 @@ export const SubscriptionModal: React.FC = () => {
                   onClick={() => setPaymentStep('invoice')}
                   className="px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl transition-all shadow-lg shadow-amber-500/20 flex items-center gap-1.5"
                 >
-                  <span>Proceed to Payment (R{currentPlan.priceMonthlyZAR}/mo)</span>
+                  <span>Proceed to Payment (R{activePayablePrice}/mo)</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
@@ -167,12 +362,31 @@ export const SubscriptionModal: React.FC = () => {
               <div className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700/60 flex items-center justify-between">
                 <div>
                   <span className="text-xs text-slate-400">Selected Plan:</span>
-                  <h4 className="text-base font-bold text-white">{currentPlan.name}</h4>
+                  <h4 className="text-base font-bold text-white flex items-center gap-2">
+                    {currentPlan.name}
+                    {appliedDiscount && (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-black bg-amber-500 text-slate-950">
+                        {appliedDiscount.code} ({appliedDiscount.badgeText})
+                      </span>
+                    )}
+                  </h4>
+                  {appliedDiscount && (
+                    <span className="text-[11px] text-emerald-400 block mt-0.5">
+                      Promotional discount applied (-R{discountSavingsZAR}/mo)
+                    </span>
+                  )}
                 </div>
                 <div className="text-right">
-                  <span className="text-xl font-black text-amber-400 font-sans">
-                    R{currentPlan.priceMonthlyZAR}
-                  </span>
+                  <div className="flex items-center justify-end gap-2">
+                    {appliedDiscount && (
+                      <span className="text-sm text-slate-500 line-through font-sans">
+                        R{currentPlan.priceMonthlyZAR}
+                      </span>
+                    )}
+                    <span className="text-2xl font-black text-amber-400 font-sans">
+                      R{activePayablePrice}
+                    </span>
+                  </div>
                   <span className="text-[10px] text-slate-400 block">Monthly Billing (excl. cancellation penalty)</span>
                 </div>
               </div>
@@ -305,7 +519,7 @@ export const SubscriptionModal: React.FC = () => {
                   onClick={() => setPaymentStep('select')}
                   className="text-xs text-slate-400 hover:text-white underline"
                 >
-                  ← Back to Plans
+                  ← Back to Plans & Vouchers
                 </button>
 
                 <button
@@ -314,7 +528,7 @@ export const SubscriptionModal: React.FC = () => {
                   className="px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl transition-all shadow-lg shadow-amber-500/20 flex items-center gap-2"
                 >
                   <Check className="w-4 h-4 stroke-[3]" />
-                  <span>Activate / Renew Monthly Subscription</span>
+                  <span>Activate / Renew Monthly (R{activePayablePrice})</span>
                 </button>
               </div>
 

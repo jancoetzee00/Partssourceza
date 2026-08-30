@@ -20,10 +20,12 @@ import { WhatsAppDirectModal } from './components/WhatsAppDirectModal';
 import { WhatsAppQuickWidget } from './components/WhatsAppQuickWidget';
 import { AdminAuthModal } from './components/AdminAuthModal';
 import { SearchEngineExposureModal } from './components/SearchEngineExposureModal';
-import { CheckCircle2, AlertCircle, Info, Car, Heart, ShieldCheck, Download, Smartphone, Monitor, Globe } from 'lucide-react';
+import { BulkInventoryModal } from './components/BulkInventoryModal';
+import { WebLinkShareModal } from './components/WebLinkShareModal';
+import { CheckCircle2, AlertCircle, Info, Car, Heart, ShieldCheck, Download, Smartphone, Monitor, Globe, Share2, Link as LinkIcon } from 'lucide-react';
 
 const MainContent: React.FC = () => {
-  const { role, activeNotification, setIsInstallModalOpen, setIsSearchEngineModalOpen } = useApp();
+  const { role, activeNotification, setIsInstallModalOpen, setIsSearchEngineModalOpen, setIsWebLinkModalOpen } = useApp();
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-slate-950">
@@ -49,6 +51,8 @@ const MainContent: React.FC = () => {
       <WhatsAppDirectModal />
       <AdminAuthModal />
       <SearchEngineExposureModal />
+      <BulkInventoryModal />
+      <WebLinkShareModal />
 
       {/* Floating Direct WhatsApp Widget */}
       <WhatsAppQuickWidget />
@@ -93,6 +97,15 @@ const MainContent: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-[11px]">
+            <button
+              onClick={() => setIsWebLinkModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition-colors font-bold shadow-sm"
+              title="Share Search Link & QR Generator (partssource.co.za)"
+            >
+              <Share2 className="w-3.5 h-3.5 text-amber-400" />
+              <span>Web Link & Search Share</span>
+            </button>
+
             <button
               onClick={() => setIsSearchEngineModalOpen(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 transition-colors font-semibold"

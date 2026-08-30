@@ -40,10 +40,13 @@ import {
   HelpCircle,
   KeyRound,
   Filter,
-  Globe
+  Globe,
+  Tag,
+  Percent
 } from 'lucide-react';
 import { AppBankingDetails, SellerTier, UserRole, PlatformUser, Order } from '../types';
 import { SUBSCRIPTION_PLANS, SA_PROVINCES, ROLE_PERMISSIONS_MATRIX } from '../data/mockData';
+import { AdminSubscriptionDiscounts } from './AdminSubscriptionDiscounts';
 
 export const OwnerAdminDashboard: React.FC = () => {
   const { 
@@ -52,6 +55,7 @@ export const OwnerAdminDashboard: React.FC = () => {
     orders, 
     inquiries, 
     users,
+    subscriptionDiscounts,
     deleteListing, 
     updateListing, 
     setEditingListing, 
@@ -82,7 +86,7 @@ export const OwnerAdminDashboard: React.FC = () => {
   const [showInlinePassword, setShowInlinePassword] = useState(false);
   const [inlineError, setInlineError] = useState('');
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'listings' | 'sellers' | 'transactions' | 'roles' | 'banking'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'listings' | 'sellers' | 'discounts' | 'transactions' | 'roles' | 'banking'>('overview');
   
   // Search & Filter states
   const [listingSearch, setListingSearch] = useState('');
@@ -473,6 +477,17 @@ export const OwnerAdminDashboard: React.FC = () => {
             >
               <Building2 className="w-3.5 h-3.5" />
               <span>Sellers & Subscriptions ({sellers.length})</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('discounts')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                activeTab === 'discounts' 
+                  ? 'bg-amber-500 text-slate-950 font-black' 
+                  : 'bg-slate-950 text-amber-400 hover:bg-slate-800 hover:text-white border border-amber-500/30'
+              }`}
+            >
+              <Tag className="w-3.5 h-3.5" />
+              <span>Specials & Discounts ({subscriptionDiscounts.filter(d => d.isActive).length})</span>
             </button>
             <button
               onClick={() => setActiveTab('transactions')}
@@ -1310,6 +1325,11 @@ export const OwnerAdminDashboard: React.FC = () => {
               })}
           </div>
         </div>
+      )}
+
+      {/* TAB: Subscription Specials & Discounts Master */}
+      {activeTab === 'discounts' && (
+        <AdminSubscriptionDiscounts />
       )}
 
       {/* TAB 5: Transactions & Orders Master */}

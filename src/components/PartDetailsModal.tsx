@@ -32,6 +32,7 @@ export const PartDetailsModal: React.FC = () => {
     createInquiry,
     setIsCheckoutOpen,
     openWhatsAppChat,
+    openWebLinkGenerator,
     showNotification
   } = useApp();
 
@@ -96,6 +97,20 @@ export const PartDetailsModal: React.FC = () => {
             </span>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => openWebLinkGenerator({
+                initialPartId: selectedListing.id,
+                initialMake: selectedListing.make,
+                initialModel: selectedListing.model,
+                initialCategory: selectedListing.category,
+                initialProvince: selectedListing.locationProvince
+              })}
+              className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30"
+              title="Share deep-link & QR code for this part"
+            >
+              <Share2 className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">Share Link & QR</span>
+            </button>
             <button
               onClick={() => inCompare ? removeFromCompare(selectedListing.id) : addToCompare(selectedListing)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${

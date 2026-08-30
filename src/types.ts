@@ -62,6 +62,25 @@ export type SouthAfricanProvince =
 
 export type SellerTier = 'starter' | 'pro' | 'enterprise';
 
+export interface SubscriptionDiscount {
+  id: string;
+  code: string;
+  title: string;
+  description: string;
+  discountType: 'percentage' | 'fixed_amount' | 'trial_days';
+  discountValue: number;
+  applicableTiers: ('all' | SellerTier)[];
+  validUntil: string;
+  usageLimit: number;
+  usageCount: number;
+  isActive: boolean;
+  isFeaturedOnCheckout: boolean;
+  badgeText?: string;
+  bannerMessage?: string;
+  createdAt: string;
+  createdBy?: string;
+}
+
 export interface SubscriptionPlan {
   id: SellerTier;
   name: string;
@@ -208,6 +227,17 @@ export interface AppBankingDetails {
   supportContact: string;
   lastUpdated: string;
   updatedBy: string;
+}
+
+export interface WebLinkModalData {
+  initialSearch?: string;
+  initialMake?: string;
+  initialModel?: string;
+  initialCategory?: string;
+  initialProvince?: string;
+  initialPartId?: string;
+  initialSellerId?: string;
+  customTitle?: string;
 }
 
 export interface VehicleFilterState {

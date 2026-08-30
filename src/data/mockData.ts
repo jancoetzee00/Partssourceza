@@ -2,6 +2,7 @@ import {
   Listing, 
   SellerAccount, 
   SubscriptionPlan, 
+  SubscriptionDiscount,
   AppBankingDetails, 
   Order, 
   BuyerInquiry,
@@ -75,6 +76,99 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       'Top-tier Verified Supplier Banner',
       'Bulk CSV Inventory Import Support'
     ]
+  }
+];
+
+export const INITIAL_SUBSCRIPTION_DISCOUNTS: SubscriptionDiscount[] = [
+  {
+    id: 'disc-scrapyard25',
+    code: 'SCRAPYARD25',
+    title: 'Spring Scrap Yard Special',
+    description: '25% discount on all monthly subscription tiers for verified South African automotive dismantlers.',
+    discountType: 'percentage',
+    discountValue: 25,
+    applicableTiers: ['all'],
+    validUntil: '2026-12-31',
+    usageLimit: 100,
+    usageCount: 23,
+    isActive: true,
+    isFeaturedOnCheckout: true,
+    badgeText: '🔥 25% OFF',
+    bannerMessage: 'Spring Special: 25% OFF all supplier tiers for active automotive dismantlers!',
+    createdAt: '2026-08-01T00:00:00Z',
+    createdBy: 'Admin (Marketing)'
+  },
+  {
+    id: 'disc-progrow150',
+    code: 'PROGROWTH150',
+    title: 'Pro Supplier Kickstart',
+    description: 'R150 instant discount on the Gold Pro Auto Dismantler plan (75 listings + 8 featured).',
+    discountType: 'fixed_amount',
+    discountValue: 150,
+    applicableTiers: ['pro'],
+    validUntil: '2026-11-30',
+    usageLimit: 50,
+    usageCount: 14,
+    isActive: true,
+    isFeaturedOnCheckout: true,
+    badgeText: '⚡ R150 OFF',
+    bannerMessage: 'Get R150 OFF the Pro Supplier tier this month!',
+    createdAt: '2026-08-10T00:00:00Z',
+    createdBy: 'Admin (Promotions)'
+  },
+  {
+    id: 'disc-fleetvip30',
+    code: 'FLEETVIP30',
+    title: 'Heavy Commercial & Fleet Mega Dealer',
+    description: '30% discount on the Diamond Enterprise Tier for heavy commercial truck and fleet suppliers.',
+    discountType: 'percentage',
+    discountValue: 30,
+    applicableTiers: ['enterprise'],
+    validUntil: '2026-10-31',
+    usageLimit: 25,
+    usageCount: 6,
+    isActive: true,
+    isFeaturedOnCheckout: false,
+    badgeText: '🚛 30% OFF',
+    bannerMessage: 'Commercial Fleet Launch: 30% OFF Diamond Enterprise plan for truck parts suppliers.',
+    createdAt: '2026-08-15T00:00:00Z',
+    createdBy: 'Admin (Commercial Sales)'
+  },
+  {
+    id: 'disc-gautengtrial14',
+    code: 'TRIAL14DAY',
+    title: 'Extended 14-Day Free Evaluation',
+    description: '14 extra trial days for new scrap yards and spares sellers setting up their inventory.',
+    discountType: 'trial_days',
+    discountValue: 14,
+    applicableTiers: ['all'],
+    validUntil: '2026-12-31',
+    usageLimit: 200,
+    usageCount: 42,
+    isActive: true,
+    isFeaturedOnCheckout: true,
+    badgeText: '🇿🇦 14-DAY BONUS',
+    bannerMessage: 'New supplier welcome: Get 14 extra trial days to test inquiries and leads!',
+    createdAt: '2026-08-01T00:00:00Z',
+    createdBy: 'Admin (Onboarding)'
+  },
+  {
+    id: 'disc-boland20',
+    code: 'WESTERNCAPE20',
+    title: 'Western Cape & Coastal Yard Promo',
+    description: '20% OFF Starter and Pro monthly advertising for coastal suppliers and breaker yards.',
+    discountType: 'percentage',
+    discountValue: 20,
+    applicableTiers: ['starter', 'pro'],
+    validUntil: '2026-09-30',
+    usageLimit: 40,
+    usageCount: 9,
+    isActive: true,
+    isFeaturedOnCheckout: false,
+    badgeText: '🌊 20% OFF',
+    bannerMessage: 'Western Cape Auto Breakers Promo: 20% OFF Starter & Pro tiers.',
+    createdAt: '2026-08-18T00:00:00Z',
+    createdBy: 'Admin (Regional Growth)'
   }
 ];
 

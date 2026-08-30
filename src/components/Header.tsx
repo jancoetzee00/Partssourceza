@@ -21,7 +21,9 @@ import {
   Monitor,
   Lock,
   Unlock,
-  Globe
+  Globe,
+  Share2,
+  Link as LinkIcon
 } from 'lucide-react';
 import { UserRole } from '../types';
 
@@ -42,6 +44,9 @@ export const Header: React.FC = () => {
     setIsInstallModalOpen,
     isSearchEngineModalOpen,
     setIsSearchEngineModalOpen,
+    isWebLinkModalOpen,
+    setIsWebLinkModalOpen,
+    openWebLinkGenerator,
     isAdminAuthenticated,
     setIsAdminAuthModalOpen,
     logoutAdmin,
@@ -140,10 +145,24 @@ export const Header: React.FC = () => {
           {/* Role Switcher & Action Controls */}
           <div className="flex items-center gap-2 sm:gap-3">
             
+            {/* Web Link & Easy Search Share Hub Trigger */}
+            <button
+              onClick={() => openWebLinkGenerator()}
+              className="relative px-3 py-2 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 hover:text-amber-200 border border-amber-500/40 hover:border-amber-500/60 transition-all flex items-center gap-1.5 text-xs font-bold shadow-sm group"
+              title="Generate Web Link for Easy Search & QR Codes (partssource.co.za)"
+            >
+              <Share2 className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
+              <span className="hidden lg:inline">Web Link</span>
+              <span className="lg:hidden">Link</span>
+              <span className="hidden xl:inline-block px-1 py-0.2 bg-amber-400/20 text-amber-300 rounded text-[9px] font-mono">
+                za.co.za
+              </span>
+            </button>
+
             {/* Universal One-Click Install App Button (Mobile & Desktop) */}
             <button
               onClick={() => setIsInstallModalOpen(true)}
-              className="relative px-3 py-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 hover:text-amber-200 border border-amber-500/30 hover:border-amber-500/50 transition-all flex items-center gap-1.5 text-xs font-bold shadow-sm group"
+              className="relative px-3 py-2 rounded-lg bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 hover:text-white border border-slate-700/80 transition-all flex items-center gap-1.5 text-xs font-bold shadow-sm group"
               title="Install Part Source ZA for Mobile & Desktop"
             >
               <Download className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
