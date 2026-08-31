@@ -1,26 +1,48 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 
 async function startServer() {
   const app = express();
-  const PORT = Number(process.env.PORT) || 3000;
+  const PORT = 3000;
 
-  // Body parsing middleware
-  app.use(express.json());
+  // Body parsing middleware with error-safe limits
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+  // Handle JSON parse errors safely
+  app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+    if (err instanceof SyntaxError && 'status' in err && (err as any).status === 400 && 'body' in err) {
+      return res.status(400).json({ error: 'Malformed JSON payload' });
+    }
+    next(err);
+  });
 
   // API Routes
-  app.get('/api/health', (req, res) => {
+  app.get('/api/health', (req: Request, res: Response) => {
     res.json({ 
       status: 'ok', 
       app: 'Part Source ZA',
+      version: '1.0.0',
+      database: 'Firebase Firestore',
+      databaseId: 'ai-studio-partsourceza-0798c94a-3733-45c0-b790-a3dbc431cd3c',
       environment: process.env.NODE_ENV || 'development',
       timestamp: new Date().toISOString()
     });
   });
 
+  app.get('/api/system/status', (req: Request, res: Response) => {
+    res.json({
+      status: 'operational',
+      uptime: process.uptime(),
+      memoryUsageMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+      nodeVersion: process.version,
+      timestamp: new Date().toISOString()
+    });
+  });
+
   // Dynamic robots.txt for search engines (Googlebot, Bingbot, Social bots)
-  app.get('/robots.txt', (req, res) => {
+  app.get('/robots.txt', (req: Request, res: Response) => {
     const host = req.get('host') || 'localhost:3000';
     const protocol = req.protocol === 'https' || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
     const sitemapUrl = `${protocol}://${host}/sitemap.xml`;
@@ -57,7 +79,7 @@ Sitemap: ${sitemapUrl}
   });
 
   // Dynamic XML Sitemap for Google Search Console & Bing Webmaster Tools
-  app.get('/sitemap.xml', (req, res) => {
+  app.get('/sitemap.xml', (req: Request, res: Response) => {
     const host = req.get('host') || 'localhost:3000';
     const protocol = req.protocol === 'https' || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
     const baseUrl = `${protocol}://${host}`;
@@ -125,7 +147,7 @@ ${urlsXml}
   });
 
   // SEO & Web Exposure Analytics and Keyword Intelligence API
-  app.get('/api/seo/data', (req, res) => {
+  app.get('/api/seo/data', (req: Request, res: Response) => {
     res.json({
       meta: {
         siteName: 'Part Source ZA',
@@ -153,6 +175,11 @@ ${urlsXml}
     });
   });
 
+  // Catch-all for undefined /api/* endpoints so they return structured JSON errors
+  app.all('/api/*', (req: Request, res: Response) => {
+    res.status(404).json({ error: `API endpoint not found: ${req.method} ${req.path}` });
+  });
+
   // Vite middleware for development vs Static file serving for production
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
@@ -163,10 +190,19 @@ ${urlsXml}
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
+    app.get('*', (req: Request, res: Response) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
+
+  // Global error handler
+  app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+    console.error('Unhandled server error:', err);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: err?.message || 'An unexpected error occurred'
+    });
+  });
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Part Source ZA server running on http://0.0.0.0:${PORT} [${process.env.NODE_ENV || 'development'}]`);
