@@ -74,8 +74,8 @@ export const Header: React.FC = () => {
   return (
     <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-xl border-b border-slate-800/90 shadow-xl shadow-black/40">
       
-      {/* Dev App Alert Strip */}
-      {isDevApp && (
+      {/* Dev App Alert Strip - ONLY visible to authenticated Administrators */}
+      {isDevApp && isAdminAuthenticated && role === 'admin' && (
         <div className="bg-gradient-to-r from-amber-950/90 via-slate-900 to-indigo-950/90 border-b border-amber-500/30 px-4 py-1 text-xs text-amber-200">
           <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap">
@@ -85,7 +85,7 @@ export const Header: React.FC = () => {
               </span>
               <span className="font-bold uppercase text-[10px] text-amber-400 tracking-wider flex items-center gap-1">
                 <Terminal className="w-3 h-3" />
-                Dev Mode
+                Dev Mode Active (Admin Only)
               </span>
               <span className="text-slate-400 text-[11px] hidden sm:inline">
                 • Banking details & sandbox simulation unlocked in Admin Hub

@@ -185,20 +185,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [role, setRole] = useState<UserRole>('buyer');
   const [firebaseConnected, setFirebaseConnected] = useState<boolean>(true);
   
-  // Detect if running in Dev App environment or dev mode
+  // Detect if running in Dev App environment or explicit dev flag
   const [isDevApp, setIsDevApp] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
-      const hostname = window.location.hostname;
       const href = window.location.href;
       return (
-        hostname === 'localhost' || 
-        hostname === '127.0.0.1' || 
-        href.includes('ais-dev-') || 
-        localStorage.getItem('partsource_dev_mode') === 'true' ||
-        true
+        href.includes('dev=true') || 
+        localStorage.getItem('partsource_dev_mode') === 'true'
       );
     }
-    return true;
+    return false;
   });
 
   // Persistent listings with Firestore real-time sync & local fallback
