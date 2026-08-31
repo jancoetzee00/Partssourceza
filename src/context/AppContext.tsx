@@ -8,6 +8,7 @@ import {
   BuyerInquiry, 
   VehicleFilterState,
   SellerTier,
+  SouthAfricanProvince,
   PlatformUser,
   WhatsAppModalData,
   WhatsAppIntentType,
@@ -122,6 +123,27 @@ interface AppContextType {
   webLinkModalData: WebLinkModalData | null;
   setWebLinkModalData: (data: WebLinkModalData | null) => void;
   openWebLinkGenerator: (data?: WebLinkModalData) => void;
+  isSellerAuthModalOpen: boolean;
+  setIsSellerAuthModalOpen: (open: boolean) => void;
+  sellerAuthMode: 'login' | 'register';
+  setSellerAuthMode: (mode: 'login' | 'register') => void;
+  openSellerAuth: (mode?: 'login' | 'register') => void;
+  registerNewSeller: (newSellerData: {
+    businessName: string;
+    registrationNumber?: string;
+    contactPerson: string;
+    email: string;
+    phone: string;
+    whatsapp: string;
+    province: SouthAfricanProvince;
+    city: string;
+    address?: string;
+    subscriptionTier?: SellerTier;
+    billingCycle?: 'monthly' | 'annual';
+    promoCode?: string;
+  }) => SellerAccount;
+  loginSeller: (sellerId: string) => boolean;
+  loginSellerByCredentials: (identifier: string, passwordOrPin?: string) => { success: boolean; message?: string; seller?: SellerAccount };
   isAdminAuthModalOpen: boolean;
   setIsAdminAuthModalOpen: (open: boolean) => void;
   isAdminAuthenticated: boolean;
@@ -295,6 +317,132 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
     }
     setIsWebLinkModalOpen(true);
+  };
+
+  // Seller Auth Modal & Onboarding State
+  const [isSellerAuthModalOpen, setIsSellerAuthModalOpen] = useState<boolean>(false);
+  const [sellerAuthMode, setSellerAuthMode] = useState<'login' | 'register'>('login');
+
+  const openSellerAuth = (mode: 'login' | 'register' = 'login') => {
+    setSellerAuthMode(mode);
+    setIsSellerAuthModalOpen(true);
+  };
+
+  const loginSeller = (sellerId: string): boolean => {
+    const target = sellers.find(s => s.id === sellerId);
+    if (target) {
+      setCurrentSellerId(sellerId);
+      setRole('seller');
+      setIsSellerAuthModalOpen(false);
+      showNotification('Seller Logged In', `Welcome back, ${target.businessName}!`, 'success');
+      return true;
+    }
+    showNotification('Seller Not Found', 'Could not locate supplier account.', 'warning');
+    return false;
+  };
+
+  const loginSellerByCredentials = (identifier: string, _passwordOrPin?: string): { success: boolean; message?: string; seller?: SellerAccount } => {
+    const cleanId = identifier.trim().toLowerCase();
+    const cleanNum = identifier.replace(/[^0-9]/g, '');
+
+    const match = sellers.find(s => 
+      s.id.toLowerCase() === cleanId ||
+      s.email.toLowerCase() === cleanId ||
+      s.businessName.toLowerCase().includes(cleanId) ||
+      (cleanNum.length >= 7 && (s.phone.replace(/[^0-9]/g, '').includes(cleanNum) || s.whatsapp.includes(cleanNum)))
+    );
+
+    if (match) {
+      setCurrentSellerId(match.id);
+      setRole('seller');
+      setIsSellerAuthModalOpen(false);
+      showNotification('Seller Authenticated', `Signed in as ${match.businessName} (${match.subscriptionTier.toUpperCase()} plan).`, 'success');
+      return { success: true, seller: match };
+    }
+
+    showNotification('Sign In Failed', 'No matching supplier account found. Please check details or register.', 'warning');
+    return { success: false, message: 'Supplier account not found for provided email/phone.' };
+  };
+
+  const registerNewSeller = (newSellerData: {
+    businessName: string;
+    registrationNumber?: string;
+    contactPerson: string;
+    email: string;
+    phone: string;
+    whatsapp: string;
+    province: SouthAfricanProvince;
+    city: string;
+    address?: string;
+    subscriptionTier?: SellerTier;
+    billingCycle?: 'monthly' | 'annual';
+    promoCode?: string;
+  }): SellerAccount => {
+    const newId = `seller-${newSellerData.province.toLowerCase().replace(/\s+/g, '').slice(0, 3)}-${Date.now().toString().slice(-4)}`;
+    const tier = newSellerData.subscriptionTier || 'pro';
+    
+    const newSeller: SellerAccount = {
+      id: newId,
+      businessName: newSellerData.businessName.trim(),
+      registrationNumber: newSellerData.registrationNumber?.trim() || `${new Date().getFullYear()}/${Math.floor(Math.random() * 899999 + 100000)}/07`,
+      contactPerson: newSellerData.contactPerson.trim(),
+      email: newSellerData.email.trim().toLowerCase(),
+      phone: newSellerData.phone.trim(),
+      whatsapp: newSellerData.whatsapp.replace(/[^0-9]/g, '') || newSellerData.phone.replace(/[^0-9]/g, ''),
+      province: newSellerData.province,
+      city: newSellerData.city.trim(),
+      address: newSellerData.address?.trim() || `${newSellerData.city}, ${newSellerData.province}`,
+      rating: 5.0,
+      totalReviews: 1,
+      verified: true,
+      subscriptionTier: tier,
+      subscriptionStatus: 'active',
+      subscriptionRenewsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      joinedDate: new Date().toISOString().split('T')[0],
+      totalSalesZAR: 0,
+      activeListingsCount: 0
+    };
+
+    // Add to local state and switch
+    setSellers(prev => [newSeller, ...prev]);
+    setCurrentSellerId(newSeller.id);
+    setRole('seller');
+    setIsSellerAuthModalOpen(false);
+
+    // Save to Firestore
+    setDoc(doc(db, 'sellers', newSeller.id), newSeller).catch(err => {
+      handleFirestoreError(err, OperationType.CREATE, `sellers/${newSeller.id}`);
+    });
+
+    // Also register user profile
+    const newUserProfile: PlatformUser = {
+      id: `usr-${newSeller.id}`,
+      name: newSeller.contactPerson,
+      email: newSeller.email,
+      phone: newSeller.phone,
+      role: 'seller',
+      status: 'active',
+      associatedBusinessName: newSeller.businessName,
+      province: newSeller.province,
+      city: newSeller.city,
+      ordersCount: 0,
+      totalSpentZAR: 0,
+      lastActive: 'Just now',
+      joinedDate: newSeller.joinedDate
+    };
+    setUsers(prev => [newUserProfile, ...prev]);
+    setDoc(doc(db, 'users', newUserProfile.id), newUserProfile).catch(err => {
+      handleFirestoreError(err, OperationType.CREATE, `users/${newUserProfile.id}`);
+    });
+
+    const plan = SUBSCRIPTION_PLANS.find(p => p.id === tier);
+    showNotification(
+      'Supplier Account Created!', 
+      `Welcome ${newSeller.businessName}! Activated on the ${plan?.name || tier} plan.`, 
+      'success'
+    );
+
+    return newSeller;
   };
   const [isAdminAuthModalOpen, setIsAdminAuthModalOpen] = useState<boolean>(false);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
@@ -1220,6 +1368,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         webLinkModalData,
         setWebLinkModalData,
         openWebLinkGenerator,
+        isSellerAuthModalOpen,
+        setIsSellerAuthModalOpen,
+        sellerAuthMode,
+        setSellerAuthMode,
+        openSellerAuth,
+        registerNewSeller,
+        loginSeller,
+        loginSellerByCredentials,
         isAdminAuthModalOpen,
         setIsAdminAuthModalOpen,
         isAdminAuthenticated,

@@ -29,7 +29,10 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
     id: 'starter',
     name: 'Starter Supplier',
+    tagline: 'Ideal for local scrapyards & independent auto mechanics',
+    description: 'Establish your presence on Part Source ZA with verified supplier badging and direct WhatsApp inquiries.',
     priceMonthlyZAR: 299,
+    priceAnnualMonthlyZAR: 239,
     listingLimit: 15,
     featuredListingsLimit: 1,
     commissionFee: '0% (Direct Buyer Contact)',
@@ -37,15 +40,19 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     features: [
       'Up to 15 Active Spares Listings',
       '1 Featured Spotlight Listing',
-      'Direct WhatsApp & Call Leads',
+      'Direct WhatsApp & Phone Buyer Leads',
       'Local Scrap Yard / Shop Badge',
-      'Standard Search Priority'
+      'Standard Search Engine Priority',
+      'Standard Part Photos (Up to 3 per part)'
     ]
   },
   {
     id: 'pro',
     name: 'Pro Auto Dismantler',
+    tagline: 'Most popular for established breaker yards & spares shops',
+    description: 'Maximize sales volume with top search placement, instant buyer quote broadcasts, and bulk lead tracking.',
     priceMonthlyZAR: 699,
+    priceAnnualMonthlyZAR: 559,
     popular: true,
     listingLimit: 75,
     featuredListingsLimit: 8,
@@ -57,24 +64,55 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       'Priority Search & Comparison Ranking',
       'Instant Quote Request Broadcast Alerts',
       'Direct Buyer Lead Management Inbox',
-      'Nationwide Courier Tagging'
+      'Nationwide Courier Tagging & Estimates',
+      'High-Resolution Part Photos & Videos',
+      'Custom Web Link & Storefront QR Generator'
     ]
   },
   {
     id: 'enterprise',
-    name: 'Heavy Duty & Mega Dealer',
+    name: 'Heavy Duty & Commercial Mega Dealer',
+    tagline: 'Built for large truck salvage yards, engine importers & fleet suppliers',
+    description: 'High-capacity inventory syndication with Bulk CSV/Excel tools, unlimited inquiries, and VIP dedicated account manager.',
     priceMonthlyZAR: 1499,
+    priceAnnualMonthlyZAR: 1199,
+    bestValue: true,
     listingLimit: 500,
     featuredListingsLimit: 30,
     commissionFee: '0% (Direct Buyer Contact)',
     badgeName: 'Diamond Commercial Partner',
     features: [
-      'Up to 500 Active Listings (Car & Truck)',
+      'Up to 500 Active Listings (Car, Bakkie & Truck)',
       '30 Featured Spotlight Listings',
-      'Truck & Fleet Fleet Inventory Syndication',
-      'Dedicated Account Manager & Phone Line',
-      'Top-tier Verified Supplier Banner',
-      'Bulk CSV Inventory Import Support'
+      'Truck & Heavy Fleet Inventory Syndication',
+      'Bulk CSV & Excel Inventory Importer & Exporter',
+      'Dedicated Account Manager & Priority Phone Line',
+      'Top-Tier Verified Supplier Banner & Trust Badge',
+      'Google Search Console Indexing Acceleration',
+      'Multi-User WhatsApp Dispatcher Integration'
+    ]
+  },
+  {
+    id: 'network',
+    name: 'National Scrap Yard Group & Multi-Branch Network',
+    tagline: 'Complete digital infrastructure for multi-location automotive salvage networks',
+    description: 'Centralized management across branches nationwide with unlimited listings, API integrations, and premium brand prominence.',
+    priceMonthlyZAR: 2499,
+    priceAnnualMonthlyZAR: 1999,
+    isNew: true,
+    listingLimit: 9999,
+    featuredListingsLimit: 100,
+    commissionFee: '0% (Direct Buyer Contact)',
+    badgeName: 'National Network Partner',
+    features: [
+      'Unlimited Active Parts Listings',
+      '100 Featured Spotlight Listings',
+      'Multi-Branch Scrap Yard Switching (Gauteng, Cape, KZN)',
+      'Automated Inventory API & ERP Connector',
+      'Priority WhatsApp Direct Lead Automation',
+      'Featured Banner on Part Source Homepage & Search',
+      'Comprehensive Fleet Buyer Directory Access',
+      '24/7 VIP Engineering & Account Support'
     ]
   }
 ];

@@ -188,15 +188,20 @@ export const SubscriptionModal: React.FC = () => {
                 </div>
               )}
 
-              <div>
-                <h3 className="text-sm font-bold text-white">Select Monthly Advertising Plan</h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Reach mechanics, panel beaters, and car owners searching for spares in South Africa.
-                </p>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-sm font-bold text-white">Select Supplier Subscription Plan & Pricing</h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Reach mechanics, panel beaters, and car owners searching for spares in South Africa.
+                  </p>
+                </div>
+                <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-full self-start sm:self-auto">
+                  0% Sales Commission • Direct WhatsApp Leads
+                </span>
               </div>
 
               {/* Plans Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                 {SUBSCRIPTION_PLANS.map(plan => {
                   const isSelected = selectedTier === plan.id;
                   const isCurrent = currentSeller?.subscriptionTier === plan.id;
@@ -223,27 +228,41 @@ export const SubscriptionModal: React.FC = () => {
                           }
                         }
                       }}
-                      className={`rounded-2xl p-5 border cursor-pointer transition-all flex flex-col justify-between ${
+                      className={`rounded-2xl p-4 border cursor-pointer transition-all flex flex-col justify-between ${
                         isSelected
                           ? 'bg-amber-500/10 border-amber-500 ring-2 ring-amber-500/50 shadow-lg shadow-amber-500/10'
-                          : 'bg-slate-950/80 border-slate-800 hover:border-slate-700 opacity-80 hover:opacity-100'
+                          : 'bg-slate-950/80 border-slate-800 hover:border-slate-700 opacity-85 hover:opacity-100'
                       }`}
                     >
                       <div>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="font-bold text-white text-sm">{plan.name}</span>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-bold text-white text-xs sm:text-sm">{plan.name}</span>
                           {plan.popular && (
-                            <span className="text-[10px] bg-amber-500 text-slate-950 font-black px-1.5 py-0.2 rounded">
+                            <span className="text-[9px] bg-amber-500 text-slate-950 font-black px-1.5 py-0.2 rounded">
                               POPULAR
                             </span>
                           )}
+                          {plan.bestValue && (
+                            <span className="text-[9px] bg-purple-500 text-white font-black px-1.5 py-0.2 rounded">
+                              BEST VALUE
+                            </span>
+                          )}
+                          {plan.isNew && (
+                            <span className="text-[9px] bg-emerald-500 text-slate-950 font-black px-1.5 py-0.2 rounded">
+                              NEW NETWORK
+                            </span>
+                          )}
                         </div>
+
+                        <p className="text-[10px] text-slate-400 mb-2 line-clamp-2">
+                          {plan.tagline}
+                        </p>
 
                         <div className="mb-3">
                           {hasDiscount && finalDiscountedPriceZAR !== null ? (
                             <div>
                               <div className="flex items-center gap-2">
-                                <span className="text-2xl font-black text-amber-400 font-sans">
+                                <span className="text-xl font-black text-amber-400 font-sans">
                                   R{finalDiscountedPriceZAR}
                                 </span>
                                 <span className="text-xs text-slate-500 line-through font-sans">
@@ -255,31 +274,31 @@ export const SubscriptionModal: React.FC = () => {
                               </span>
                             </div>
                           ) : (
-                            <div className="text-2xl font-black text-amber-400 font-sans">
+                            <div className="text-xl font-black text-amber-400 font-sans">
                               R{plan.priceMonthlyZAR}
                               <span className="text-xs text-slate-400 font-normal"> /mo</span>
                             </div>
                           )}
                         </div>
 
-                        <ul className="space-y-2 text-slate-300">
-                          {plan.features.map((feat, idx) => (
+                        <ul className="space-y-1.5 text-slate-300">
+                          {plan.features.slice(0, 4).map((feat, idx) => (
                             <li key={idx} className="flex items-center gap-1.5">
                               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                              <span className="text-[11px] leading-tight">{feat}</span>
+                              <span className="text-[10px] leading-tight">{feat}</span>
                             </li>
                           ))}
                         </ul>
                       </div>
 
-                      <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between">
-                        <span className="text-[11px] font-semibold text-slate-400">
-                          {isCurrent ? 'Current Plan' : 'Select'}
+                      <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between">
+                        <span className="text-[10px] font-semibold text-slate-400">
+                          {isCurrent ? 'Current Plan' : isSelected ? 'Selected' : 'Click to Pick'}
                         </span>
-                        <div className={`h-5 w-5 rounded-full border flex items-center justify-center ${
+                        <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${
                           isSelected ? 'border-amber-500 bg-amber-500 text-slate-950' : 'border-slate-700'
                         }`}>
-                          {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                          {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
                         </div>
                       </div>
                     </div>

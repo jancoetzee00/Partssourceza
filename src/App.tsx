@@ -22,6 +22,7 @@ import { AdminAuthModal } from './components/AdminAuthModal';
 import { SearchEngineExposureModal } from './components/SearchEngineExposureModal';
 import { BulkInventoryModal } from './components/BulkInventoryModal';
 import { WebLinkShareModal } from './components/WebLinkShareModal';
+import { SellerAuthModal } from './components/SellerAuthModal';
 import { CheckCircle2, AlertCircle, Info, Car, Heart, ShieldCheck, Download, Smartphone, Monitor, Globe, Share2, Link as LinkIcon } from 'lucide-react';
 
 const MainContent: React.FC = () => {
@@ -53,6 +54,7 @@ const MainContent: React.FC = () => {
       <SearchEngineExposureModal />
       <BulkInventoryModal />
       <WebLinkShareModal />
+      <SellerAuthModal />
 
       {/* Floating Direct WhatsApp Widget */}
       <WhatsAppQuickWidget />

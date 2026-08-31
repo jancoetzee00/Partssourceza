@@ -60,7 +60,7 @@ export type SouthAfricanProvince =
   | 'North West'
   | 'Northern Cape';
 
-export type SellerTier = 'starter' | 'pro' | 'enterprise';
+export type SellerTier = 'starter' | 'pro' | 'enterprise' | 'network';
 
 export interface SubscriptionDiscount {
   id: string;
@@ -84,13 +84,18 @@ export interface SubscriptionDiscount {
 export interface SubscriptionPlan {
   id: SellerTier;
   name: string;
+  tagline?: string;
+  description?: string;
   priceMonthlyZAR: number;
+  priceAnnualMonthlyZAR?: number;
   listingLimit: number;
   featuredListingsLimit: number;
   commissionFee: string;
   badgeName: string;
   features: string[];
   popular?: boolean;
+  bestValue?: boolean;
+  isNew?: boolean;
 }
 
 export interface Listing {

@@ -28,10 +28,19 @@ import {
   Share2,
   QrCode,
   Globe,
-  Link as LinkIcon
+  Link as LinkIcon,
+  UserPlus,
+  LogIn,
+  Building2,
+  Tag,
+  Flame,
+  Check,
+  Zap,
+  Lock,
+  Copy
 } from 'lucide-react';
 import { SUBSCRIPTION_PLANS } from '../data/mockData';
-import { Listing } from '../types';
+import { Listing, SellerTier } from '../types';
 
 export const SellerDashboard: React.FC = () => {
   const { 
@@ -49,11 +58,19 @@ export const SellerDashboard: React.FC = () => {
     inquiries,
     orders,
     setSelectedListing,
-    updateListing
+    updateListing,
+    openSellerAuth,
+    updateSellerSubscription,
+    bankingDetails,
+    subscriptionDiscounts,
+    validateAndApplyPromoCode,
+    showNotification
   } = useApp();
 
   const [searchFilter, setSearchFilter] = useState('');
   const [activeTab, setActiveTab] = useState<'listings' | 'inquiries' | 'orders' | 'subscription'>('listings');
+  const [dashBillingCycle, setDashBillingCycle] = useState<'monthly' | 'annual'>('monthly');
+  const [copiedAccountNum, setCopiedAccountNum] = useState(false);
 
   // Filter listings for current seller
   const sellerListings = listings.filter(l => l.sellerId === currentSeller.id);
@@ -110,14 +127,32 @@ export const SellerDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Switch active seller simulation selector */}
-            <div className="flex items-center gap-3">
-              <div className="text-right hidden lg:block">
-                <span className="text-[10px] text-slate-500 block font-bold uppercase tracking-wider">Switch Supplier Account:</span>
+            {/* Switch active seller simulation selector & Auth controls */}
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              
+              <button
+                onClick={() => openSellerAuth('login')}
+                className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
+                title="Sign in to another registered scrap yard or supplier account"
+              >
+                <LogIn className="w-3.5 h-3.5 text-amber-400" />
+                <span>Supplier Login</span>
+              </button>
+
+              <button
+                onClick={() => openSellerAuth('register')}
+                className="px-3 py-2 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/40 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-sm"
+                title="Register a new auto scrap yard or spares shop on Part Source ZA"
+              >
+                <UserPlus className="w-3.5 h-3.5 text-amber-400" />
+                <span>+ New Seller Registration</span>
+              </button>
+
+              <div className="text-right hidden xl:block">
                 <select
                   value={currentSeller.id}
                   onChange={(e) => setCurrentSellerId(e.target.value)}
-                  className="px-3 py-1.5 bg-slate-800/80 border border-slate-700 rounded-lg text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                  className="px-2.5 py-2 bg-slate-800/90 border border-slate-700 rounded-lg text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-amber-500"
                 >
                   {sellers.map(s => (
                     <option key={s.id} value={s.id}>
@@ -129,11 +164,11 @@ export const SellerDashboard: React.FC = () => {
 
               <button
                 onClick={() => setIsInstallModalOpen(true)}
-                className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5"
+                className="hidden sm:flex px-3 py-2 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 rounded-lg text-xs font-semibold transition-colors items-center gap-1.5"
                 title="Install Part Source ZA on Phone or Desktop"
               >
                 <Download className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Install App</span>
+                <span className="hidden sm:inline">Install</span>
               </button>
 
               <button
@@ -141,20 +176,20 @@ export const SellerDashboard: React.FC = () => {
                   initialProvince: currentSeller.province,
                   initialPartId: ''
                 })}
-                className="px-3.5 py-2 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/40 rounded-lg text-xs font-bold transition-all shadow-md flex items-center gap-1.5"
+                className="px-3 py-2 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/40 rounded-lg text-xs font-bold transition-all shadow-md flex items-center gap-1.5"
                 title="Generate Web Link & QR Code for Part Source ZA search & physical store"
               >
-                <Share2 className="w-4 h-4 text-amber-400" />
-                <span className="hidden sm:inline">Web Link & QR</span>
+                <Share2 className="w-3.5 h-3.5 text-amber-400" />
+                <span className="hidden sm:inline">Web Link</span>
               </button>
 
               <button
                 onClick={() => setIsBulkUploadModalOpen(true)}
-                className="px-3.5 py-2 bg-slate-800/90 hover:bg-slate-700 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-bold transition-all shadow-md flex items-center gap-1.5"
+                className="px-3 py-2 bg-slate-800/90 hover:bg-slate-700 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-bold transition-all shadow-md flex items-center gap-1.5"
                 title="Bulk Upload or Export Spares via CSV/Excel"
               >
-                <FileSpreadsheet className="w-4 h-4 text-amber-400" />
-                <span className="hidden sm:inline">Bulk CSV / Excel</span>
+                <FileSpreadsheet className="w-3.5 h-3.5 text-amber-400" />
+                <span className="hidden sm:inline">Bulk CSV</span>
               </button>
 
               <button
@@ -162,7 +197,7 @@ export const SellerDashboard: React.FC = () => {
                   setEditingListing(null);
                   setIsAddEditModalOpen(true);
                 }}
-                className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg text-xs transition-all shadow-lg shadow-amber-600/20 flex items-center gap-1.5"
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white font-black rounded-lg text-xs transition-all shadow-lg shadow-amber-600/20 flex items-center gap-1.5"
               >
                 <PlusCircle className="w-4 h-4" />
                 <span>+ ADD PART</span>
@@ -773,81 +808,300 @@ export const SellerDashboard: React.FC = () => {
 
       {/* Tab 4: Subscription & Billing Overview */}
       {activeTab === 'subscription' && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8">
-            
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-6">
+          
+          {/* Active Plan & Quotas Banner */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-slate-800">
               <div>
-                <span className="px-2.5 py-1 rounded-md text-xs font-extrabold bg-amber-500 text-slate-950 uppercase tracking-wider">
-                  Active Monthly Subscription
-                </span>
-                <h3 className="text-xl font-bold text-white mt-2">
-                  {currentPlan.name} (R{currentPlan.priceMonthlyZAR}/month)
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-1 rounded-md text-xs font-black bg-amber-500 text-slate-950 uppercase tracking-wider">
+                    🇿🇦 Active Supplier Subscription
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                    Status: {currentSeller.subscriptionStatus.toUpperCase()}
+                  </span>
+                </div>
+                <h3 className="text-2xl font-black text-white mt-2 flex items-center gap-2">
+                  {currentPlan.name} Plan
+                  <span className="text-base font-normal text-amber-400 font-sans">
+                    (R{currentPlan.priceMonthlyZAR}/mo)
+                  </span>
                 </h3>
-                <p className="text-xs text-slate-400 mt-1">
-                  Your monthly advertising subscription keeps your scrapyard and spares inventory visible to thousands of mechanics, fleet operators, and car owners nationwide.
+                <p className="text-xs text-slate-400 mt-1 max-w-2xl">
+                  {currentPlan.description} Direct WhatsApp buyer inquiries, nationwide auto dismantler syndication, and 0% sales commission.
                 </p>
               </div>
 
-              <button
-                onClick={() => setIsSubscriptionModalOpen(true)}
-                className="px-5 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl text-xs transition-all shadow-lg shadow-amber-500/25 whitespace-nowrap"
-              >
-                Change or Renew Plan
-              </button>
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  onClick={() => openSellerAuth('login')}
+                  className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs transition-all border border-slate-700 flex items-center gap-1.5"
+                >
+                  <LogIn className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Switch / Login</span>
+                </button>
+                <button
+                  onClick={() => openSellerAuth('register')}
+                  className="px-4 py-2.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold rounded-xl text-xs transition-all border border-amber-500/40 flex items-center gap-1.5"
+                >
+                  <UserPlus className="w-3.5 h-3.5 text-amber-400" />
+                  <span>+ New Supplier Signup</span>
+                </button>
+                <button
+                  onClick={() => setIsSubscriptionModalOpen(true)}
+                  className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs transition-all shadow-lg shadow-amber-500/25 whitespace-nowrap"
+                >
+                  Billing & Invoices
+                </button>
+              </div>
             </div>
 
-            {/* Plan Perks Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+            {/* Quota & Utilization Metrics */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 pt-2">
+              <div className="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-4">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Active Spares Quota
+                </span>
+                <div className="flex items-baseline justify-between mb-1">
+                  <span className="text-xl font-bold text-white font-mono">{sellerListings.length}</span>
+                  <span className="text-xs text-slate-400">
+                    of {currentPlan.listingLimit === 9999 ? 'Unlimited' : currentPlan.listingLimit} parts
+                  </span>
+                </div>
+                <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                  <div 
+                    className="bg-amber-500 h-full rounded-full transition-all"
+                    style={{ width: `${Math.min(100, (sellerListings.length / (currentPlan.listingLimit === 9999 ? 1000 : currentPlan.listingLimit)) * 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              <div className="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-4">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Spotlight Featured Slots
+                </span>
+                <div className="flex items-baseline justify-between mb-1">
+                  <span className="text-xl font-bold text-white font-mono">
+                    {sellerListings.filter(l => l.isFeatured).length}
+                  </span>
+                  <span className="text-xs text-slate-400">
+                    of {currentPlan.featuredListingsLimit} slots
+                  </span>
+                </div>
+                <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                  <div 
+                    className="bg-purple-500 h-full rounded-full transition-all"
+                    style={{ width: `${Math.min(100, (sellerListings.filter(l => l.isFeatured).length / (currentPlan.featuredListingsLimit || 1)) * 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              <div className="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-4">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Next Renewal Date
+                </span>
+                <div className="text-xl font-bold text-white font-mono mb-1">
+                  {currentSeller.subscriptionRenewsAt}
+                </div>
+                <span className="text-[11px] text-emerald-400 font-semibold">
+                  Auto-renews monthly via EFT / Card
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Pricing & Plans Comparison Grid */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <div>
+                <h3 className="text-lg font-black text-white">
+                  Available Subscription Plans & Pricing
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Upgrade or change your plan anytime. Changes apply immediately to your parts quota.
+                </p>
+              </div>
+
+              {/* Billing Cycle Toggle */}
+              <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setDashBillingCycle('monthly')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    dashBillingCycle === 'monthly'
+                      ? 'bg-amber-500 text-slate-950 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Monthly Billing
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDashBillingCycle('annual')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${
+                    dashBillingCycle === 'annual'
+                      ? 'bg-amber-500 text-slate-950 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <span>Annual Billing</span>
+                  <span className="px-1 py-0.2 bg-emerald-500/20 text-emerald-400 rounded text-[9px] font-black">
+                    SAVE 20%
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* Plans Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {SUBSCRIPTION_PLANS.map(plan => {
                 const isCurrent = plan.id === currentSeller.subscriptionTier;
+                const displayPrice = dashBillingCycle === 'annual' && plan.priceAnnualMonthlyZAR 
+                  ? plan.priceAnnualMonthlyZAR 
+                  : plan.priceMonthlyZAR;
+                
                 return (
                   <div
                     key={plan.id}
-                    className={`rounded-2xl p-5 border transition-all flex flex-col justify-between ${
+                    className={`rounded-2xl p-5 border transition-all flex flex-col justify-between relative ${
                       isCurrent
-                        ? 'bg-amber-500/10 border-amber-500/60 ring-1 ring-amber-500/40'
-                        : 'bg-slate-950 border-slate-800 opacity-80'
+                        ? 'bg-amber-500/10 border-amber-500 ring-2 ring-amber-500/40 shadow-xl shadow-amber-500/10'
+                        : 'bg-slate-950 border-slate-800 hover:border-slate-700'
                     }`}
                   >
+                    {plan.popular && (
+                      <span className="absolute -top-2.5 right-4 bg-amber-500 text-slate-950 font-black text-[9px] px-2 py-0.5 rounded-full">
+                        POPULAR
+                      </span>
+                    )}
+                    {plan.bestValue && (
+                      <span className="absolute -top-2.5 right-4 bg-purple-500 text-white font-black text-[9px] px-2 py-0.5 rounded-full">
+                        BEST VALUE
+                      </span>
+                    )}
+                    {plan.isNew && (
+                      <span className="absolute -top-2.5 right-4 bg-emerald-500 text-slate-950 font-black text-[9px] px-2 py-0.5 rounded-full">
+                        NEW NETWORK
+                      </span>
+                    )}
+
                     <div>
-                      <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center justify-between mb-1">
                         <h4 className="font-bold text-white text-sm">{plan.name}</h4>
                         {isCurrent && (
-                          <span className="text-[10px] bg-amber-500 text-slate-950 font-black px-2 py-0.5 rounded">
-                            CURRENT
+                          <span className="text-[9px] bg-amber-500 text-slate-950 font-black px-1.5 py-0.2 rounded">
+                            ACTIVE
                           </span>
                         )}
                       </div>
-                      <div className="text-2xl font-black text-amber-400 mb-3 font-sans">
-                        R{plan.priceMonthlyZAR}<span className="text-xs text-slate-400 font-normal"> / month</span>
+
+                      <p className="text-[10px] text-slate-400 mb-2 line-clamp-2">
+                        {plan.tagline}
+                      </p>
+
+                      <div className="mb-3">
+                        <span className="text-2xl font-black text-amber-400 font-sans">
+                          R{displayPrice}
+                        </span>
+                        <span className="text-xs text-slate-400 font-normal"> / month</span>
+                        {dashBillingCycle === 'annual' && (
+                          <span className="block text-[9px] text-emerald-400 font-semibold mt-0.5">
+                            Billed annually (R{displayPrice * 12}/year)
+                          </span>
+                        )}
                       </div>
+
                       <ul className="space-y-2 text-xs text-slate-300">
                         {plan.features.map((f, idx) => (
-                          <li key={idx} className="flex items-center gap-2">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                            <span>{f}</span>
+                          <li key={idx} className="flex items-start gap-1.5">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                            <span className="text-[11px] leading-snug">{f}</span>
                           </li>
                         ))}
                       </ul>
                     </div>
 
                     <button
-                      onClick={() => setIsSubscriptionModalOpen(true)}
-                      className={`mt-5 w-full py-2 rounded-xl text-xs font-bold transition-all ${
+                      onClick={() => {
+                        if (isCurrent) {
+                          setIsSubscriptionModalOpen(true);
+                        } else {
+                          updateSellerSubscription(currentSeller.id, plan.id);
+                        }
+                      }}
+                      className={`mt-5 w-full py-2.5 rounded-xl text-xs font-bold transition-all shadow-md ${
                         isCurrent
-                          ? 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                          ? 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700'
                           : 'bg-amber-500 hover:bg-amber-400 text-slate-950'
                       }`}
                     >
-                      {isCurrent ? 'Billing Details' : `Switch to ${plan.name}`}
+                      {isCurrent ? 'Current Plan Details' : `Switch to ${plan.name}`}
                     </button>
                   </div>
                 );
               })}
             </div>
-
           </div>
+
+          {/* Banking & EFT Details Box */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400">
+                  <Building2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">
+                    Official South African Banking & EFT Details
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Use these banking details for manual EFT settlement of monthly subscription invoices.
+                  </p>
+                </div>
+              </div>
+              <span className="text-xs font-mono font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl self-start sm:self-auto">
+                Ref: PS-SUB-{currentSeller.id.replace('seller-', '').toUpperCase()}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mt-5">
+              <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800">
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Bank Name</span>
+                <span className="text-xs font-bold text-white">{bankingDetails.bankName}</span>
+              </div>
+
+              <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800">
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Account Name</span>
+                <span className="text-xs font-bold text-white">{bankingDetails.accountHolder}</span>
+              </div>
+
+              <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Account Number</span>
+                  <span className="text-xs font-mono font-bold text-amber-400">{bankingDetails.accountNumber}</span>
+                </div>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(bankingDetails.accountNumber);
+                    setCopiedAccountNum(true);
+                    showNotification('Copied', 'Account number copied to clipboard', 'info');
+                    setTimeout(() => setCopiedAccountNum(false), 2000);
+                  }}
+                  className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
+                  title="Copy Account Number"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800">
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Branch Code / Type</span>
+                <span className="text-xs font-mono font-bold text-white">{bankingDetails.branchCode} ({bankingDetails.accountType})</span>
+              </div>
+            </div>
+          </div>
+
         </div>
       )}
 
