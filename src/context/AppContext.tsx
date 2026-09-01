@@ -167,10 +167,13 @@ const defaultFilters: VehicleFilterState = {
   make: '',
   model: '',
   year: '',
+  yearMin: '',
+  yearMax: '',
   vehicleType: '',
   category: '',
   province: '',
   condition: '',
+  conditionGroup: '',
   minPrice: '',
   maxPrice: '',
   verifiedOnly: false,
@@ -563,7 +566,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           setCurrentSellerId(sellerParam);
         }
 
-        if (q || makeParam || modelParam || catParam || provParam || typeParam) {
+        const yearParam = params.get('year');
+        const condParam = params.get('condition');
+        const condGroupParam = params.get('conditionGroup');
+        const minPriceParam = params.get('minPrice');
+        const maxPriceParam = params.get('maxPrice');
+
+        if (q || makeParam || modelParam || catParam || provParam || typeParam || yearParam || condParam || condGroupParam || minPriceParam || maxPriceParam) {
           setFilters(prev => ({
             ...prev,
             ...(q ? { search: q } : {}),
@@ -571,7 +580,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             ...(modelParam ? { model: modelParam } : {}),
             ...(catParam ? { category: catParam } : {}),
             ...(provParam ? { province: provParam } : {}),
-            ...(typeParam ? { vehicleType: typeParam } : {})
+            ...(typeParam ? { vehicleType: typeParam } : {}),
+            ...(yearParam ? { year: yearParam } : {}),
+            ...(condParam ? { condition: condParam } : {}),
+            ...(condGroupParam ? { conditionGroup: condGroupParam as any } : {}),
+            ...(minPriceParam ? { minPrice: Number(minPriceParam) } : {}),
+            ...(maxPriceParam ? { maxPrice: Number(maxPriceParam) } : {})
           }));
         }
 

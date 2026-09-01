@@ -250,10 +250,13 @@ export interface VehicleFilterState {
   make: string;
   model: string;
   year: string;
+  yearMin?: number | '';
+  yearMax?: number | '';
   vehicleType: string;
   category: string;
   province: string;
   condition: string;
+  conditionGroup?: 'all' | 'new' | 'used' | 'reconditioned' | '';
   minPrice: number | '';
   maxPrice: number | '';
   verifiedOnly: boolean;

@@ -8,27 +8,17 @@ import {
   MapPin, 
   ShieldCheck, 
   MessageCircle, 
-  Phone, 
   GitCompare, 
-  Check, 
   SlidersHorizontal, 
   HelpCircle, 
-  ArrowUpDown, 
   Sparkles,
-  Tag,
-  Clock,
   RotateCcw,
-  ExternalLink,
-  ChevronRight,
   ChevronDown,
   ChevronUp,
   Eye,
   CheckCircle2,
   Download,
-  Smartphone,
-  Monitor,
   X,
-  Calendar,
   DollarSign,
   Layers,
   Wrench,
@@ -42,17 +32,21 @@ import {
   GitPullRequest,
   CircleDot,
   Droplets,
-  Navigation,
   LocateFixed,
-  Compass,
-  Building2,
   AlertCircle,
   Loader2,
   CheckCircle,
   Share2,
-  Globe,
-  Link as LinkIcon,
-  QrCode
+  Calendar,
+  Tag,
+  Check,
+  Award,
+  ArrowRight,
+  TrendingDown,
+  Box,
+  Sliders,
+  Flame,
+  CheckCheck
 } from 'lucide-react';
 import { Listing, VehicleType, PartCategory, SouthAfricanProvince, PartCondition } from '../types';
 import { SA_PROVINCES, POPULAR_MAKES, POPULAR_MODELS_BY_MAKE, CATEGORIES } from '../data/mockData';
@@ -61,17 +55,42 @@ import { SA_PROVINCES_GEO, detectUserProvince, GeolocationResult } from '../util
 // Available model fitment years (current down to older platforms)
 const FITMENT_YEARS = [
   2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 
-  2017, 2016, 2015, 2014, 2013, 2012, 2011, 2010, 2008, 2005
+  2017, 2016, 2015, 2014, 2013, 2012, 2011, 2010, 2008, 2005, 2000
 ];
 
-// Price presets for quick selection
+// Generation presets for quick year filtering
+const YEAR_GENERATION_PRESETS = [
+  { label: 'All Years', min: '', max: '', exact: '' },
+  { label: '2021 – 2026 (Latest Gen)', min: 2021, max: 2026, exact: '' },
+  { label: '2016 – 2020 (Facelift Gen)', min: 2016, max: 2020, exact: '' },
+  { label: '2010 – 2015 (Mid Gen)', min: 2010, max: 2015, exact: '' },
+  { label: 'Pre-2010 (Older Platforms)', min: 1995, max: 2009, exact: '' },
+];
+
+// Price presets with realistic South African automotive price brackets
 const PRICE_PRESETS = [
   { label: 'All Prices', min: '', max: '' },
   { label: 'Under R3,000', min: '', max: 3000 },
-  { label: 'R3,000 – R10,000', min: 3000, max: 10000 },
-  { label: 'R10,000 – R25,000', min: 10000, max: 25000 },
-  { label: 'R25,000 – R50,000', min: 25000, max: 50000 },
+  { label: 'R3,000 – R8,000', min: 3000, max: 8000 },
+  { label: 'R8,000 – R20,000', min: 8000, max: 20000 },
+  { label: 'R20,000 – R50,000', min: 20000, max: 50000 },
   { label: 'R50,000+', min: 50000, max: '' },
+];
+
+// Condition group presets
+const CONDITION_GROUPS = [
+  { id: '', label: 'All Conditions', icon: Box, description: 'New, Reconditioned & Scrap' },
+  { id: 'new', label: '✨ Brand New Only', icon: Sparkles, description: 'OEM & High-Grade Aftermarket' },
+  { id: 'reconditioned', label: '🔧 Reconditioned / Tested', icon: Wrench, description: 'Bench-Tested with Warranty' },
+  { id: 'used', label: '♻️ Used / Scrap Stripping', icon: Shield, description: 'Original Dismantled Spares' },
+];
+
+const ALL_CONDITIONS_LIST: PartCondition[] = [
+  'Brand New OEM',
+  'Brand New Aftermarket',
+  'Reconditioned / Tested',
+  'Used Original (Clean)',
+  'Scrap Stripping (Used)'
 ];
 
 export const BuyerCatalog: React.FC = () => {
@@ -87,13 +106,13 @@ export const BuyerCatalog: React.FC = () => {
     compareList,
     setIsCompareOpen,
     setIsRequestPartOpen,
-    setIsCheckoutOpen,
     setIsInstallModalOpen,
     openWhatsAppChat,
     openWebLinkGenerator
   } = useApp();
 
   const [isAdvancedFiltersOpen, setIsAdvancedFiltersOpen] = useState(false);
+  const [activeFilterTab, setActiveFilterTab] = useState<'fitment' | 'price' | 'condition'>('fitment');
   const [modelSearchQuery, setModelSearchQuery] = useState('');
   const [isLocating, setIsLocating] = useState(false);
   const [geoFeedback, setGeoFeedback] = useState<{ type: 'success' | 'error' | 'info'; message: string; details?: string } | null>(null);
@@ -148,13 +167,20 @@ export const BuyerCatalog: React.FC = () => {
       listings.forEach(item => modelsSet.add(item.model));
       
       // Also add top popular models across makes
-      Object.values(POPULAR_MODELS_BY_MAKE).flat().slice(0, 15).forEach(m => modelsSet.add(m));
+      Object.values(POPULAR_MODELS_BY_MAKE).flat().slice(0, 20).forEach(m => modelsSet.add(m));
     }
 
     return Array.from(modelsSet);
   }, [filters.make, listings]);
 
-  // Filter listings based on user criteria
+  // Filtered model options for quick chips
+  const filteredModelOptions = useMemo(() => {
+    if (!modelSearchQuery) return availableModels;
+    const q = modelSearchQuery.toLowerCase().trim();
+    return availableModels.filter(m => m.toLowerCase().includes(q));
+  }, [availableModels, modelSearchQuery]);
+
+  // Filter listings based on user criteria (including advanced price, condition, make/model/year)
   const filteredListings = useMemo(() => {
     return listings.filter(item => {
       // Keyword Search
@@ -191,14 +217,28 @@ export const BuyerCatalog: React.FC = () => {
         if (!matchesModel) return false;
       }
 
-      // Year Filter
+      // Exact Year Fitment Filter
       if (filters.year) {
         const selectedYear = Number(filters.year);
-        if (!isNaN(selectedYear)) {
+        if (!isNaN(selectedYear) && selectedYear > 0) {
           // Check if item's compatible year range spans the selected year
           if (item.yearStart > selectedYear || item.yearEnd < selectedYear) {
             return false;
           }
+        }
+      }
+
+      // Year Range Filter (yearMin / yearMax)
+      if (filters.yearMin !== '' && filters.yearMin !== undefined) {
+        const minYear = Number(filters.yearMin);
+        if (!isNaN(minYear) && item.yearEnd < minYear) {
+          return false;
+        }
+      }
+      if (filters.yearMax !== '' && filters.yearMax !== undefined) {
+        const maxYear = Number(filters.yearMax);
+        if (!isNaN(maxYear) && item.yearStart > maxYear) {
+          return false;
         }
       }
 
@@ -208,10 +248,27 @@ export const BuyerCatalog: React.FC = () => {
       // Province
       if (filters.province && item.locationProvince !== filters.province) return false;
 
-      // Condition
+      // High-level Condition Group Filter (New vs Used vs Reconditioned)
+      if (filters.conditionGroup) {
+        if (filters.conditionGroup === 'new') {
+          if (item.condition !== 'Brand New OEM' && item.condition !== 'Brand New Aftermarket') {
+            return false;
+          }
+        } else if (filters.conditionGroup === 'used') {
+          if (item.condition !== 'Used Original (Clean)' && item.condition !== 'Scrap Stripping (Used)') {
+            return false;
+          }
+        } else if (filters.conditionGroup === 'reconditioned') {
+          if (item.condition !== 'Reconditioned / Tested') {
+            return false;
+          }
+        }
+      }
+
+      // Specific Condition Filter
       if (filters.condition && item.condition !== filters.condition) return false;
 
-      // Price Range
+      // Price Range Filter
       if (filters.minPrice !== '' && item.priceZAR < Number(filters.minPrice)) return false;
       if (filters.maxPrice !== '' && item.priceZAR > Number(filters.maxPrice)) return false;
 
@@ -234,7 +291,65 @@ export const BuyerCatalog: React.FC = () => {
     });
   }, [listings, filters]);
 
-  // Real-time category counts based on current other filters
+  // Real-time condition counts
+  const conditionCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      'newGroup': 0,
+      'reconditionedGroup': 0,
+      'usedGroup': 0,
+    };
+    ALL_CONDITIONS_LIST.forEach(c => counts[c] = 0);
+
+    listings.forEach(item => {
+      // apply other filters except condition
+      if (filters.make && item.make.toLowerCase() !== filters.make.toLowerCase()) return;
+      if (filters.model) {
+        const m = filters.model.toLowerCase().trim();
+        if (!item.model.toLowerCase().includes(m) && !item.title.toLowerCase().includes(m)) return;
+      }
+      if (filters.year && (item.yearStart > Number(filters.year) || item.yearEnd < Number(filters.year))) return;
+      if (filters.category && item.category !== filters.category) return;
+      if (filters.province && item.locationProvince !== filters.province) return;
+
+      if (item.condition === 'Brand New OEM' || item.condition === 'Brand New Aftermarket') {
+        counts['newGroup']++;
+      } else if (item.condition === 'Reconditioned / Tested') {
+        counts['reconditionedGroup']++;
+      } else {
+        counts['usedGroup']++;
+      }
+
+      if (counts[item.condition] !== undefined) {
+        counts[item.condition]++;
+      }
+    });
+
+    return counts;
+  }, [listings, filters.make, filters.model, filters.year, filters.category, filters.province]);
+
+  // Real-time price preset counts
+  const pricePresetCounts = useMemo(() => {
+    return PRICE_PRESETS.map(preset => {
+      const count = listings.filter(item => {
+        if (filters.make && item.make.toLowerCase() !== filters.make.toLowerCase()) return false;
+        if (filters.model) {
+          const m = filters.model.toLowerCase().trim();
+          if (!item.model.toLowerCase().includes(m) && !item.title.toLowerCase().includes(m)) return false;
+        }
+        if (filters.year && (item.yearStart > Number(filters.year) || item.yearEnd < Number(filters.year))) return false;
+        if (filters.category && item.category !== filters.category) return false;
+        if (filters.province && item.locationProvince !== filters.province) return false;
+        if (filters.condition && item.condition !== filters.condition) return false;
+        
+        if (preset.min !== '' && item.priceZAR < Number(preset.min)) return false;
+        if (preset.max !== '' && item.priceZAR > Number(preset.max)) return false;
+        return true;
+      }).length;
+      return { ...preset, count };
+    });
+  }, [listings, filters.make, filters.model, filters.year, filters.category, filters.province, filters.condition]);
+
+  // Real-time category counts
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     CATEGORIES.forEach(c => {
@@ -248,7 +363,7 @@ export const BuyerCatalog: React.FC = () => {
     return counts;
   }, [listings, filters.make, filters.vehicleType, filters.year]);
 
-  // Real-time province counts based on search query, make, model & category
+  // Real-time province counts
   const provinceCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     SA_PROVINCES.forEach(p => {
@@ -277,6 +392,15 @@ export const BuyerCatalog: React.FC = () => {
     return counts;
   }, [listings, filters.search, filters.make, filters.model, filters.vehicleType, filters.category]);
 
+  // Make counts
+  const makeCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    POPULAR_MAKES.forEach(m => {
+      counts[m] = listings.filter(item => item.make.toLowerCase() === m.toLowerCase()).length;
+    });
+    return counts;
+  }, [listings]);
+
   // Active filter count calculation
   const activeFilterCount = useMemo(() => {
     let count = 0;
@@ -284,10 +408,13 @@ export const BuyerCatalog: React.FC = () => {
     if (filters.make) count++;
     if (filters.model) count++;
     if (filters.year) count++;
+    if (filters.yearMin !== '' && filters.yearMin !== undefined) count++;
+    if (filters.yearMax !== '' && filters.yearMax !== undefined) count++;
     if (filters.vehicleType) count++;
     if (filters.category) count++;
     if (filters.province) count++;
     if (filters.condition) count++;
+    if (filters.conditionGroup) count++;
     if (filters.minPrice !== '' || filters.maxPrice !== '') count++;
     if (filters.verifiedOnly) count++;
     if (filters.inStockOnly) count++;
@@ -322,6 +449,23 @@ export const BuyerCatalog: React.FC = () => {
     }
   };
 
+  // Helper to check if a specific listing is an exact fit for the user's active vehicle selection
+  const checkFitmentMatch = (listing: Listing) => {
+    if (!filters.make && !filters.model && !filters.year) return false;
+    
+    let isMatch = true;
+    if (filters.make && listing.make.toLowerCase() !== filters.make.toLowerCase()) isMatch = false;
+    if (filters.model) {
+      const m = filters.model.toLowerCase().trim();
+      if (!listing.model.toLowerCase().includes(m) && !listing.title.toLowerCase().includes(m)) isMatch = false;
+    }
+    if (filters.year) {
+      const y = Number(filters.year);
+      if (listing.yearStart > y || listing.yearEnd < y) isMatch = false;
+    }
+    return isMatch;
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 pb-20">
       
@@ -337,10 +481,10 @@ export const BuyerCatalog: React.FC = () => {
                 <span>South Africa’s Verified Spares Hub</span>
               </div>
               <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
-                FIND SPARES BY <span className="text-amber-500">MAKE, MODEL, YEAR & CATEGORY</span>
+                FIND SPARES BY <span className="text-amber-500">MAKE, MODEL, YEAR & PRICE</span>
               </h1>
               <p className="mt-2 text-sm sm:text-base text-slate-300 max-w-2xl leading-relaxed">
-                Filter verified scrap yard stock, engines, gearboxes, and OEM commercial truck axles across all 9 provinces with direct price comparison.
+                Filter verified scrap yard stock, reconditioned engines, gearboxes, brand new OEM components and commercial truck parts with custom price and fitment controls.
               </p>
             </div>
 
@@ -363,7 +507,7 @@ export const BuyerCatalog: React.FC = () => {
             </div>
           </div>
 
-          {/* Vehicle Type Filter Pills */}
+          {/* Quick Vehicle Type Filter Pills */}
           <div className="flex flex-wrap gap-2 mb-4">
             {[
               { label: 'All Vehicles', value: '' },
@@ -375,7 +519,7 @@ export const BuyerCatalog: React.FC = () => {
               <button
                 key={type.value}
                 onClick={() => setFilters(prev => ({ ...prev, vehicleType: type.value }))}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                   filters.vehicleType === type.value
                     ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20'
                     : 'bg-slate-800/90 text-slate-300 hover:bg-slate-800 border border-slate-700/60'
@@ -392,14 +536,17 @@ export const BuyerCatalog: React.FC = () => {
             {/* Main 4-Column Selectors: Make, Model, Year, Category */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
               
-              {/* 1. Make selector */}
+              {/* 1. Vehicle Make Selector */}
               <div>
                 <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
-                  <span>1. Vehicle Make</span>
+                  <span className="flex items-center gap-1.5">
+                    <Car className="w-3.5 h-3.5 text-amber-500" />
+                    1. Vehicle Make
+                  </span>
                   {filters.make && (
                     <button 
                       onClick={() => setFilters(prev => ({ ...prev, make: '', model: '' }))}
-                      className="text-[10px] text-amber-400 hover:underline"
+                      className="text-[10px] text-amber-400 hover:underline cursor-pointer"
                     >
                       Clear
                     </button>
@@ -412,25 +559,32 @@ export const BuyerCatalog: React.FC = () => {
                       const newMake = e.target.value;
                       setFilters(prev => ({ ...prev, make: newMake, model: '' }));
                     }}
-                    className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 font-medium focus:outline-none focus:ring-1 focus:ring-amber-500 transition-all appearance-none cursor-pointer"
+                    className={`w-full px-3 py-2.5 bg-slate-950 border rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-amber-500 transition-all appearance-none cursor-pointer ${
+                      filters.make ? 'border-amber-500/60 text-amber-300 bg-amber-500/5' : 'border-slate-800 text-slate-100'
+                    }`}
                   >
                     <option value="">All Makes (Toyota, VW, Scania...)</option>
-                    {POPULAR_MAKES.map(m => (
-                      <option key={m} value={m}>{m}</option>
-                    ))}
+                    {POPULAR_MAKES.map(m => {
+                      const count = makeCounts[m] || 0;
+                      return (
+                        <option key={m} value={m}>
+                          {m} {count > 0 ? `(${count})` : ''}
+                        </option>
+                      );
+                    })}
                   </select>
                   <ChevronDown className="w-3.5 h-3.5 text-slate-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               </div>
 
-              {/* 2. Car / Truck Model selector */}
+              {/* 2. Car / Truck Model Selector */}
               <div>
                 <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
-                  <span>2. Car / Truck Model</span>
+                  <span>2. Vehicle Model</span>
                   {filters.model && (
                     <button 
                       onClick={() => setFilters(prev => ({ ...prev, model: '' }))}
-                      className="text-[10px] text-amber-400 hover:underline"
+                      className="text-[10px] text-amber-400 hover:underline cursor-pointer"
                     >
                       Clear
                     </button>
@@ -440,7 +594,9 @@ export const BuyerCatalog: React.FC = () => {
                   <select
                     value={filters.model}
                     onChange={(e) => setFilters(prev => ({ ...prev, model: e.target.value }))}
-                    className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 font-medium focus:outline-none focus:ring-1 focus:ring-amber-500 transition-all appearance-none cursor-pointer"
+                    className={`w-full px-3 py-2.5 bg-slate-950 border rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-amber-500 transition-all appearance-none cursor-pointer ${
+                      filters.model ? 'border-amber-500/60 text-amber-300 bg-amber-500/5' : 'border-slate-800 text-slate-100'
+                    }`}
                   >
                     <option value="">
                       {filters.make ? `All ${filters.make} Models` : 'All Models (Hilux, Polo, Actros...)'}
@@ -456,11 +612,14 @@ export const BuyerCatalog: React.FC = () => {
               {/* 3. Year Fitment Selector */}
               <div>
                 <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
-                  <span>3. Year of Manufacture</span>
-                  {filters.year && (
+                  <span className="flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-amber-500" />
+                    3. Exact Model Year
+                  </span>
+                  {(filters.year || filters.yearMin || filters.yearMax) && (
                     <button 
-                      onClick={() => setFilters(prev => ({ ...prev, year: '' }))}
-                      className="text-[10px] text-amber-400 hover:underline"
+                      onClick={() => setFilters(prev => ({ ...prev, year: '', yearMin: '', yearMax: '' }))}
+                      className="text-[10px] text-amber-400 hover:underline cursor-pointer"
                     >
                       Clear
                     </button>
@@ -469,12 +628,14 @@ export const BuyerCatalog: React.FC = () => {
                 <div className="relative">
                   <select
                     value={filters.year}
-                    onChange={(e) => setFilters(prev => ({ ...prev, year: e.target.value }))}
-                    className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 font-medium focus:outline-none focus:ring-1 focus:ring-amber-500 transition-all appearance-none cursor-pointer"
+                    onChange={(e) => setFilters(prev => ({ ...prev, year: e.target.value, yearMin: '', yearMax: '' }))}
+                    className={`w-full px-3 py-2.5 bg-slate-950 border rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-amber-500 transition-all appearance-none cursor-pointer ${
+                      filters.year ? 'border-amber-500/60 text-amber-300 bg-amber-500/5' : 'border-slate-800 text-slate-100'
+                    }`}
                   >
                     <option value="">Any Year (All Model Years)</option>
                     {FITMENT_YEARS.map(y => (
-                      <option key={y} value={y.toString()}>{y}</option>
+                      <option key={y} value={y.toString()}>{y} Model Year</option>
                     ))}
                   </select>
                   <ChevronDown className="w-3.5 h-3.5 text-slate-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -484,11 +645,14 @@ export const BuyerCatalog: React.FC = () => {
               {/* 4. Part Category Selector */}
               <div>
                 <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
-                  <span>4. Part Category</span>
+                  <span className="flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5 text-amber-500" />
+                    4. Part Category
+                  </span>
                   {filters.category && (
                     <button 
                       onClick={() => setFilters(prev => ({ ...prev, category: '' }))}
-                      className="text-[10px] text-amber-400 hover:underline"
+                      className="text-[10px] text-amber-400 hover:underline cursor-pointer"
                     >
                       Clear
                     </button>
@@ -498,7 +662,9 @@ export const BuyerCatalog: React.FC = () => {
                   <select
                     value={filters.category}
                     onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
-                    className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 font-medium focus:outline-none focus:ring-1 focus:ring-amber-500 transition-all appearance-none cursor-pointer"
+                    className={`w-full px-3 py-2.5 bg-slate-950 border rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-amber-500 transition-all appearance-none cursor-pointer ${
+                      filters.category ? 'border-amber-500/60 text-amber-300 bg-amber-500/5' : 'border-slate-800 text-slate-100'
+                    }`}
                   >
                     <option value="">All Categories (Engine, Gearbox...)</option>
                     {CATEGORIES.map(c => {
@@ -516,6 +682,54 @@ export const BuyerCatalog: React.FC = () => {
 
             </div>
 
+            {/* Quick Condition Selector Tabs (All vs New vs Reconditioned vs Used) */}
+            <div className="pt-2 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2.5">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">Condition:</span>
+                <div className="inline-flex rounded-xl bg-slate-950 p-1 border border-slate-800">
+                  {CONDITION_GROUPS.map(group => {
+                    const isSelected = filters.conditionGroup === group.id && !filters.condition;
+                    return (
+                      <button
+                        key={group.id}
+                        type="button"
+                        onClick={() => {
+                          setFilters(prev => ({ 
+                            ...prev, 
+                            conditionGroup: group.id as any,
+                            condition: '' // reset granular condition if switching group
+                          }));
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                          isSelected
+                            ? 'bg-amber-500 text-slate-950 font-bold shadow-sm'
+                            : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        <span>{group.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Price Range Summary Pill */}
+              {(filters.minPrice !== '' || filters.maxPrice !== '') && (
+                <div className="flex items-center gap-2 text-xs bg-amber-500/10 border border-amber-500/30 text-amber-300 px-3 py-1 rounded-xl">
+                  <DollarSign className="w-3.5 h-3.5 text-amber-400" />
+                  <span>
+                    Price Filter: {filters.minPrice !== '' ? formatZAR(Number(filters.minPrice)) : 'R0'} – {filters.maxPrice !== '' ? formatZAR(Number(filters.maxPrice)) : 'Any'}
+                  </span>
+                  <button 
+                    onClick={() => setFilters(prev => ({ ...prev, minPrice: '', maxPrice: '' }))}
+                    className="text-slate-400 hover:text-white"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
+            </div>
+
             {/* Keyword Search Bar + Geolocation Province Selector + Actions */}
             <div className="pt-2 border-t border-slate-800/80 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
               
@@ -524,7 +738,7 @@ export const BuyerCatalog: React.FC = () => {
                 <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Part name, OEM code, engine spec (e.g. 1GD-FTV, caliper)..."
+                  placeholder="Search part name, OEM code, engine spec (e.g. 1GD-FTV, 02T gearbox)..."
                   value={filters.search}
                   onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
                   className="w-full pl-10 pr-8 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
@@ -570,7 +784,7 @@ export const BuyerCatalog: React.FC = () => {
                   <ChevronDown className="w-3.5 h-3.5 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
 
-                {/* GPS Auto-Detect Button with Radar Pulse Effect */}
+                {/* GPS Auto-Detect Button */}
                 <button
                   type="button"
                   onClick={handleDetectLocation}
@@ -601,24 +815,24 @@ export const BuyerCatalog: React.FC = () => {
               {/* Action Buttons: Advanced toggle, Reset, Request */}
               <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-end">
                 
-                {/* Advanced Filter Toggle Button */}
+                {/* Advanced Filter Suite Toggle Button */}
                 <button
                   onClick={() => setIsAdvancedFiltersOpen(prev => !prev)}
-                  className={`px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                    isAdvancedFiltersOpen || filters.minPrice !== '' || filters.maxPrice !== '' || filters.condition || filters.verifiedOnly
-                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-inner'
+                  className={`px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    isAdvancedFiltersOpen || filters.minPrice !== '' || filters.maxPrice !== '' || filters.condition || filters.conditionGroup || filters.yearMin || filters.yearMax || filters.verifiedOnly
+                      ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20'
                       : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
                   }`}
                 >
                   <SlidersHorizontal className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">More Filters</span>
-                  {(filters.minPrice !== '' || filters.maxPrice !== '' || filters.condition || filters.verifiedOnly || filters.inStockOnly) && (
-                    <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                  <span>Advanced Filters</span>
+                  {(filters.minPrice !== '' || filters.maxPrice !== '' || filters.condition || filters.conditionGroup || filters.yearMin || filters.yearMax) && (
+                    <span className="w-2 h-2 rounded-full bg-slate-950"></span>
                   )}
                   {isAdvancedFiltersOpen ? <ChevronUp className="w-3.5 h-3.5 ml-0.5" /> : <ChevronDown className="w-3.5 h-3.5 ml-0.5" />}
                 </button>
 
-                {/* Share Search Link & Web Visibility button */}
+                {/* Share Search Link button */}
                 <button
                   onClick={() => openWebLinkGenerator({
                     initialSearch: filters.search,
@@ -627,19 +841,18 @@ export const BuyerCatalog: React.FC = () => {
                     initialCategory: filters.category,
                     initialProvince: filters.province
                   })}
-                  className="px-3.5 py-2.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 hover:text-amber-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all border border-amber-500/40 shadow-sm group"
-                  title="Generate easy web search link & QR code (partssource.co.za)"
+                  className="px-3.5 py-2.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 hover:text-amber-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all border border-amber-500/40 shadow-sm group cursor-pointer"
+                  title="Generate easy web search link & QR code"
                 >
                   <Share2 className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
-                  <span className="hidden sm:inline">Share Search Link</span>
-                  <span className="sm:hidden">Share</span>
+                  <span className="hidden sm:inline">Share</span>
                 </button>
 
                 {/* Reset Filters button if any active */}
                 {activeFilterCount > 0 && (
                   <button
                     onClick={resetFilters}
-                    className="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors border border-slate-700"
+                    className="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors border border-slate-700 cursor-pointer"
                     title="Reset all search and filter criteria"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
@@ -650,16 +863,16 @@ export const BuyerCatalog: React.FC = () => {
                 {/* Broadcast part request */}
                 <button
                   onClick={() => setIsRequestPartOpen(true)}
-                  className="px-3.5 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
+                  className="px-3.5 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
                 >
                   <HelpCircle className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Request</span>
+                  <span>Request Part</span>
                 </button>
               </div>
 
             </div>
 
-            {/* Geolocation Feedback Banner (if detected or error) */}
+            {/* Geolocation Feedback Banner */}
             {geoFeedback && (
               <div className={`p-3 rounded-xl border text-xs flex items-center justify-between gap-3 animate-fade-in ${
                 geoFeedback.type === 'success'
@@ -679,180 +892,542 @@ export const BuyerCatalog: React.FC = () => {
                 </div>
                 <button 
                   onClick={() => setGeoFeedback(null)}
-                  className="text-slate-400 hover:text-white shrink-0 p-1"
+                  className="text-slate-400 hover:text-white shrink-0 p-1 cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
             )}
 
-            {/* Expandable Advanced Filters Drawer / Section (Price Range, Province, Condition, Toggles) */}
+            {/* ======================================================== */}
+            {/* ENHANCED ADVANCED FILTER DRAWER (Price, Condition, Fitment) */}
+            {/* ======================================================== */}
             {isAdvancedFiltersOpen && (
-              <div className="pt-4 mt-2 border-t border-slate-800 bg-slate-950/60 p-4 rounded-xl space-y-4">
+              <div className="pt-4 mt-3 border-t border-slate-800 bg-slate-950/80 p-4 sm:p-5 rounded-2xl space-y-5 shadow-inner">
                 
-                {/* Price Range Controls Header */}
-                <div>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2.5">
-                    <label className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-                      <DollarSign className="w-3.5 h-3.5 text-amber-500" />
-                      <span>Price Range (ZAR incl. VAT)</span>
-                      {(filters.minPrice !== '' || filters.maxPrice !== '') && (
-                        <span className="text-amber-400 font-mono font-normal ml-2">
-                          [{filters.minPrice !== '' ? formatZAR(Number(filters.minPrice)) : 'R0'} — {filters.maxPrice !== '' ? formatZAR(Number(filters.maxPrice)) : 'Any'}]
-                        </span>
+                {/* Advanced Filter Sub-Navigation Tabs */}
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <div className="flex items-center gap-2 overflow-x-auto scrollbar-none">
+                    <button
+                      onClick={() => setActiveFilterTab('fitment')}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                        activeFilterTab === 'fitment'
+                          ? 'bg-amber-500 text-slate-950 shadow-sm'
+                          : 'bg-slate-900 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <Car className="w-3.5 h-3.5" />
+                      <span>Vehicle Make / Model & Year</span>
+                      {(filters.make || filters.model || filters.year || filters.yearMin || filters.yearMax) && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-slate-950"></span>
                       )}
-                    </label>
+                    </button>
 
-                    {(filters.minPrice !== '' || filters.maxPrice !== '') && (
-                      <button
-                        onClick={() => setFilters(prev => ({ ...prev, minPrice: '', maxPrice: '' }))}
-                        className="text-[11px] text-slate-400 hover:text-amber-400 underline self-start sm:self-auto"
-                      >
-                        Clear Price Filter
-                      </button>
-                    )}
+                    <button
+                      onClick={() => setActiveFilterTab('price')}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                        activeFilterTab === 'price'
+                          ? 'bg-amber-500 text-slate-950 shadow-sm'
+                          : 'bg-slate-900 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <DollarSign className="w-3.5 h-3.5" />
+                      <span>Price Range (ZAR)</span>
+                      {(filters.minPrice !== '' || filters.maxPrice !== '') && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-slate-950"></span>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={() => setActiveFilterTab('condition')}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                        activeFilterTab === 'condition'
+                          ? 'bg-amber-500 text-slate-950 shadow-sm'
+                          : 'bg-slate-900 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <Box className="w-3.5 h-3.5" />
+                      <span>Part Condition & Warranty</span>
+                      {(filters.condition || filters.conditionGroup) && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-slate-950"></span>
+                      )}
+                    </button>
                   </div>
 
-                  {/* Price Tier Preset Buttons */}
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {PRICE_PRESETS.map((preset, idx) => {
-                      const isSelected = 
-                        filters.minPrice === preset.min && 
-                        filters.maxPrice === preset.max;
-                      return (
-                        <button
-                          key={idx}
-                          onClick={() => setFilters(prev => ({
-                            ...prev,
-                            minPrice: preset.min,
-                            maxPrice: preset.max
-                          }))}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                            isSelected
-                              ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20'
-                              : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800'
-                          }`}
-                        >
-                          {preset.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Custom Min / Max Price Inputs */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg">
-                    <div>
-                      <span className="text-[10px] text-slate-400 block mb-1">Minimum Price (R):</span>
-                      <div className="relative">
-                        <span className="text-xs text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 font-mono">R</span>
-                        <input
-                          type="number"
-                          placeholder="0"
-                          min="0"
-                          step="500"
-                          value={filters.minPrice}
-                          onChange={(e) => setFilters(prev => ({
-                            ...prev,
-                            minPrice: e.target.value ? Number(e.target.value) : ''
-                          }))}
-                          className="w-full pl-8 pr-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-100 font-mono focus:outline-none focus:ring-1 focus:ring-amber-500"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <span className="text-[10px] text-slate-400 block mb-1">Maximum Price (R):</span>
-                      <div className="relative">
-                        <span className="text-xs text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 font-mono">R</span>
-                        <input
-                          type="number"
-                          placeholder="e.g. 50000"
-                          min="0"
-                          step="1000"
-                          value={filters.maxPrice}
-                          onChange={(e) => setFilters(prev => ({
-                            ...prev,
-                            maxPrice: e.target.value ? Number(e.target.value) : ''
-                          }))}
-                          className="w-full pl-8 pr-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-100 font-mono focus:outline-none focus:ring-1 focus:ring-amber-500"
-                        />
-                      </div>
-                    </div>
-                  </div>
+                  <button
+                    onClick={resetFilters}
+                    className="text-xs text-amber-400 hover:text-amber-300 font-semibold hover:underline hidden sm:inline cursor-pointer"
+                  >
+                    Reset All Filters
+                  </button>
                 </div>
 
-                {/* Secondary Filters: Province, Condition, Quality Toggles */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-3 border-t border-slate-800">
-                  
-                  {/* Province selector with GPS Locate integration */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                        Province / Scrap Yard Location
-                      </label>
-                      <button
-                        type="button"
-                        onClick={handleDetectLocation}
-                        disabled={isLocating}
-                        className="text-[10px] text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 hover:underline cursor-pointer"
-                      >
-                        <LocateFixed className="w-3 h-3" />
-                        <span>{isLocating ? 'Detecting...' : 'Detect GPS'}</span>
-                      </button>
+                {/* 1. VEHICLE FITMENT & MODEL YEAR TAB */}
+                {activeFilterTab === 'fitment' && (
+                  <div className="space-y-4 animate-fade-in">
+                    
+                    {/* Make Quick Select Chips */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                          <Car className="w-3.5 h-3.5 text-amber-500" />
+                          <span>Select Vehicle Manufacturer</span>
+                        </label>
+                        {filters.make && (
+                          <span className="text-xs text-amber-400 font-semibold">Active: {filters.make}</span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {POPULAR_MAKES.map(m => {
+                          const isSelected = filters.make.toLowerCase() === m.toLowerCase();
+                          const count = makeCounts[m] || 0;
+                          return (
+                            <button
+                              key={m}
+                              type="button"
+                              onClick={() => {
+                                setFilters(prev => ({
+                                  ...prev,
+                                  make: isSelected ? '' : m,
+                                  model: ''
+                                }));
+                              }}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
+                                isSelected
+                                  ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20'
+                                  : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800'
+                              }`}
+                            >
+                              <span>{m}</span>
+                              <span className={`text-[10px] px-1.5 rounded-full ${isSelected ? 'bg-slate-950/30 text-slate-950' : 'bg-slate-800 text-slate-400'}`}>
+                                {count}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                    <select
-                      value={filters.province}
-                      onChange={(e) => {
-                        setFilters(prev => ({ ...prev, province: e.target.value }));
-                        setGeoFeedback(null);
-                      }}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer"
-                    >
-                      <option value="">🇿🇦 All 9 Provinces (Nationwide)</option>
-                      {SA_PROVINCES.map(p => {
-                        const count = provinceCounts[p] ?? 0;
+
+                    {/* Model Quick Chips or Search */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                          <Sliders className="w-3.5 h-3.5 text-amber-500" />
+                          <span>{filters.make ? `${filters.make} Models` : 'Popular Vehicle Models'}</span>
+                        </label>
+                        <div className="w-48">
+                          <input
+                            type="text"
+                            placeholder="Filter model name..."
+                            value={modelSearchQuery}
+                            onChange={(e) => setModelSearchQuery(e.target.value)}
+                            className="w-full px-2.5 py-1 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
+                        {filteredModelOptions.slice(0, 16).map(m => {
+                          const isSelected = filters.model.toLowerCase() === m.toLowerCase();
+                          return (
+                            <button
+                              key={m}
+                              type="button"
+                              onClick={() => {
+                                setFilters(prev => ({
+                                  ...prev,
+                                  model: isSelected ? '' : m
+                                }));
+                              }}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+                                isSelected
+                                  ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20'
+                                  : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800'
+                              }`}
+                            >
+                              {m}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Year Generation & Year Range Fitment Controls */}
+                    <div className="pt-3 border-t border-slate-800">
+                      <div className="flex items-center justify-between mb-2.5">
+                        <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-amber-500" />
+                          <span>Vehicle Production Year & Generation Range</span>
+                        </label>
+                        {(filters.year || filters.yearMin || filters.yearMax) && (
+                          <button
+                            onClick={() => setFilters(prev => ({ ...prev, year: '', yearMin: '', yearMax: '' }))}
+                            className="text-[11px] text-amber-400 hover:underline cursor-pointer"
+                          >
+                            Clear Year Filters
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Year Generation Presets */}
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {YEAR_GENERATION_PRESETS.map((preset, idx) => {
+                          const isSelected = 
+                            filters.yearMin === preset.min && 
+                            filters.yearMax === preset.max && 
+                            filters.year === preset.exact;
+                          return (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => {
+                                setFilters(prev => ({
+                                  ...prev,
+                                  year: preset.exact,
+                                  yearMin: preset.min,
+                                  yearMax: preset.max
+                                }));
+                              }}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+                                isSelected
+                                  ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20'
+                                  : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800'
+                              }`}
+                            >
+                              {preset.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Custom Year From / To Inputs */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl">
+                        <div>
+                          <span className="text-[10px] text-slate-400 block mb-1">Exact Model Year:</span>
+                          <select
+                            value={filters.year}
+                            onChange={(e) => setFilters(prev => ({ ...prev, year: e.target.value, yearMin: '', yearMax: '' }))}
+                            className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer"
+                          >
+                            <option value="">Any Exact Year</option>
+                            {FITMENT_YEARS.map(y => (
+                              <option key={y} value={y.toString()}>{y}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <span className="text-[10px] text-slate-400 block mb-1">From Year (Min):</span>
+                          <input
+                            type="number"
+                            placeholder="e.g. 2015"
+                            min="1990"
+                            max="2026"
+                            value={filters.yearMin}
+                            onChange={(e) => setFilters(prev => ({
+                              ...prev,
+                              year: '',
+                              yearMin: e.target.value ? Number(e.target.value) : ''
+                            }))}
+                            className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-amber-500 font-mono"
+                          />
+                        </div>
+
+                        <div>
+                          <span className="text-[10px] text-slate-400 block mb-1">To Year (Max):</span>
+                          <input
+                            type="number"
+                            placeholder="e.g. 2024"
+                            min="1990"
+                            max="2026"
+                            value={filters.yearMax}
+                            onChange={(e) => setFilters(prev => ({
+                              ...prev,
+                              year: '',
+                              yearMax: e.target.value ? Number(e.target.value) : ''
+                            }))}
+                            className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-amber-500 font-mono"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                )}
+
+                {/* 2. ADVANCED PRICE RANGE TAB */}
+                {activeFilterTab === 'price' && (
+                  <div className="space-y-4 animate-fade-in">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                          <DollarSign className="w-3.5 h-3.5 text-amber-500" />
+                          <span>South African Rand (ZAR) Price Filters</span>
+                        </h4>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          Prices include VAT where applicable. Direct scrap yard and dealer pricing.
+                        </p>
+                      </div>
+
+                      {(filters.minPrice !== '' || filters.maxPrice !== '') && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-amber-400 font-mono text-xs font-bold">
+                            [{filters.minPrice !== '' ? formatZAR(Number(filters.minPrice)) : 'R0'} – {filters.maxPrice !== '' ? formatZAR(Number(filters.maxPrice)) : 'Unlimited'}]
+                          </span>
+                          <button
+                            onClick={() => setFilters(prev => ({ ...prev, minPrice: '', maxPrice: '' }))}
+                            className="text-[11px] text-slate-400 hover:text-amber-400 underline cursor-pointer"
+                          >
+                            Clear Price
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Price Bracket Presets with Live Match Counts */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                      {pricePresetCounts.map((preset, idx) => {
+                        const isSelected = 
+                          filters.minPrice === preset.min && 
+                          filters.maxPrice === preset.max;
                         return (
-                          <option key={p} value={p}>
-                            {p} ({count} spares available)
-                          </option>
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setFilters(prev => ({
+                              ...prev,
+                              minPrice: preset.min,
+                              maxPrice: preset.max
+                            }))}
+                            className={`p-3 rounded-xl text-left transition-all cursor-pointer flex flex-col justify-between border ${
+                              isSelected
+                                ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/20'
+                                : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-800'
+                            }`}
+                          >
+                            <span className="text-xs font-bold block">{preset.label}</span>
+                            <span className={`text-[10px] mt-1 font-mono ${isSelected ? 'text-slate-900 font-bold' : 'text-slate-500'}`}>
+                              {preset.count} {preset.count === 1 ? 'part' : 'parts'}
+                            </span>
+                          </button>
                         );
                       })}
-                    </select>
-                  </div>
+                    </div>
 
-                  {/* Condition selector */}
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                      Part Condition / Grade
-                    </label>
-                    <select
-                      value={filters.condition}
-                      onChange={(e) => setFilters(prev => ({ ...prev, condition: e.target.value }))}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                    >
-                      <option value="">Any Condition</option>
-                      <option value="Brand New OEM">Brand New OEM</option>
-                      <option value="Brand New Aftermarket">Brand New Aftermarket</option>
-                      <option value="Reconditioned / Tested">Reconditioned / Tested</option>
-                      <option value="Used Original (Clean)">Used Original (Clean)</option>
-                    </select>
-                  </div>
+                    {/* Custom Min / Max Price Inputs with Quick Increments */}
+                    <div className="pt-3 border-t border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-300 block mb-1.5">
+                          Minimum Price (ZAR):
+                        </label>
+                        <div className="relative">
+                          <span className="text-xs text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 font-mono">R</span>
+                          <input
+                            type="number"
+                            placeholder="0"
+                            min="0"
+                            step="500"
+                            value={filters.minPrice}
+                            onChange={(e) => setFilters(prev => ({
+                              ...prev,
+                              minPrice: e.target.value ? Number(e.target.value) : ''
+                            }))}
+                            className="w-full pl-8 pr-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-100 font-mono focus:outline-none focus:ring-1 focus:ring-amber-500"
+                          />
+                        </div>
+                        <div className="flex gap-1.5 mt-1.5">
+                          {[1000, 3000, 5000, 10000].map(val => (
+                            <button
+                              key={val}
+                              type="button"
+                              onClick={() => setFilters(prev => ({ ...prev, minPrice: val }))}
+                              className="text-[10px] px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-amber-400 border border-slate-800 cursor-pointer"
+                            >
+                              R{val >= 1000 ? `${val / 1000}k` : val}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
 
-                  {/* Trust & Quality Toggles */}
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                      Supplier & Stock Filters
-                    </label>
-                    <div className="flex flex-col gap-2 pt-0.5">
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-300 block mb-1.5">
+                          Maximum Price (ZAR):
+                        </label>
+                        <div className="relative">
+                          <span className="text-xs text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 font-mono">R</span>
+                          <input
+                            type="number"
+                            placeholder="e.g. 50000"
+                            min="0"
+                            step="1000"
+                            value={filters.maxPrice}
+                            onChange={(e) => setFilters(prev => ({
+                              ...prev,
+                              maxPrice: e.target.value ? Number(e.target.value) : ''
+                            }))}
+                            className="w-full pl-8 pr-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-100 font-mono focus:outline-none focus:ring-1 focus:ring-amber-500"
+                          />
+                        </div>
+                        <div className="flex gap-1.5 mt-1.5">
+                          {[15000, 30000, 50000, 100000].map(val => (
+                            <button
+                              key={val}
+                              type="button"
+                              onClick={() => setFilters(prev => ({ ...prev, maxPrice: val }))}
+                              className="text-[10px] px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-amber-400 border border-slate-800 cursor-pointer"
+                            >
+                              R{val >= 1000 ? `${val / 1000}k` : val}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Quick Sort Options by Price */}
+                    <div className="pt-2 flex items-center gap-3">
+                      <span className="text-xs text-slate-400 font-medium">Sort Options:</span>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setFilters(prev => ({ ...prev, sortBy: 'price-asc' }))}
+                          className={`px-3 py-1 rounded-lg text-xs font-semibold cursor-pointer ${
+                            filters.sortBy === 'price-asc'
+                              ? 'bg-amber-500 text-slate-950 font-bold'
+                              : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                          }`}
+                        >
+                          Lowest Price First
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFilters(prev => ({ ...prev, sortBy: 'price-desc' }))}
+                          className={`px-3 py-1 rounded-lg text-xs font-semibold cursor-pointer ${
+                            filters.sortBy === 'price-desc'
+                              ? 'bg-amber-500 text-slate-950 font-bold'
+                              : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                          }`}
+                        >
+                          Highest Price First
+                        </button>
+                      </div>
+                    </div>
+
+                  </div>
+                )}
+
+                {/* 3. PART CONDITION & WARRANTY TAB */}
+                {activeFilterTab === 'condition' && (
+                  <div className="space-y-4 animate-fade-in">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                          <Box className="w-3.5 h-3.5 text-amber-500" />
+                          <span>Part Condition (New vs. Used Dismantled)</span>
+                        </h4>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          Select brand new OEM replacement, bench-tested reconditioned units, or original scrap yard salvage.
+                        </p>
+                      </div>
+
+                      {(filters.condition || filters.conditionGroup) && (
+                        <button
+                          onClick={() => setFilters(prev => ({ ...prev, condition: '', conditionGroup: '' }))}
+                          className="text-[11px] text-amber-400 hover:underline cursor-pointer"
+                        >
+                          Clear Condition
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Condition Group Big Selectors */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                      {CONDITION_GROUPS.map(group => {
+                        const Icon = group.icon;
+                        const isSelected = filters.conditionGroup === group.id && !filters.condition;
+                        const groupCount = 
+                          group.id === 'new' ? conditionCounts['newGroup'] :
+                          group.id === 'reconditioned' ? conditionCounts['reconditionedGroup'] :
+                          group.id === 'used' ? conditionCounts['usedGroup'] :
+                          listings.length;
+
+                        return (
+                          <button
+                            key={group.id}
+                            type="button"
+                            onClick={() => {
+                              setFilters(prev => ({
+                                ...prev,
+                                conditionGroup: group.id as any,
+                                condition: ''
+                              }));
+                            }}
+                            className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                              isSelected
+                                ? 'bg-amber-500/15 border-amber-500 text-white shadow-md'
+                                : 'bg-slate-900 hover:bg-slate-850 border-slate-800 text-slate-300'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <Icon className={`w-4 h-4 ${isSelected ? 'text-amber-400' : 'text-slate-400'}`} />
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-950 border border-slate-800 text-slate-300">
+                                {groupCount} available
+                              </span>
+                            </div>
+                            <div>
+                              <div className="font-bold text-xs">{group.label}</div>
+                              <div className="text-[11px] text-slate-400 mt-0.5">{group.description}</div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Granular Condition Options */}
+                    <div className="pt-3 border-t border-slate-800">
+                      <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block mb-2">
+                        Granular Condition Grade:
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+                        {ALL_CONDITIONS_LIST.map(cond => {
+                          const isSelected = filters.condition === cond;
+                          const count = conditionCounts[cond] || 0;
+                          return (
+                            <button
+                              key={cond}
+                              type="button"
+                              onClick={() => {
+                                setFilters(prev => ({
+                                  ...prev,
+                                  condition: isSelected ? '' : cond,
+                                  conditionGroup: ''
+                                }));
+                              }}
+                              className={`p-2.5 rounded-xl text-xs text-left transition-all border cursor-pointer flex items-center justify-between ${
+                                isSelected
+                                  ? 'bg-amber-500 text-slate-950 font-bold border-amber-400 shadow-sm'
+                                  : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-800'
+                              }`}
+                            >
+                              <span className="truncate mr-1">{cond}</span>
+                              <span className={`text-[10px] font-mono shrink-0 px-1.5 rounded ${isSelected ? 'bg-slate-950/20 text-slate-950' : 'bg-slate-800 text-slate-400'}`}>
+                                {count}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Trust and Supplier Filters */}
+                    <div className="pt-3 border-t border-slate-800 flex flex-wrap gap-4">
                       <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300 hover:text-white">
                         <input
                           type="checkbox"
                           checked={filters.verifiedOnly}
                           onChange={(e) => setFilters(prev => ({ ...prev, verifiedOnly: e.target.checked }))}
-                          className="rounded border-slate-700 text-amber-500 focus:ring-amber-500 bg-slate-900 w-3.5 h-3.5"
+                          className="rounded border-slate-700 text-amber-500 focus:ring-amber-500 bg-slate-900 w-3.5 h-3.5 cursor-pointer"
                         />
-                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Verified Suppliers Only</span>
+                        <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                        <span>Verified South African Suppliers Only</span>
                       </label>
 
                       <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300 hover:text-white">
@@ -860,15 +1435,15 @@ export const BuyerCatalog: React.FC = () => {
                           type="checkbox"
                           checked={filters.inStockOnly}
                           onChange={(e) => setFilters(prev => ({ ...prev, inStockOnly: e.target.checked }))}
-                          className="rounded border-slate-700 text-amber-500 focus:ring-amber-500 bg-slate-900 w-3.5 h-3.5"
+                          className="rounded border-slate-700 text-amber-500 focus:ring-amber-500 bg-slate-900 w-3.5 h-3.5 cursor-pointer"
                         />
-                        <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" />
-                        <span>In-Stock Ready for Dispatch</span>
+                        <CheckCircle2 className="w-4 h-4 text-amber-400" />
+                        <span>In-Stock Ready for Immediate Courier Dispatch</span>
                       </label>
                     </div>
-                  </div>
 
-                </div>
+                  </div>
+                )}
 
               </div>
             )}
@@ -880,12 +1455,12 @@ export const BuyerCatalog: React.FC = () => {
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                 <Layers className="w-3.5 h-3.5 text-amber-400" />
-                <span>Browse by Component Category</span>
+                <span>Browse Component Categories</span>
               </span>
               {filters.category && (
                 <button
                   onClick={() => setFilters(prev => ({ ...prev, category: '' }))}
-                  className="text-[11px] text-amber-400 hover:underline"
+                  className="text-[11px] text-amber-400 hover:underline cursor-pointer"
                 >
                   Show All Categories
                 </button>
@@ -905,7 +1480,7 @@ export const BuyerCatalog: React.FC = () => {
                       ...prev,
                       category: isSelected ? '' : category.name
                     }))}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-2 transition-all shrink-0 ${
+                    className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-2 transition-all shrink-0 cursor-pointer ${
                       isSelected
                         ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20'
                         : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800'
@@ -947,7 +1522,7 @@ export const BuyerCatalog: React.FC = () => {
                       setFilters(prev => ({ ...prev, province: '' }));
                       setGeoFeedback(null);
                     }}
-                    className="text-[11px] text-slate-400 hover:text-white hover:underline"
+                    className="text-[11px] text-slate-400 hover:text-white hover:underline cursor-pointer"
                   >
                     View All South Africa
                   </button>
@@ -962,7 +1537,7 @@ export const BuyerCatalog: React.FC = () => {
                   setFilters(prev => ({ ...prev, province: '' }));
                   setGeoFeedback(null);
                 }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition-all shrink-0 ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
                   !filters.province
                     ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20'
                     : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800'
@@ -991,7 +1566,7 @@ export const BuyerCatalog: React.FC = () => {
                       }));
                       setGeoFeedback(null);
                     }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition-all shrink-0 ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
                       isSelected
                         ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20'
                         : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800'
@@ -1072,12 +1647,42 @@ export const BuyerCatalog: React.FC = () => {
 
           <button
             onClick={() => setIsInstallModalOpen(true)}
-            className="w-full sm:w-auto px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-lg shadow-amber-500/20 hover:scale-[1.02] active:scale-[0.98] shrink-0"
+            className="w-full sm:w-auto px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-lg shadow-amber-500/20 hover:scale-[1.02] active:scale-[0.98] shrink-0 cursor-pointer"
           >
             <Download className="w-4 h-4" />
             <span>Install App (Mobile & Desktop)</span>
           </button>
         </div>
+
+        {/* Exact Vehicle Fitment Match Indicator Banner */}
+        {(filters.make || filters.model || filters.year) && (
+          <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-slate-900 via-amber-950/20 to-slate-900 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
+                <Car className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">
+                    Vehicle Fitment Selected:
+                  </span>
+                  <span className="text-xs font-black text-amber-400">
+                    {[filters.year ? `${filters.year}` : '', filters.make, filters.model].filter(Boolean).join(' ')}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Filtering spare parts compatible with this specific vehicle configuration.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setFilters(prev => ({ ...prev, make: '', model: '', year: '', yearMin: '', yearMax: '' }))}
+              className="text-xs text-amber-400 hover:text-amber-300 font-semibold underline cursor-pointer"
+            >
+              Clear Vehicle Selection
+            </button>
+          </div>
+        )}
 
         {/* Active Filters Chips Bar */}
         {activeFilterCount > 0 && (
@@ -1091,7 +1696,7 @@ export const BuyerCatalog: React.FC = () => {
             {filters.make && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold">
                 <span>Make: {filters.make}</span>
-                <button onClick={() => setFilters(prev => ({ ...prev, make: '', model: '' }))} className="hover:text-white">
+                <button onClick={() => setFilters(prev => ({ ...prev, make: '', model: '' }))} className="hover:text-white cursor-pointer">
                   <X className="w-3 h-3" />
                 </button>
               </span>
@@ -1101,7 +1706,7 @@ export const BuyerCatalog: React.FC = () => {
             {filters.model && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold">
                 <span>Model: {filters.model}</span>
-                <button onClick={() => setFilters(prev => ({ ...prev, model: '' }))} className="hover:text-white">
+                <button onClick={() => setFilters(prev => ({ ...prev, model: '' }))} className="hover:text-white cursor-pointer">
                   <X className="w-3 h-3" />
                 </button>
               </span>
@@ -1111,7 +1716,17 @@ export const BuyerCatalog: React.FC = () => {
             {filters.year && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold">
                 <span>Year: {filters.year}</span>
-                <button onClick={() => setFilters(prev => ({ ...prev, year: '' }))} className="hover:text-white">
+                <button onClick={() => setFilters(prev => ({ ...prev, year: '' }))} className="hover:text-white cursor-pointer">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+
+            {/* Year Range Chip */}
+            {(filters.yearMin || filters.yearMax) && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold">
+                <span>Years: {filters.yearMin || 'Pre'} – {filters.yearMax || 'Current'}</span>
+                <button onClick={() => setFilters(prev => ({ ...prev, yearMin: '', yearMax: '' }))} className="hover:text-white cursor-pointer">
                   <X className="w-3 h-3" />
                 </button>
               </span>
@@ -1121,7 +1736,7 @@ export const BuyerCatalog: React.FC = () => {
             {filters.category && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold">
                 <span>Category: {filters.category}</span>
-                <button onClick={() => setFilters(prev => ({ ...prev, category: '' }))} className="hover:text-white">
+                <button onClick={() => setFilters(prev => ({ ...prev, category: '' }))} className="hover:text-white cursor-pointer">
                   <X className="w-3 h-3" />
                 </button>
               </span>
@@ -1133,7 +1748,27 @@ export const BuyerCatalog: React.FC = () => {
                 <span>
                   Price: {filters.minPrice !== '' ? formatZAR(Number(filters.minPrice)) : 'R0'} – {filters.maxPrice !== '' ? formatZAR(Number(filters.maxPrice)) : 'Any'}
                 </span>
-                <button onClick={() => setFilters(prev => ({ ...prev, minPrice: '', maxPrice: '' }))} className="hover:text-white">
+                <button onClick={() => setFilters(prev => ({ ...prev, minPrice: '', maxPrice: '' }))} className="hover:text-white cursor-pointer">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+
+            {/* Condition Group Chip */}
+            {filters.conditionGroup && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold">
+                <span>Condition: {CONDITION_GROUPS.find(g => g.id === filters.conditionGroup)?.label || filters.conditionGroup}</span>
+                <button onClick={() => setFilters(prev => ({ ...prev, conditionGroup: '' }))} className="hover:text-white cursor-pointer">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+
+            {/* Granular Condition Chip */}
+            {filters.condition && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 text-xs font-semibold border border-slate-700">
+                <span>Grade: {filters.condition}</span>
+                <button onClick={() => setFilters(prev => ({ ...prev, condition: '' }))} className="hover:text-white cursor-pointer">
                   <X className="w-3 h-3" />
                 </button>
               </span>
@@ -1143,7 +1778,7 @@ export const BuyerCatalog: React.FC = () => {
             {filters.vehicleType && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 text-xs font-semibold border border-slate-700">
                 <span>Type: {filters.vehicleType}</span>
-                <button onClick={() => setFilters(prev => ({ ...prev, vehicleType: '' }))} className="hover:text-white">
+                <button onClick={() => setFilters(prev => ({ ...prev, vehicleType: '' }))} className="hover:text-white cursor-pointer">
                   <X className="w-3 h-3" />
                 </button>
               </span>
@@ -1153,17 +1788,7 @@ export const BuyerCatalog: React.FC = () => {
             {filters.province && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 text-xs font-semibold border border-slate-700">
                 <span>Province: {filters.province}</span>
-                <button onClick={() => setFilters(prev => ({ ...prev, province: '' }))} className="hover:text-white">
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
-            )}
-
-            {/* Condition Chip */}
-            {filters.condition && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 text-xs font-semibold border border-slate-700">
-                <span>Condition: {filters.condition}</span>
-                <button onClick={() => setFilters(prev => ({ ...prev, condition: '' }))} className="hover:text-white">
+                <button onClick={() => setFilters(prev => ({ ...prev, province: '' }))} className="hover:text-white cursor-pointer">
                   <X className="w-3 h-3" />
                 </button>
               </span>
@@ -1173,7 +1798,7 @@ export const BuyerCatalog: React.FC = () => {
             {filters.verifiedOnly && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-950/60 text-emerald-300 text-xs font-semibold border border-emerald-800/50">
                 <span>Verified Suppliers Only</span>
-                <button onClick={() => setFilters(prev => ({ ...prev, verifiedOnly: false }))} className="hover:text-white">
+                <button onClick={() => setFilters(prev => ({ ...prev, verifiedOnly: false }))} className="hover:text-white cursor-pointer">
                   <X className="w-3 h-3" />
                 </button>
               </span>
@@ -1183,7 +1808,7 @@ export const BuyerCatalog: React.FC = () => {
             {filters.inStockOnly && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 text-xs font-semibold border border-slate-700">
                 <span>In-Stock Only</span>
-                <button onClick={() => setFilters(prev => ({ ...prev, inStockOnly: false }))} className="hover:text-white">
+                <button onClick={() => setFilters(prev => ({ ...prev, inStockOnly: false }))} className="hover:text-white cursor-pointer">
                   <X className="w-3 h-3" />
                 </button>
               </span>
@@ -1192,9 +1817,9 @@ export const BuyerCatalog: React.FC = () => {
             {/* Clear All Action */}
             <button
               onClick={resetFilters}
-              className="ml-auto text-xs text-amber-400 hover:text-amber-300 font-semibold underline"
+              className="ml-auto text-xs text-amber-400 hover:text-amber-300 font-semibold underline cursor-pointer"
             >
-              Clear All Filters
+              Clear All ({activeFilterCount})
             </button>
           </div>
         )}
@@ -1219,7 +1844,7 @@ export const BuyerCatalog: React.FC = () => {
               <select
                 value={filters.sortBy}
                 onChange={(e: any) => setFilters(prev => ({ ...prev, sortBy: e.target.value }))}
-                className="px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                className="px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer"
               >
                 <option value="newest">Newest Listed</option>
                 <option value="price-asc">Price: Low to High (ZAR)</option>
@@ -1231,7 +1856,7 @@ export const BuyerCatalog: React.FC = () => {
             {compareList.length > 0 && (
               <button
                 onClick={() => setIsCompareOpen(true)}
-                className="px-3 py-1.5 bg-amber-500 text-slate-950 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md shadow-amber-500/20"
+                className="px-3 py-1.5 bg-amber-500 text-slate-950 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md shadow-amber-500/20 cursor-pointer"
               >
                 <GitCompare className="w-3.5 h-3.5" />
                 <span>Compare Matrix ({compareList.length})</span>
@@ -1245,10 +1870,9 @@ export const BuyerCatalog: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
             {filteredListings.map(listing => {
               const inCompare = isInCompare(listing.id);
-              const waMessage = encodeURIComponent(
-                `Hi ${listing.sellerName}, I found your listing "${listing.title}" (Ref: ${listing.partNumber}) for ${formatZAR(listing.priceZAR)} on Part Source ZA. Is this still available?`
-              );
-              const waLink = `https://wa.me/${listing.sellerWhatsApp.replace(/[^0-9]/g, '')}?text=${waMessage}`;
+              const isExactFit = checkFitmentMatch(listing);
+              const isNewCondition = listing.condition.includes('Brand New');
+              const isReconditioned = listing.condition.includes('Reconditioned');
 
               return (
                 <div
@@ -1267,20 +1891,35 @@ export const BuyerCatalog: React.FC = () => {
                       
                       {/* Condition badge */}
                       <div className="absolute top-3 left-3 flex flex-col gap-1.5">
-                        <span className="px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-slate-950/90 text-white backdrop-blur-md border border-slate-700 shadow-md">
-                          {listing.condition}
+                        <span className={`px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider backdrop-blur-md border shadow-md flex items-center gap-1 ${
+                          isNewCondition
+                            ? 'bg-emerald-950/90 text-emerald-300 border-emerald-500/50'
+                            : isReconditioned
+                            ? 'bg-amber-950/90 text-amber-300 border-amber-500/50'
+                            : 'bg-slate-950/90 text-slate-300 border-slate-700'
+                        }`}>
+                          {isNewCondition ? <Sparkles className="w-3 h-3 text-emerald-400" /> : isReconditioned ? <Wrench className="w-3 h-3 text-amber-400" /> : <Box className="w-3 h-3 text-slate-400" />}
+                          <span>{listing.condition}</span>
                         </span>
+
                         {listing.isFeatured && (
                           <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-amber-500 text-slate-950 uppercase tracking-wider flex items-center gap-1 shadow-md">
                             <Sparkles className="w-3 h-3" /> Featured
+                          </span>
+                        )}
+
+                        {isExactFit && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-emerald-500 text-slate-950 uppercase tracking-wider flex items-center gap-1 shadow-md animate-pulse">
+                            <CheckCheck className="w-3 h-3" /> Exact Fit
                           </span>
                         )}
                       </div>
 
                       {/* Stock & Warranty Pill */}
                       <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-[10px] text-white font-mono">
-                        <span className="px-2 py-0.5 rounded bg-black/80 backdrop-blur-sm border border-white/10">
-                          {listing.warrantyMonths} Mo Warranty
+                        <span className="px-2 py-0.5 rounded bg-black/80 backdrop-blur-sm border border-white/10 flex items-center gap-1">
+                          <ShieldCheck className="w-3 h-3 text-amber-400" />
+                          <span>{listing.warrantyMonths} Mo Warranty</span>
                         </span>
                         <span className={`px-2 py-0.5 rounded backdrop-blur-sm border flex items-center gap-1 ${
                           filters.province && listing.locationProvince === filters.province
@@ -1370,7 +2009,7 @@ export const BuyerCatalog: React.FC = () => {
                       {/* Compare toggle */}
                       <button
                         onClick={() => inCompare ? removeFromCompare(listing.id) : addToCompare(listing)}
-                        className={`px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                        className={`px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                           inCompare 
                             ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' 
                             : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 border border-slate-700/80'
@@ -1383,7 +2022,7 @@ export const BuyerCatalog: React.FC = () => {
                       {/* View & Purchase */}
                       <button
                         onClick={() => setSelectedListing(listing)}
-                        className="px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg text-xs transition-all flex items-center justify-center gap-1 shadow-lg shadow-amber-600/20"
+                        className="px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg text-xs transition-all flex items-center justify-center gap-1 shadow-lg shadow-amber-600/20 cursor-pointer"
                       >
                         <Eye className="w-3.5 h-3.5" />
                         <span>Details / Buy</span>
@@ -1420,7 +2059,7 @@ export const BuyerCatalog: React.FC = () => {
             <p className="text-sm text-slate-400 mb-6">
               {filters.province
                 ? `There are currently no listings in ${filters.province} matching your exact filters. You can expand your search to all 9 South African provinces (many scrap yards offer nationwide courier delivery) or broadcast a direct part request.`
-                : 'We couldn’t find an exact match for your selected make, model, year, category, or price range. Try clearing specific filters or broadcast an instant rare part request to our nationwide network of South African auto dismantlers.'}
+                : 'We couldn’t find an exact match for your selected make, model, year, condition, or price range. Try clearing specific filters or broadcast an instant rare part request to our nationwide network of South African auto dismantlers.'}
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
               {filters.province && (
@@ -1479,7 +2118,7 @@ export const BuyerCatalog: React.FC = () => {
           </div>
           <button
             onClick={() => setIsCompareOpen(true)}
-            className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold rounded-xl transition-all shadow-md shadow-amber-500/20 whitespace-nowrap"
+            className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold rounded-xl transition-all shadow-md shadow-amber-500/20 whitespace-nowrap cursor-pointer"
           >
             Open Matrix
           </button>
@@ -1489,4 +2128,3 @@ export const BuyerCatalog: React.FC = () => {
     </div>
   );
 };
-
