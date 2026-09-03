@@ -4,7 +4,7 @@ import { createServer as createViteServer } from 'vite';
 
 async function startServer() {
   const app = express();
-  const PORT =Number(process.env.PORT) || 3000;
+  const PORT = 3000;
 
   // Body parsing middleware with error-safe limits
   app.use(express.json({ limit: '10mb' }));
