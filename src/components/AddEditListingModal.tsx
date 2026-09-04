@@ -13,7 +13,8 @@ import {
   Layers,
   Image as ImageIcon,
   Sparkles,
-  Info
+  Info,
+  Trash2
 } from 'lucide-react';
 import { Listing, VehicleType, PartCategory, PartCondition, SouthAfricanProvince } from '../types';
 import { SA_PROVINCES, POPULAR_MAKES, CATEGORIES } from '../data/mockData';
@@ -38,9 +39,13 @@ export const AddEditListingModal: React.FC = () => {
     currentSeller, 
     addListing, 
     updateListing,
+    deleteListing,
     role,
     showNotification
   } = useApp();
+
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -517,24 +522,75 @@ export const AddEditListingModal: React.FC = () => {
           </div>
 
           {/* Submit Buttons */}
-          <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
-            <button
-              type="button"
-              onClick={() => {
-                setIsAddEditModalOpen(false);
-                setEditingListing(null);
-              }}
-              className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs transition-colors"
-            >
-              Cancel
-            </button>
+          <div className="pt-4 border-t border-slate-800 flex items-center justify-between gap-3">
+            <div>
+              {editingListing && (
+                <div>
+                  {!confirmDelete ? (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDelete(true)}
+                      className="px-3.5 py-2 bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-500/30 font-semibold rounded-xl text-xs transition-colors flex items-center gap-1.5"
+                      title="Permanently remove this listing"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Delete Listing</span>
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2 bg-red-950/60 border border-red-500/50 p-1.5 rounded-xl">
+                      <span className="text-[11px] text-red-300 font-bold pl-1">Permanently delete?</span>
+                      <button
+                        type="button"
+                        disabled={isDeleting}
+                        onClick={async () => {
+                          if (!editingListing) return;
+                          setIsDeleting(true);
+                          try {
+                            await deleteListing(editingListing.id);
+                            setIsAddEditModalOpen(false);
+                            setEditingListing(null);
+                            setConfirmDelete(false);
+                          } finally {
+                            setIsDeleting(false);
+                          }
+                        }}
+                        className="px-2.5 py-1 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg text-xs transition-colors disabled:opacity-50"
+                      >
+                        {isDeleting ? 'Deleting...' : 'Yes, Delete'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDelete(false)}
+                        className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
-            <button
-              type="submit"
-              className="px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl text-xs transition-all shadow-lg shadow-amber-500/20"
-            >
-              {editingListing ? 'Save Changes' : 'Publish Listing'}
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAddEditModalOpen(false);
+                  setEditingListing(null);
+                  setConfirmDelete(false);
+                }}
+                className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs transition-colors"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="submit"
+                className="px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl text-xs transition-all shadow-lg shadow-amber-500/20"
+              >
+                {editingListing ? 'Save Changes' : 'Publish Listing'}
+              </button>
+            </div>
           </div>
 
         </form>

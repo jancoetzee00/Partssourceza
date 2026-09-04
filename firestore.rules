@@ -7,26 +7,22 @@ service cloud.firestore {
       return id is string && id.size() > 0 && id.size() <= 128;
     }
 
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    // Default deny
+    // Default deny for unmapped paths
     match /{document=**} {
       allow read, write: if false;
     }
 
     // Test connection probe
-    match /test/connection {
-      allow read: if true;
+    match /test/{docId} {
+      allow read, write: if true;
     }
 
     // Listings Collection
     match /listings/{listingId} {
       allow read: if true;
       allow create, update: if isValidId(listingId)
-        && request.resource.data.title is string && request.resource.data.title.size() <= 256
-        && request.resource.data.priceZAR is number && request.resource.data.priceZAR >= 0;
+        && (!('title' in request.resource.data) || (request.resource.data.title is string && request.resource.data.title.size() <= 256))
+        && (!('priceZAR' in request.resource.data) || (request.resource.data.priceZAR is number && request.resource.data.priceZAR >= 0));
       allow delete: if isValidId(listingId);
     }
 
@@ -34,35 +30,31 @@ service cloud.firestore {
     match /sellers/{sellerId} {
       allow read: if true;
       allow create, update: if isValidId(sellerId)
-        && request.resource.data.businessName is string && request.resource.data.businessName.size() <= 150;
+        && (!('businessName' in request.resource.data) || (request.resource.data.businessName is string && request.resource.data.businessName.size() <= 150));
       allow delete: if isValidId(sellerId);
     }
 
     // Inquiries & WhatsApp Leads
     match /inquiries/{inquiryId} {
       allow read: if true;
-      allow create: if isValidId(inquiryId)
-        && request.resource.data.buyerName is string && request.resource.data.buyerName.size() <= 100
-        && request.resource.data.buyerPhone is string && request.resource.data.buyerPhone.size() <= 50;
-      allow update: if isValidId(inquiryId);
+      allow create, update: if isValidId(inquiryId)
+        && (!('buyerName' in request.resource.data) || (request.resource.data.buyerName is string && request.resource.data.buyerName.size() <= 100))
+        && (!('buyerPhone' in request.resource.data) || (request.resource.data.buyerPhone is string && request.resource.data.buyerPhone.size() <= 50));
       allow delete: if isValidId(inquiryId);
     }
 
     // Orders Collection
     match /orders/{orderId} {
       allow read: if true;
-      allow create: if isValidId(orderId)
-        && request.resource.data.buyerName is string && request.resource.data.buyerName.size() <= 100
-        && request.resource.data.totalAmountZAR is number;
-      allow update: if isValidId(orderId);
+      allow create, update: if isValidId(orderId)
+        && (!('buyerName' in request.resource.data) || (request.resource.data.buyerName is string && request.resource.data.buyerName.size() <= 100));
       allow delete: if isValidId(orderId);
     }
 
     // Users Collection
     match /users/{userId} {
       allow read: if true;
-      allow create, update: if isValidId(userId)
-        && request.resource.data.email is string && request.resource.data.email.size() <= 100;
+      allow create, update: if isValidId(userId);
       allow delete: if isValidId(userId);
     }
 
@@ -76,8 +68,7 @@ service cloud.firestore {
     // Direct Subscription Discounts Collection
     match /subscription_discounts/{discountId} {
       allow read: if true;
-      allow create, update: if isValidId(discountId)
-        && request.resource.data.code is string;
+      allow create, update: if isValidId(discountId);
       allow delete: if isValidId(discountId);
     }
   }

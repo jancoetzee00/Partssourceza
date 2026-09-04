@@ -44,7 +44,7 @@ import {
   Tag,
   Percent
 } from 'lucide-react';
-import { AppBankingDetails, SellerTier, UserRole, PlatformUser, Order } from '../types';
+import { Listing, AppBankingDetails, SellerTier, UserRole, PlatformUser, Order } from '../types';
 import { SUBSCRIPTION_PLANS, SA_PROVINCES, ROLE_PERMISSIONS_MATRIX } from '../data/mockData';
 import { AdminSubscriptionDiscounts } from './AdminSubscriptionDiscounts';
 
@@ -101,6 +101,12 @@ export const OwnerAdminDashboard: React.FC = () => {
 
   const [orderSearch, setOrderSearch] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState<string>('all');
+
+  // Delete confirmation modal states
+  const [listingToDelete, setListingToDelete] = useState<Listing | null>(null);
+  const [isDeletingListing, setIsDeletingListing] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<PlatformUser | null>(null);
+  const [isDeletingUser, setIsDeletingUser] = useState(false);
 
   // New user modal state
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
@@ -894,11 +900,7 @@ export const OwnerAdminDashboard: React.FC = () => {
                               <Phone className="w-3.5 h-3.5" />
                             </a>
                             <button
-                              onClick={() => {
-                                if (window.confirm(`Delete user "${user.name}" permanently?`)) {
-                                  deleteUser(user.id);
-                                }
-                              }}
+                              onClick={() => setUserToDelete(user)}
                               className="p-1.5 rounded-lg bg-slate-800 hover:bg-red-900/60 text-slate-400 hover:text-red-400 transition-colors"
                               title="Delete User"
                             >
@@ -1157,11 +1159,7 @@ export const OwnerAdminDashboard: React.FC = () => {
                               <Edit3 className="w-4 h-4 text-amber-400" />
                             </button>
                             <button
-                              onClick={() => {
-                                if (window.confirm(`SUPERADMIN ACTION: Permanently remove "${item.title}"?`)) {
-                                  deleteListing(item.id);
-                                }
-                              }}
+                              onClick={() => setListingToDelete(item)}
                               className="p-1.5 rounded-lg bg-slate-800 hover:bg-red-900/60 text-slate-400 hover:text-red-400 transition-colors"
                               title="Owner Delete Listing"
                             >
@@ -1871,6 +1869,147 @@ export const OwnerAdminDashboard: React.FC = () => {
 
           </div>
 
+        </div>
+      )}
+
+      {/* IN-APP CONFIRMATION MODAL: Delete Listing */}
+      {listingToDelete && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-slate-900 border border-red-500/40 rounded-3xl p-6 shadow-2xl shadow-black/90 relative overflow-hidden">
+            <div className="flex items-start gap-4">
+              <div className="h-12 w-12 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 flex-shrink-0">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <span className="text-[10px] font-black uppercase tracking-wider text-red-400 bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20">
+                  Superadmin Action
+                </span>
+                <h3 className="text-base font-bold text-white mt-1">
+                  Permanently Delete Listing?
+                </h3>
+                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                  This will permanently remove this part from Part Source ZA catalog and Firebase Firestore.
+                </p>
+              </div>
+            </div>
+
+            {/* Part Preview Card */}
+            <div className="mt-4 p-3.5 bg-slate-950 rounded-2xl border border-slate-800 flex items-center gap-3">
+              <img
+                src={listingToDelete.images[0]}
+                alt={listingToDelete.title}
+                referrerPolicy="no-referrer"
+                className="h-12 w-14 rounded-xl object-cover bg-slate-900 border border-slate-800 flex-shrink-0"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-white truncate">
+                  {listingToDelete.title}
+                </p>
+                <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-400">
+                  <span className="font-mono">{listingToDelete.partNumber}</span>
+                  <span>•</span>
+                  <span className="text-amber-400 font-semibold">{formatZAR(listingToDelete.priceZAR)}</span>
+                </div>
+                <p className="text-[10px] text-slate-500 truncate mt-0.5">
+                  Supplier: {listingToDelete.sellerName}
+                </p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                disabled={isDeletingListing}
+                onClick={() => setListingToDelete(null)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingListing}
+                onClick={async () => {
+                  if (!listingToDelete) return;
+                  setIsDeletingListing(true);
+                  try {
+                    await deleteListing(listingToDelete.id);
+                  } finally {
+                    setIsDeletingListing(false);
+                    setListingToDelete(null);
+                  }
+                }}
+                className="px-5 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-xs transition-all shadow-lg shadow-red-600/30 flex items-center gap-2 disabled:opacity-50"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{isDeletingListing ? 'Deleting...' : 'Confirm Delete'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* IN-APP CONFIRMATION MODAL: Delete User */}
+      {userToDelete && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-slate-900 border border-red-500/40 rounded-3xl p-6 shadow-2xl shadow-black/90 relative overflow-hidden">
+            <div className="flex items-start gap-4">
+              <div className="h-12 w-12 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 flex-shrink-0">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <span className="text-[10px] font-black uppercase tracking-wider text-red-400 bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20">
+                  Account Management
+                </span>
+                <h3 className="text-base font-bold text-white mt-1">
+                  Permanently Delete User?
+                </h3>
+                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                  Are you sure you want to permanently delete <strong className="text-white">{userToDelete.name}</strong> ({userToDelete.email})? This user will lose all platform access.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs text-slate-400 flex items-center justify-between">
+              <div>
+                <span className="block font-semibold text-white">{userToDelete.name}</span>
+                <span className="text-[11px] text-slate-500">{userToDelete.email} • {userToDelete.role.toUpperCase()}</span>
+              </div>
+              <span className="px-2 py-0.5 rounded bg-slate-800 text-[10px] text-slate-300 font-mono">
+                {userToDelete.province}
+              </span>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                disabled={isDeletingUser}
+                onClick={() => setUserToDelete(null)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingUser}
+                onClick={async () => {
+                  if (!userToDelete) return;
+                  setIsDeletingUser(true);
+                  try {
+                    deleteUser(userToDelete.id);
+                  } finally {
+                    setIsDeletingUser(false);
+                    setUserToDelete(null);
+                  }
+                }}
+                className="px-5 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-xs transition-all shadow-lg shadow-red-600/30 flex items-center gap-2 disabled:opacity-50"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{isDeletingUser ? 'Deleting...' : 'Delete User'}</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

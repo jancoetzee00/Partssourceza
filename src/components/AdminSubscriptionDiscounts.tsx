@@ -50,6 +50,8 @@ export const AdminSubscriptionDiscounts: React.FC = () => {
   // Modal State for Add/Edit
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [discountToDelete, setDiscountToDelete] = useState<SubscriptionDiscount | null>(null);
+  const [isDeletingDiscount, setIsDeletingDiscount] = useState(false);
 
   const initialFormState: Omit<SubscriptionDiscount, 'id' | 'createdAt' | 'usageCount'> = {
     code: '',
@@ -669,11 +671,7 @@ export const AdminSubscriptionDiscounts: React.FC = () => {
                           <Edit3 className="w-3.5 h-3.5 text-blue-400" />
                         </button>
                         <button
-                          onClick={() => {
-                            if (window.confirm(`Permanently remove discount coupon "${discount.code}"?`)) {
-                              deleteSubscriptionDiscount(discount.id);
-                            }
-                          }}
+                          onClick={() => setDiscountToDelete(discount)}
                           className="p-1.5 rounded-lg bg-slate-800 hover:bg-red-950 text-slate-400 hover:text-red-400 transition-colors"
                           title="Delete Discount"
                         >
@@ -1207,6 +1205,59 @@ export const AdminSubscriptionDiscounts: React.FC = () => {
 
             </form>
 
+          </div>
+        </div>
+      )}
+
+      {/* IN-APP CONFIRMATION MODAL: Delete Discount */}
+      {discountToDelete && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-slate-900 border border-red-500/40 rounded-3xl p-6 shadow-2xl shadow-black/90 relative overflow-hidden">
+            <div className="flex items-start gap-4">
+              <div className="h-12 w-12 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 flex-shrink-0">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <span className="text-[10px] font-black uppercase tracking-wider text-red-400 bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20">
+                  Discount Management
+                </span>
+                <h3 className="text-base font-bold text-white mt-1">
+                  Permanently Delete Discount?
+                </h3>
+                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                  Permanently remove promo voucher <strong className="text-amber-400 font-mono">{discountToDelete.code}</strong> ({discountToDelete.title})?
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                disabled={isDeletingDiscount}
+                onClick={() => setDiscountToDelete(null)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingDiscount}
+                onClick={() => {
+                  if (!discountToDelete) return;
+                  setIsDeletingDiscount(true);
+                  try {
+                    deleteSubscriptionDiscount(discountToDelete.id);
+                  } finally {
+                    setIsDeletingDiscount(false);
+                    setDiscountToDelete(null);
+                  }
+                }}
+                className="px-5 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-xs transition-all shadow-lg shadow-red-600/30 flex items-center gap-2 disabled:opacity-50"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{isDeletingDiscount ? 'Deleting...' : 'Delete Coupon'}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

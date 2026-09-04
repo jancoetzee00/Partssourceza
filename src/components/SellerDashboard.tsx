@@ -71,6 +71,8 @@ export const SellerDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'listings' | 'inquiries' | 'orders' | 'subscription'>('listings');
   const [dashBillingCycle, setDashBillingCycle] = useState<'monthly' | 'annual'>('monthly');
   const [copiedAccountNum, setCopiedAccountNum] = useState(false);
+  const [listingToDelete, setListingToDelete] = useState<Listing | null>(null);
+  const [isDeletingListing, setIsDeletingListing] = useState(false);
 
   // Filter listings for current seller
   const sellerListings = listings.filter(l => l.sellerId === currentSeller.id);
@@ -469,11 +471,7 @@ export const SellerDashboard: React.FC = () => {
                                   Edit
                                 </button>
                                 <button
-                                  onClick={() => {
-                                    if (window.confirm(`Are you sure you want to delete "${item.title}"?`)) {
-                                      deleteListing(item.id);
-                                    }
-                                  }}
+                                  onClick={() => setListingToDelete(item)}
                                   className="text-red-400 hover:text-red-300 font-semibold text-xs px-2 py-1 rounded hover:bg-red-950/40 transition-colors"
                                   title="Delete listing"
                                 >
@@ -1102,6 +1100,80 @@ export const SellerDashboard: React.FC = () => {
             </div>
           </div>
 
+        </div>
+      )}
+
+      {/* IN-APP CONFIRMATION MODAL: Seller Delete Listing */}
+      {listingToDelete && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-slate-900 border border-red-500/40 rounded-3xl p-6 shadow-2xl shadow-black/90 relative overflow-hidden">
+            <div className="flex items-start gap-4">
+              <div className="h-12 w-12 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 flex-shrink-0">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <span className="text-[10px] font-black uppercase tracking-wider text-red-400 bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20">
+                  Supplier Inventory Action
+                </span>
+                <h3 className="text-base font-bold text-white mt-1">
+                  Permanently Delete Listing?
+                </h3>
+                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                  Are you sure you want to remove this item? It will be removed from your catalog and the marketplace immediately.
+                </p>
+              </div>
+            </div>
+
+            {/* Part Preview Card */}
+            <div className="mt-4 p-3.5 bg-slate-950 rounded-2xl border border-slate-800 flex items-center gap-3">
+              <img
+                src={listingToDelete.images[0]}
+                alt={listingToDelete.title}
+                referrerPolicy="no-referrer"
+                className="h-12 w-14 rounded-xl object-cover bg-slate-900 border border-slate-800 flex-shrink-0"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-white truncate">
+                  {listingToDelete.title}
+                </p>
+                <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-400">
+                  <span className="font-mono">{listingToDelete.partNumber}</span>
+                  <span>•</span>
+                  <span className="text-amber-400 font-semibold">R{listingToDelete.priceZAR.toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                disabled={isDeletingListing}
+                onClick={() => setListingToDelete(null)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingListing}
+                onClick={async () => {
+                  if (!listingToDelete) return;
+                  setIsDeletingListing(true);
+                  try {
+                    await deleteListing(listingToDelete.id);
+                  } finally {
+                    setIsDeletingListing(false);
+                    setListingToDelete(null);
+                  }
+                }}
+                className="px-5 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-xs transition-all shadow-lg shadow-red-600/30 flex items-center gap-2 disabled:opacity-50"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{isDeletingListing ? 'Deleting...' : 'Confirm Delete'}</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

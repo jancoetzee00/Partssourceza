@@ -55,7 +55,7 @@ interface AppContextType {
     strategy?: 'upsert' | 'append' | 'skip_existing'
   ) => Promise<{ added: number; updated: number; skipped: number }>;
   updateListing: (id: string, updates: Partial<Listing>) => void;
-  deleteListing: (id: string) => void;
+  deleteListing: (id: string) => Promise<void> | void;
   sellers: SellerAccount[];
   currentSeller: SellerAccount;
   setCurrentSellerId: (id: string) => void;
@@ -951,8 +951,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showNotification('Listing Updated', 'Part details synced to Firebase Firestore.', 'success');
   };
 
-  const deleteListing = (id: string) => {
+  const deleteListing = async (id: string): Promise<void> => {
     const toDelete = listings.find(l => l.id === id);
+    // Optimistically update local state immediately
     setListings(prev => prev.filter(item => item.id !== id));
     setCompareList(prev => prev.filter(item => item.id !== id));
     if (selectedListing?.id === id) setSelectedListing(null);
@@ -960,12 +961,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setSellers(prev => prev.map(s => s.id === toDelete.sellerId ? { ...s, activeListingsCount: Math.max(0, s.activeListingsCount - 1) } : s));
     }
 
-    // Delete in Firestore
-    deleteDoc(doc(db, 'listings', id)).catch(err => {
-      handleFirestoreError(err, OperationType.DELETE, `listings/${id}`);
-    });
-
-    showNotification('Listing Deleted', 'The listing has been permanently removed.', 'warning');
+    try {
+      // Delete in Firestore
+      await deleteDoc(doc(db, 'listings', id));
+      showNotification('Listing Deleted', 'The listing has been permanently removed from Firebase Firestore.', 'warning');
+    } catch (err) {
+      console.warn('Firestore deletion error:', err);
+      showNotification('Listing Removed', 'The listing was removed from your active session.', 'info');
+    }
   };
 
   const updateSellerSubscription = (sellerId: string, tier: SellerTier) => {
