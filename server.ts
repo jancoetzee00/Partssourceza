@@ -4,6 +4,7 @@ import { createServer as createViteServer } from 'vite';
 
 async function startServer() {
   const app = express();
+  // Port 3000 is required by the infrastructure: nginx listens on container ingress (8080) and proxies to 3000
   const PORT = Number(process.env.PORT) || 3000;
 
   // Body parsing middleware with error-safe limits
