@@ -61,6 +61,8 @@ import { SwipeableListingCard } from './SwipeableListingCard';
 import { PartGalleryLightboxModal } from './PartGalleryLightboxModal';
 import { BuyerQuickStartGuide } from './BuyerQuickStartGuide';
 import { QuickBrandBar } from './QuickBrandBar';
+import { PriceRangeSlider } from './PriceRangeSlider';
+import { BuyerCatalogSidebar } from './BuyerCatalogSidebar';
 
 // Premier scrap yard & automotive dismantler hubs across South Africa
 const TOP_NATIONAL_HUBS = [
@@ -144,6 +146,8 @@ export const BuyerCatalog: React.FC = () => {
   const [modelSearchQuery, setModelSearchQuery] = useState('');
   const [isLocating, setIsLocating] = useState(false);
   const [geoFeedback, setGeoFeedback] = useState<{ type: 'success' | 'error' | 'info'; message: string; details?: string } | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   // Trigger GPS Geolocation to detect user's South African province
   const handleDetectLocation = async () => {
@@ -1232,102 +1236,57 @@ export const BuyerCatalog: React.FC = () => {
                       )}
                     </div>
 
-                    {/* Price Bracket Presets with Live Match Counts */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-                      {pricePresetCounts.map((preset, idx) => {
-                        const isSelected = 
-                          filters.minPrice === preset.min && 
-                          filters.maxPrice === preset.max;
-                        return (
-                          <button
-                            key={idx}
-                            type="button"
-                            onClick={() => setFilters(prev => ({
-                              ...prev,
-                              minPrice: preset.min,
-                              maxPrice: preset.max
-                            }))}
-                            className={`p-3 rounded-xl text-left transition-all cursor-pointer flex flex-col justify-between border ${
-                              isSelected
-                                ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/20'
-                                : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-800'
-                            }`}
-                          >
-                            <span className="text-xs font-bold block">{preset.label}</span>
-                            <span className={`text-[10px] mt-1 font-mono ${isSelected ? 'text-slate-900 font-bold' : 'text-slate-500'}`}>
-                              {preset.count} {preset.count === 1 ? 'part' : 'parts'}
-                            </span>
-                          </button>
-                        );
-                      })}
+                    {/* Live Interactive Price Range Slider with Presets & Number Inputs */}
+                    <div className="p-4 sm:p-5 bg-slate-900/90 border border-slate-800 rounded-2xl max-w-2xl">
+                      <PriceRangeSlider
+                        minPrice={filters.minPrice}
+                        maxPrice={filters.maxPrice}
+                        onChange={(min, max) => {
+                          setFilters(prev => ({
+                            ...prev,
+                            minPrice: min,
+                            maxPrice: max
+                          }));
+                        }}
+                        maxLimit={80000}
+                        step={500}
+                        matchingCount={filteredListings.length}
+                        showPresets={true}
+                      />
                     </div>
 
-                    {/* Custom Min / Max Price Inputs with Quick Increments */}
-                    <div className="pt-3 border-t border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
-                      <div>
-                        <label className="text-[11px] font-bold text-slate-300 block mb-1.5">
-                          Minimum Price (ZAR):
-                        </label>
-                        <div className="relative">
-                          <span className="text-xs text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 font-mono">R</span>
-                          <input
-                            type="number"
-                            placeholder="0"
-                            min="0"
-                            step="500"
-                            value={filters.minPrice}
-                            onChange={(e) => setFilters(prev => ({
-                              ...prev,
-                              minPrice: e.target.value ? Number(e.target.value) : ''
-                            }))}
-                            className="w-full pl-8 pr-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-100 font-mono focus:outline-none focus:ring-1 focus:ring-amber-500"
-                          />
-                        </div>
-                        <div className="flex gap-1.5 mt-1.5">
-                          {[1000, 3000, 5000, 10000].map(val => (
+                    {/* Price Bracket Presets with Live Match Counts */}
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 block mb-2 uppercase tracking-wider">
+                        South African Market Part Tiers
+                      </span>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                        {pricePresetCounts.map((preset, idx) => {
+                          const isSelected = 
+                            filters.minPrice === preset.min && 
+                            filters.maxPrice === preset.max;
+                          return (
                             <button
-                              key={val}
+                              key={idx}
                               type="button"
-                              onClick={() => setFilters(prev => ({ ...prev, minPrice: val }))}
-                              className="text-[10px] px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-amber-400 border border-slate-800 cursor-pointer"
+                              onClick={() => setFilters(prev => ({
+                                ...prev,
+                                minPrice: preset.min,
+                                maxPrice: preset.max
+                              }))}
+                              className={`p-3 rounded-xl text-left transition-all cursor-pointer flex flex-col justify-between border ${
+                                isSelected
+                                  ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/20'
+                                  : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-800'
+                              }`}
                             >
-                              R{val >= 1000 ? `${val / 1000}k` : val}
+                              <span className="text-xs font-bold block">{preset.label}</span>
+                              <span className={`text-[10px] mt-1 font-mono ${isSelected ? 'text-slate-900 font-bold' : 'text-slate-500'}`}>
+                                {preset.count} {preset.count === 1 ? 'part' : 'parts'}
+                              </span>
                             </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="text-[11px] font-bold text-slate-300 block mb-1.5">
-                          Maximum Price (ZAR):
-                        </label>
-                        <div className="relative">
-                          <span className="text-xs text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 font-mono">R</span>
-                          <input
-                            type="number"
-                            placeholder="e.g. 50000"
-                            min="0"
-                            step="1000"
-                            value={filters.maxPrice}
-                            onChange={(e) => setFilters(prev => ({
-                              ...prev,
-                              maxPrice: e.target.value ? Number(e.target.value) : ''
-                            }))}
-                            className="w-full pl-8 pr-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-100 font-mono focus:outline-none focus:ring-1 focus:ring-amber-500"
-                          />
-                        </div>
-                        <div className="flex gap-1.5 mt-1.5">
-                          {[15000, 30000, 50000, 100000].map(val => (
-                            <button
-                              key={val}
-                              type="button"
-                              onClick={() => setFilters(prev => ({ ...prev, maxPrice: val }))}
-                              className="text-[10px] px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-amber-400 border border-slate-800 cursor-pointer"
-                            >
-                              R{val >= 1000 ? `${val / 1000}k` : val}
-                            </button>
-                          ))}
-                        </div>
+                          );
+                        })}
                       </div>
                     </div>
 
@@ -2072,6 +2031,40 @@ export const BuyerCatalog: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            {/* Mobile Filter & Budget Sidebar Trigger */}
+            <button
+              type="button"
+              id="open-mobile-filter-sidebar-btn"
+              onClick={() => setIsMobileSidebarOpen(true)}
+              className={`lg:hidden px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border ${
+                filters.minPrice !== '' || filters.maxPrice !== '' || filters.conditionGroup || filters.verifiedOnly || filters.inStockOnly
+                  ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-sm'
+                  : 'bg-slate-900 text-slate-300 border-slate-700 hover:text-white'
+              }`}
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span>Budget & Filters</span>
+              {(filters.minPrice !== '' || filters.maxPrice !== '') && (
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-950" />
+              )}
+            </button>
+
+            {/* Desktop Sidebar Toggle Button */}
+            <button
+              type="button"
+              id="toggle-desktop-filter-sidebar-btn"
+              onClick={() => setIsSidebarOpen(prev => !prev)}
+              className={`hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                isSidebarOpen
+                  ? 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800'
+                  : 'bg-amber-500/15 border-amber-500/40 text-amber-300 hover:bg-amber-500/25'
+              }`}
+              title={isSidebarOpen ? "Collapse sidebar to view wider parts grid" : "Expand filter sidebar with price budget slider"}
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5 text-amber-500" />
+              <span>{isSidebarOpen ? 'Hide Sidebar' : 'Filter Sidebar'}</span>
+            </button>
+
             <div className="flex items-center gap-2">
               <label className="text-xs text-slate-400 font-medium whitespace-nowrap">Sort By:</label>
               <select
@@ -2166,160 +2159,201 @@ export const BuyerCatalog: React.FC = () => {
           </div>
         </div>
 
-        {/* Mobile Swipe Gesture Helper */}
-        <div className="sm:hidden flex items-center justify-between px-3 py-1.5 bg-slate-900/60 border border-slate-800/80 rounded-xl text-[10px] text-slate-400 mt-3">
-          <span className="flex items-center gap-1 text-emerald-400 font-medium">
-            <MessageCircle className="w-3 h-3 text-emerald-400" /> 👉 Swipe right for WhatsApp
-          </span>
-          <span className="text-amber-400 font-medium">
-            Swipe left for Details 👈
-          </span>
+        {/* Responsive Catalog Layout: Sidebar + Listings */}
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-7 items-start mt-4">
+          {/* Sticky Desktop Filter Sidebar */}
+          {isSidebarOpen && (
+            <aside
+              id="buyer-catalog-sidebar"
+              aria-label="Buyer Catalog Filters and Budget Sidebar"
+              className="hidden lg:block w-72 xl:w-80 shrink-0 sticky top-20 space-y-4"
+            >
+              <BuyerCatalogSidebar
+                filters={filters}
+                setFilters={setFilters}
+                matchingCount={filteredListings.length}
+                resetFilters={resetFilters}
+              />
+            </aside>
+          )}
+
+          {/* Main Listings Column */}
+          <div className="flex-1 min-w-0 w-full">
+            {/* Mobile Swipe Gesture Helper */}
+            <div className="sm:hidden flex items-center justify-between px-3 py-1.5 bg-slate-900/60 border border-slate-800/80 rounded-xl text-[10px] text-slate-400 mb-3">
+              <span className="flex items-center gap-1 text-emerald-400 font-medium">
+                <MessageCircle className="w-3 h-3 text-emerald-400" /> 👉 Swipe right for WhatsApp
+              </span>
+              <span className="text-amber-400 font-medium">
+                Swipe left for Details 👈
+              </span>
+            </div>
+
+            {/* Listings Display with Mobile Swipe-to-Contact Gestures */}
+            {filteredListings.length > 0 ? (
+              viewDensity === 'gallery' ? (
+                /* Visual Image Gallery Grid (High Impact Photos, Multi-Angle Thumbnails, Zoom) */
+                <div className={`grid grid-cols-1 sm:grid-cols-2 ${isSidebarOpen ? 'xl:grid-cols-3' : 'lg:grid-cols-3 xl:grid-cols-4'} gap-4 sm:gap-5`}>
+                  {filteredListings.map(listing => (
+                    <SwipeableListingCard
+                      key={listing.id}
+                      listing={listing}
+                      viewDensity="gallery"
+                      inCompare={isInCompare(listing.id)}
+                      isExactFit={checkFitmentMatch(listing)}
+                      isNewCondition={listing.condition.includes('Brand New')}
+                      isReconditioned={listing.condition.includes('Reconditioned')}
+                      onSelectListing={setSelectedListing}
+                      onAddToCompare={addToCompare}
+                      onRemoveFromCompare={removeFromCompare}
+                      onWhatsAppChat={(l) => openWhatsAppChat(l, 'availability')}
+                      onOpenLightbox={(l, idx) => {
+                        setLightboxListing(l);
+                        setLightboxIndex(idx || 0);
+                      }}
+                      formatZAR={formatZAR}
+                      selectedProvince={filters.province}
+                    />
+                  ))}
+                </div>
+              ) : viewDensity === 'list' ? (
+                /* High Density List View */
+                <div className="flex flex-col gap-2.5">
+                  {filteredListings.map(listing => (
+                    <SwipeableListingCard
+                      key={listing.id}
+                      listing={listing}
+                      viewDensity="list"
+                      inCompare={isInCompare(listing.id)}
+                      isExactFit={checkFitmentMatch(listing)}
+                      isNewCondition={listing.condition.includes('Brand New')}
+                      isReconditioned={listing.condition.includes('Reconditioned')}
+                      onSelectListing={setSelectedListing}
+                      onAddToCompare={addToCompare}
+                      onRemoveFromCompare={removeFromCompare}
+                      onWhatsAppChat={(l) => openWhatsAppChat(l, 'availability')}
+                      onOpenLightbox={(l, idx) => {
+                        setLightboxListing(l);
+                        setLightboxIndex(idx || 0);
+                      }}
+                      formatZAR={formatZAR}
+                      selectedProvince={filters.province}
+                    />
+                  ))}
+                </div>
+              ) : viewDensity === 'compact' ? (
+                /* Smaller, High-Density Compact Grid */
+                <div className={`grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 ${isSidebarOpen ? 'xl:grid-cols-4' : 'lg:grid-cols-4 xl:grid-cols-5'} gap-3 sm:gap-3.5`}>
+                  {filteredListings.map(listing => (
+                    <SwipeableListingCard
+                      key={listing.id}
+                      listing={listing}
+                      viewDensity="compact"
+                      inCompare={isInCompare(listing.id)}
+                      isExactFit={checkFitmentMatch(listing)}
+                      isNewCondition={listing.condition.includes('Brand New')}
+                      isReconditioned={listing.condition.includes('Reconditioned')}
+                      onSelectListing={setSelectedListing}
+                      onAddToCompare={addToCompare}
+                      onRemoveFromCompare={removeFromCompare}
+                      onWhatsAppChat={(l) => openWhatsAppChat(l, 'availability')}
+                      onOpenLightbox={(l, idx) => {
+                        setLightboxListing(l);
+                        setLightboxIndex(idx || 0);
+                      }}
+                      formatZAR={formatZAR}
+                      selectedProvince={filters.province}
+                    />
+                  ))}
+                </div>
+              ) : (
+                /* Comfort Grid (Standard Card Detail) */
+                <div className={`grid grid-cols-1 sm:grid-cols-2 ${isSidebarOpen ? 'xl:grid-cols-3' : 'md:grid-cols-3 lg:grid-cols-4'} gap-4`}>
+                  {filteredListings.map(listing => (
+                    <SwipeableListingCard
+                      key={listing.id}
+                      listing={listing}
+                      viewDensity="comfort"
+                      inCompare={isInCompare(listing.id)}
+                      isExactFit={checkFitmentMatch(listing)}
+                      isNewCondition={listing.condition.includes('Brand New')}
+                      isReconditioned={listing.condition.includes('Reconditioned')}
+                      onSelectListing={setSelectedListing}
+                      onAddToCompare={addToCompare}
+                      onRemoveFromCompare={removeFromCompare}
+                      onWhatsAppChat={(l) => openWhatsAppChat(l, 'availability')}
+                      onOpenLightbox={(l, idx) => {
+                        setLightboxListing(l);
+                        setLightboxIndex(idx || 0);
+                      }}
+                      formatZAR={formatZAR}
+                      selectedProvince={filters.province}
+                    />
+                  ))}
+                </div>
+              )
+            ) : (
+              /* Empty Search State with Actionable Guidance */
+              <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-10 text-center my-12 max-w-2xl mx-auto">
+                <Car className="w-12 h-12 text-amber-400 mx-auto mb-4 stroke-1" />
+                <h3 className="text-xl font-bold text-white mb-2">
+                  {filters.province
+                    ? `No matching spares found in ${filters.province}`
+                    : 'No matching car or truck parts found'}
+                </h3>
+                <p className="text-sm text-slate-400 mb-6">
+                  {filters.province
+                    ? `There are currently no listings in ${filters.province} matching your exact filters. You can expand your search to all 9 South African provinces (many scrap yards offer nationwide courier delivery) or broadcast a direct part request.`
+                    : 'We couldn’t find an exact match for your selected make, model, year, condition, or price range. Try clearing specific filters or broadcast an instant rare part request to our nationwide network of South African auto dismantlers.'}
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  {filters.province && (
+                    <button
+                      onClick={() => {
+                        setFilters(prev => ({ ...prev, province: '' }));
+                        setGeoFeedback(null);
+                      }}
+                      className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs transition-colors flex items-center gap-1.5 shadow-md shadow-amber-500/20 cursor-pointer"
+                    >
+                      <MapPin className="w-3.5 h-3.5" />
+                      <span>Search All 9 Provinces Nationwide</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={resetFilters}
+                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Clear All Filters</span>
+                  </button>
+                  <button
+                    onClick={() => setIsRequestPartOpen(true)}
+                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <HelpCircle className="w-3.5 h-3.5" />
+                    <span>Broadcast Part Request to Suppliers</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Listings Display with Mobile Swipe-to-Contact Gestures */}
-        {filteredListings.length > 0 ? (
-          viewDensity === 'gallery' ? (
-            /* Visual Image Gallery Grid (High Impact Photos, Multi-Angle Thumbnails, Zoom) */
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 mt-4">
-              {filteredListings.map(listing => (
-                <SwipeableListingCard
-                  key={listing.id}
-                  listing={listing}
-                  viewDensity="gallery"
-                  inCompare={isInCompare(listing.id)}
-                  isExactFit={checkFitmentMatch(listing)}
-                  isNewCondition={listing.condition.includes('Brand New')}
-                  isReconditioned={listing.condition.includes('Reconditioned')}
-                  onSelectListing={setSelectedListing}
-                  onAddToCompare={addToCompare}
-                  onRemoveFromCompare={removeFromCompare}
-                  onWhatsAppChat={(l) => openWhatsAppChat(l, 'availability')}
-                  onOpenLightbox={(l, idx) => {
-                    setLightboxListing(l);
-                    setLightboxIndex(idx || 0);
-                  }}
-                  formatZAR={formatZAR}
-                  selectedProvince={filters.province}
-                />
-              ))}
-            </div>
-          ) : viewDensity === 'list' ? (
-            /* High Density List View */
-            <div className="flex flex-col gap-2.5 mt-4">
-              {filteredListings.map(listing => (
-                <SwipeableListingCard
-                  key={listing.id}
-                  listing={listing}
-                  viewDensity="list"
-                  inCompare={isInCompare(listing.id)}
-                  isExactFit={checkFitmentMatch(listing)}
-                  isNewCondition={listing.condition.includes('Brand New')}
-                  isReconditioned={listing.condition.includes('Reconditioned')}
-                  onSelectListing={setSelectedListing}
-                  onAddToCompare={addToCompare}
-                  onRemoveFromCompare={removeFromCompare}
-                  onWhatsAppChat={(l) => openWhatsAppChat(l, 'availability')}
-                  onOpenLightbox={(l, idx) => {
-                    setLightboxListing(l);
-                    setLightboxIndex(idx || 0);
-                  }}
-                  formatZAR={formatZAR}
-                  selectedProvince={filters.province}
-                />
-              ))}
-            </div>
-          ) : viewDensity === 'compact' ? (
-            /* Smaller, High-Density Compact Grid */
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-3.5 mt-4">
-              {filteredListings.map(listing => (
-                <SwipeableListingCard
-                  key={listing.id}
-                  listing={listing}
-                  viewDensity="compact"
-                  inCompare={isInCompare(listing.id)}
-                  isExactFit={checkFitmentMatch(listing)}
-                  isNewCondition={listing.condition.includes('Brand New')}
-                  isReconditioned={listing.condition.includes('Reconditioned')}
-                  onSelectListing={setSelectedListing}
-                  onAddToCompare={addToCompare}
-                  onRemoveFromCompare={removeFromCompare}
-                  onWhatsAppChat={(l) => openWhatsAppChat(l, 'availability')}
-                  onOpenLightbox={(l, idx) => {
-                    setLightboxListing(l);
-                    setLightboxIndex(idx || 0);
-                  }}
-                  formatZAR={formatZAR}
-                  selectedProvince={filters.province}
-                />
-              ))}
-            </div>
-          ) : (
-            /* Comfort Grid (3-4 Columns with Standard Card Detail) */
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
-              {filteredListings.map(listing => (
-                <SwipeableListingCard
-                  key={listing.id}
-                  listing={listing}
-                  viewDensity="comfort"
-                  inCompare={isInCompare(listing.id)}
-                  isExactFit={checkFitmentMatch(listing)}
-                  isNewCondition={listing.condition.includes('Brand New')}
-                  isReconditioned={listing.condition.includes('Reconditioned')}
-                  onSelectListing={setSelectedListing}
-                  onAddToCompare={addToCompare}
-                  onRemoveFromCompare={removeFromCompare}
-                  onWhatsAppChat={(l) => openWhatsAppChat(l, 'availability')}
-                  onOpenLightbox={(l, idx) => {
-                    setLightboxListing(l);
-                    setLightboxIndex(idx || 0);
-                  }}
-                  formatZAR={formatZAR}
-                  selectedProvince={filters.province}
-                />
-              ))}
-            </div>
-          )
-        ) : (
-          /* Empty Search State with Actionable Guidance */
-          <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-10 text-center my-12 max-w-2xl mx-auto">
-            <Car className="w-12 h-12 text-amber-400 mx-auto mb-4 stroke-1" />
-            <h3 className="text-xl font-bold text-white mb-2">
-              {filters.province
-                ? `No matching spares found in ${filters.province}`
-                : 'No matching car or truck parts found'}
-            </h3>
-            <p className="text-sm text-slate-400 mb-6">
-              {filters.province
-                ? `There are currently no listings in ${filters.province} matching your exact filters. You can expand your search to all 9 South African provinces (many scrap yards offer nationwide courier delivery) or broadcast a direct part request.`
-                : 'We couldn’t find an exact match for your selected make, model, year, condition, or price range. Try clearing specific filters or broadcast an instant rare part request to our nationwide network of South African auto dismantlers.'}
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              {filters.province && (
-                <button
-                  onClick={() => {
-                    setFilters(prev => ({ ...prev, province: '' }));
-                    setGeoFeedback(null);
-                  }}
-                  className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs transition-colors flex items-center gap-1.5 shadow-md shadow-amber-500/20 cursor-pointer"
-                >
-                  <MapPin className="w-3.5 h-3.5" />
-                  <span>Search All 9 Provinces Nationwide</span>
-                </button>
-              )}
-              <button
-                onClick={resetFilters}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Clear All Filters</span>
-              </button>
-              <button
-                onClick={() => setIsRequestPartOpen(true)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
-              >
-                <HelpCircle className="w-3.5 h-3.5" />
-                <span>Broadcast Part Request to Suppliers</span>
-              </button>
+        {/* Mobile Filter & Price Budget Slide-Over Drawer */}
+        {isMobileSidebarOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden flex justify-end" id="mobile-filter-drawer-container">
+            <div
+              className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity"
+              onClick={() => setIsMobileSidebarOpen(false)}
+            />
+            <div className="relative w-full max-w-sm bg-slate-900 border-l border-slate-800 h-full p-5 overflow-y-auto shadow-2xl z-10">
+              <BuyerCatalogSidebar
+                filters={filters}
+                setFilters={setFilters}
+                matchingCount={filteredListings.length}
+                resetFilters={resetFilters}
+                onCloseMobile={() => setIsMobileSidebarOpen(false)}
+              />
             </div>
           </div>
         )}

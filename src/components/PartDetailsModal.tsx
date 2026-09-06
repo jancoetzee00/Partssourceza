@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
+import { SouthAfricanProvince } from '../types';
+import { SA_PROVINCES_GEO } from '../utils/geolocation';
+import { estimateDeliveryCost } from '../utils/deliveryEstimator';
 import { 
   X, 
   MapPin, 
@@ -19,7 +22,9 @@ import {
   Cpu, 
   ExternalLink,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Compass,
+  Clock
 } from 'lucide-react';
 
 export const PartDetailsModal: React.FC = () => {
@@ -28,12 +33,13 @@ export const PartDetailsModal: React.FC = () => {
     setSelectedListing, 
     addToCompare, 
     removeFromCompare, 
-    isInCompare,
+    isInCompare, 
     createInquiry,
     setIsCheckoutOpen,
     openWhatsAppChat,
     openWebLinkGenerator,
-    showNotification
+    showNotification,
+    filters
   } = useApp();
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -43,6 +49,14 @@ export const PartDetailsModal: React.FC = () => {
   const [inquiryMessage, setInquiryMessage] = useState('');
   const [isSubmittingInquiry, setIsSubmittingInquiry] = useState(false);
   const [inquirySubmitted, setInquirySubmitted] = useState(false);
+
+  // Delivery destination province state (defaults to buyer's active filter or seller's province)
+  const [deliveryProvince, setDeliveryProvince] = useState<SouthAfricanProvince>(() => {
+    if (filters?.province && filters.province in SA_PROVINCES_GEO) {
+      return filters.province as SouthAfricanProvince;
+    }
+    return (selectedListing?.locationProvince as SouthAfricanProvince) || 'Gauteng';
+  });
 
   if (!selectedListing) return null;
 
@@ -56,8 +70,18 @@ export const PartDetailsModal: React.FC = () => {
     }).format(amount);
   };
 
+  // Calculate live delivery estimate from seller location to selected destination province
+  const deliveryEstimate = useMemo(() => {
+    return estimateDeliveryCost(
+      selectedListing.locationProvince,
+      deliveryProvince,
+      selectedListing.deliveryCostZAR,
+      selectedListing.category
+    );
+  }, [selectedListing.locationProvince, selectedListing.deliveryCostZAR, selectedListing.category, deliveryProvince]);
+
   const waMessage = encodeURIComponent(
-    `Hello ${selectedListing.sellerName},\nI am inquiring about the following part on Part Source ZA:\n\n*${selectedListing.title}*\nPart No: ${selectedListing.partNumber}\nPrice: ${formatZAR(selectedListing.priceZAR)}\nLocation: ${selectedListing.locationCity}, ${selectedListing.locationProvince}\n\nIs this unit currently in stock and available for courier or collection?`
+    `Hello ${selectedListing.sellerName},\nI am inquiring about the following part on Part Source ZA:\n\n*${selectedListing.title}*\nPart No: ${selectedListing.partNumber}\nPrice: ${formatZAR(selectedListing.priceZAR)}\nSeller Location: ${selectedListing.locationCity}, ${selectedListing.locationProvince}\nDelivery to: ${deliveryProvince} (Est. ${formatZAR(deliveryEstimate.estimatedCostZAR)})\n\nIs this unit currently in stock and available for courier or collection?`
   );
   const waLink = `https://wa.me/${selectedListing.sellerWhatsApp.replace(/[^0-9]/g, '')}?text=${waMessage}`;
 
@@ -76,7 +100,7 @@ export const PartDetailsModal: React.FC = () => {
       buyerName: inquiryName,
       buyerPhone: inquiryPhone,
       buyerEmail: inquiryEmail || 'Not specified',
-      message: inquiryMessage
+      message: `${inquiryMessage}\n[Preferred Delivery Province: ${deliveryProvince} | Est. Freight: ${formatZAR(deliveryEstimate.estimatedCostZAR)}]`
     });
     setIsSubmittingInquiry(false);
     setInquirySubmitted(true);
@@ -300,7 +324,9 @@ export const PartDetailsModal: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <Truck className="w-4 h-4 text-blue-400 flex-shrink-0" />
-                    <span>{selectedListing.deliveryDaysEstimate} (R{selectedListing.deliveryCostZAR} Courier)</span>
+                    <span>
+                      {deliveryEstimate.deliveryDays} (<strong>{formatZAR(deliveryEstimate.estimatedCostZAR)}</strong> to {deliveryProvince})
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-amber-400 flex-shrink-0" />
@@ -308,6 +334,107 @@ export const PartDetailsModal: React.FC = () => {
                   </div>
                 </div>
 
+              </div>
+
+              {/* Delivery Cost & Transit Estimator UI Field */}
+              <div 
+                id="part-delivery-estimator-card"
+                className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 shadow-lg space-y-3"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                      <Truck className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                        Estimate Delivery to Your Province
+                      </h4>
+                      <p className="text-[10px] text-slate-400">
+                        Dispatched from {selectedListing.locationCity}, {selectedListing.locationProvince}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-900 text-amber-400 border border-slate-700">
+                    SA Logistics
+                  </span>
+                </div>
+
+                {/* Province Selector Field */}
+                <div className="space-y-1.5">
+                  <label 
+                    htmlFor="delivery-destination-province" 
+                    className="text-[11px] font-semibold text-slate-300 flex items-center justify-between"
+                  >
+                    <span>Destination Province:</span>
+                    {deliveryProvince === selectedListing.locationProvince && (
+                      <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                        <Check className="w-3 h-3" /> Same Province (Local Pickup)
+                      </span>
+                    )}
+                  </label>
+                  <div className="relative">
+                    <MapPin className="w-3.5 h-3.5 text-amber-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <select
+                      id="delivery-destination-province"
+                      value={deliveryProvince}
+                      onChange={(e) => setDeliveryProvince(e.target.value as SouthAfricanProvince)}
+                      className="w-full pl-8 pr-8 py-2 bg-slate-900 border border-slate-700 hover:border-slate-600 rounded-xl text-xs text-white focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer"
+                    >
+                      {Object.keys(SA_PROVINCES_GEO).map((prov) => (
+                        <option key={prov} value={prov}>
+                          {prov} {prov === selectedListing.locationProvince ? '(Seller Location - Local Pickup)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Live Calculated Estimate Details */}
+                <div className="p-3 bg-slate-900/90 border border-slate-700/60 rounded-xl space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-medium">Estimated Delivery Freight</span>
+                      <span className="text-xl font-black text-amber-400 font-sans">
+                        {formatZAR(deliveryEstimate.estimatedCostZAR)}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border inline-block ${
+                        deliveryEstimate.routeTier === 'local'
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                          : deliveryEstimate.routeTier === 'regional'
+                          ? 'bg-blue-500/20 text-blue-300 border-blue-500/40'
+                          : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                      }`}>
+                        {deliveryEstimate.courierService}
+                      </span>
+                      <span className="block text-[10px] text-slate-400 mt-1 font-mono">
+                        {deliveryEstimate.distanceKm > 0 ? `~${deliveryEstimate.distanceKm} km transit` : 'Intra-provincial'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
+                    <div className="flex items-center gap-1.5 text-slate-300">
+                      <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <span>Transit: <strong>{deliveryEstimate.deliveryDays}</strong></span>
+                    </div>
+                    {deliveryEstimate.isLocalPickupAvailable ? (
+                      <span className="text-[10px] font-bold text-emerald-400 flex items-center gap-1">
+                        <Check className="w-3 h-3" /> Counter Collection Free
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400">
+                        Door-to-door road courier
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="text-[10px] text-slate-400 leading-relaxed pt-0.5">
+                    {deliveryEstimate.breakdownNotice}
+                  </p>
+                </div>
               </div>
 
               {/* Supplier Profile Card */}
@@ -377,7 +504,7 @@ export const PartDetailsModal: React.FC = () => {
                     <div>
                       <textarea
                         rows={2}
-                        placeholder="e.g. Is this compatible with 2017 Hilux automatic? Can you ship to Port Elizabeth?"
+                        placeholder={`e.g. Is this compatible with my vehicle? Can you ship to ${deliveryProvince}?`}
                         value={inquiryMessage}
                         onChange={(e) => setInquiryMessage(e.target.value)}
                         required
