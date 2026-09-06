@@ -23,10 +23,20 @@ import { SearchEngineExposureModal } from './components/SearchEngineExposureModa
 import { BulkInventoryModal } from './components/BulkInventoryModal';
 import { WebLinkShareModal } from './components/WebLinkShareModal';
 import { SellerAuthModal } from './components/SellerAuthModal';
-import { CheckCircle2, AlertCircle, Info, Car, Heart, ShieldCheck, Download, Smartphone, Monitor, Globe, Share2, Link as LinkIcon } from 'lucide-react';
+import { MarketingStrategyModal } from './components/MarketingStrategyModal';
+import { CheckCircle2, AlertCircle, Info, Car, Heart, ShieldCheck, Download, Smartphone, Monitor, Globe, Share2, Link as LinkIcon, X, Sparkles } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 const MainContent: React.FC = () => {
-  const { role, activeNotification, setIsInstallModalOpen, setIsSearchEngineModalOpen, setIsWebLinkModalOpen } = useApp();
+  const { 
+    role, 
+    activeNotification, 
+    dismissNotification, 
+    setIsInstallModalOpen, 
+    setIsSearchEngineModalOpen, 
+    setIsWebLinkModalOpen,
+    openMarketingHub 
+  } = useApp();
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-slate-950">
@@ -55,36 +65,76 @@ const MainContent: React.FC = () => {
       <BulkInventoryModal />
       <WebLinkShareModal />
       <SellerAuthModal />
+      <MarketingStrategyModal />
 
       {/* Floating Direct WhatsApp Widget */}
       <WhatsAppQuickWidget />
 
-      {/* Toast Notification Container */}
-      {activeNotification && (
-        <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-5 duration-200">
-          <div className={`rounded-2xl p-4 shadow-2xl border flex items-start gap-3 max-w-sm backdrop-blur-xl ${
-            activeNotification.type === 'warning'
-              ? 'bg-red-950/90 border-red-500/50 text-red-100 shadow-red-950/50'
-              : activeNotification.type === 'info'
-              ? 'bg-slate-900/90 border-blue-500/50 text-slate-100 shadow-black/80'
-              : 'bg-slate-900/95 border-amber-500/50 text-slate-100 shadow-black/80'
-          }`}>
-            {activeNotification.type === 'warning' ? (
-              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-            ) : activeNotification.type === 'info' ? (
-              <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-            ) : (
-              <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
-            )}
-            <div>
-              <h5 className="text-xs font-bold text-white">{activeNotification.title}</h5>
-              <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
-                {activeNotification.message}
-              </p>
-            </div>
+      {/* Swipeable Toast Notification Container */}
+      <AnimatePresence mode="wait">
+        {activeNotification && (
+          <div className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 left-4 sm:left-auto z-50 flex justify-center sm:justify-end pointer-events-none">
+            <motion.div
+              key={`${activeNotification.title}-${activeNotification.message}`}
+              layout
+              initial={{ opacity: 0, y: 40, scale: 0.92 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 140, scale: 0.88, transition: { duration: 0.2 } }}
+              drag="x"
+              dragDirectionLock={true}
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.65}
+              onDragEnd={(_, info) => {
+                // If swiped horizontally with threshold velocity or distance, dismiss toast
+                if (Math.abs(info.offset.x) > 60 || Math.abs(info.velocity.x) > 300) {
+                  dismissNotification();
+                }
+              }}
+              whileDrag={{ scale: 1.02, cursor: 'grabbing' }}
+              className={`pointer-events-auto cursor-grab active:cursor-grabbing select-none rounded-2xl p-4 shadow-2xl border flex items-start gap-3 max-w-sm w-full sm:w-auto backdrop-blur-xl transition-colors relative touch-pan-y ${
+                activeNotification.type === 'warning'
+                  ? 'bg-red-950/95 border-red-500/50 text-red-100 shadow-red-950/50'
+                  : activeNotification.type === 'info'
+                  ? 'bg-slate-900/95 border-blue-500/50 text-slate-100 shadow-black/80'
+                  : 'bg-slate-900/95 border-amber-500/50 text-slate-100 shadow-black/80'
+              }`}
+            >
+              {/* Subtle top drag pill handle for touch devices */}
+              <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-8 h-1 bg-slate-600/60 rounded-full sm:hidden" />
+
+              {activeNotification.type === 'warning' ? (
+                <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+              ) : activeNotification.type === 'info' ? (
+                <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+              ) : (
+                <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+              )}
+
+              <div className="flex-1 pr-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <h5 className="text-xs font-bold text-white truncate">{activeNotification.title}</h5>
+                  <span className="text-[9px] text-slate-500 hidden sm:inline-block font-medium tracking-tight">swipe to dismiss ➔</span>
+                </div>
+                <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed break-words">
+                  {activeNotification.message}
+                </p>
+                <div className="flex items-center justify-between gap-1 mt-1 text-[9px] text-slate-400/80 font-mono sm:hidden">
+                  <span>← swipe left or right to dismiss →</span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={dismissNotification}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors shrink-0 cursor-pointer"
+                title="Dismiss"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
       {/* Global Footer */}
       <footer className="bg-slate-900 border-t border-slate-800 py-8 text-xs text-slate-400">
@@ -100,8 +150,17 @@ const MainContent: React.FC = () => {
 
           <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-[11px]">
             <button
+              onClick={() => openMarketingHub('sellers')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500/20 to-amber-600/30 hover:from-amber-500/30 hover:to-amber-600/40 text-amber-300 border border-amber-500/50 transition-all font-bold shadow-sm cursor-pointer"
+              title="AI Marketing Engine (Get Sellers to List & Buyers to Discover)"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>AI Growth Strategy</span>
+            </button>
+
+            <button
               onClick={() => setIsWebLinkModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition-colors font-bold shadow-sm"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition-colors font-medium shadow-sm"
               title="Share Search Link & QR Generator (partssource.co.za)"
             >
               <Share2 className="w-3.5 h-3.5 text-amber-400" />

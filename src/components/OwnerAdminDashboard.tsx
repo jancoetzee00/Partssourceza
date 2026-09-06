@@ -78,7 +78,9 @@ export const OwnerAdminDashboard: React.FC = () => {
     authenticateAdmin,
     logoutAdmin,
     setRole,
-    showNotification
+    showNotification,
+    openMarketingHub,
+    marketingCampaigns
   } = useApp();
 
   // Inline auth state for direct dashboard access
@@ -86,7 +88,7 @@ export const OwnerAdminDashboard: React.FC = () => {
   const [showInlinePassword, setShowInlinePassword] = useState(false);
   const [inlineError, setInlineError] = useState('');
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'listings' | 'sellers' | 'discounts' | 'transactions' | 'roles' | 'banking'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'marketing' | 'users' | 'listings' | 'sellers' | 'discounts' | 'transactions' | 'roles' | 'banking'>('overview');
   
   // Search & Filter states
   const [listingSearch, setListingSearch] = useState('');
@@ -343,6 +345,17 @@ export const OwnerAdminDashboard: React.FC = () => {
             {/* Action Buttons: SEO Engine, Dev App Indicator & Lock Session */}
             <div className="flex flex-wrap items-center gap-3">
               
+              {/* AI Marketing & National Growth Engine Button */}
+              <button
+                onClick={() => openMarketingHub('dual_sided')}
+                className="px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500/20 to-amber-600/30 hover:from-amber-500/30 hover:to-amber-600/40 text-amber-300 border border-amber-500/40 text-xs font-bold transition-all flex items-center gap-2 shadow-sm hover:border-amber-500/60 cursor-pointer"
+                title="Open AI Marketing & Growth Strategy Engine"
+              >
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <span>AI Growth Strategy</span>
+                <span className="px-1.5 py-0.2 rounded bg-amber-500/30 text-amber-200 text-[9px] font-bold">AI</span>
+              </button>
+
               {/* Search Engine & SEO Exposure Hub Button */}
               <button
                 onClick={() => setIsSearchEngineModalOpen(true)}
@@ -456,6 +469,18 @@ export const OwnerAdminDashboard: React.FC = () => {
               }`}
             >
               Overview
+            </button>
+            <button
+              id="admin-tab-marketing-btn"
+              onClick={() => setActiveTab('marketing')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                activeTab === 'marketing'
+                  ? 'bg-amber-500 text-slate-950 font-black'
+                  : 'bg-slate-950 text-amber-300 hover:bg-slate-800 hover:text-white border border-amber-500/40'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>Marketing & Growth ({marketingCampaigns.length})</span>
             </button>
             <button
               onClick={() => setActiveTab('users')}
@@ -725,6 +750,356 @@ export const OwnerAdminDashboard: React.FC = () => {
                   <Globe className="w-4 h-4" />
                   <span>Open Search Engine Hub</span>
                 </button>
+              </div>
+            </div>
+          </div>
+
+          {/* AI Marketing & National Acquisition Engine Card */}
+          <div className="bg-gradient-to-r from-amber-950/40 via-slate-900 to-slate-950 border border-amber-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 translate-x-8 -translate-y-8 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+            
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+              <div className="space-y-2 max-w-2xl">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-wider shadow-sm flex items-center gap-1">
+                    <Sparkles className="w-3 h-3" />
+                    AI Marketing Strategy Hub
+                  </span>
+                  <span className="text-xs text-amber-400 font-bold">South Africa National Growth</span>
+                </div>
+                <h3 className="text-lg sm:text-xl font-black text-white tracking-tight">
+                  Get Scrap Yards to List & Buyers Across SA to Discover Your Platform
+                </h3>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Execute targeted dual-sided growth: Onboard auto dismantlers in major industrial clusters (Booysens, Mayfair, Stikland, Clairwood) and capture high-intent buyers searching for Hilux, Polo TSI, Ranger, and Quantum parts.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  onClick={() => openMarketingHub('sellers')}
+                  className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black transition-all shadow-lg shadow-amber-500/20 flex items-center gap-2 cursor-pointer"
+                >
+                  <Building2 className="w-4 h-4" />
+                  <span>Acquire Sellers</span>
+                </button>
+
+                <button
+                  onClick={() => openMarketingHub('buyers')}
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold border border-slate-700 transition-all flex items-center gap-2 cursor-pointer"
+                >
+                  <Users className="w-4 h-4 text-purple-400" />
+                  <span>Acquire Buyers</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('marketing')}
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-600/30 to-amber-500/20 hover:from-amber-600/40 hover:to-amber-500/30 text-amber-300 text-xs font-bold border border-amber-500/40 transition-all flex items-center gap-2 cursor-pointer"
+                >
+                  <span>View Full Hub →</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* TAB: AI Marketing & National Growth Hub */}
+      {activeTab === 'marketing' && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-8 pb-16">
+          
+          {/* Top Banner & Launchpad */}
+          <div className="bg-gradient-to-br from-slate-900 via-slate-950 to-amber-950/40 border border-amber-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              <div className="space-y-3 max-w-3xl">
+                <div className="flex items-center gap-2">
+                  <div className="h-8 w-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <span className="text-xs font-black uppercase tracking-wider text-amber-400">
+                    Growth Engine • South Africa Automotive Network
+                  </span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                  Dual-Sided Marketplace Growth Strategy
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                  This engine solves the classic marketplace cold-start problem: locking in auto scrap yard inventory first so that buyers from Pretoria to Port Elizabeth find exact matching spares with zero friction.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 flex-shrink-0">
+                <button
+                  onClick={() => openMarketingHub('dual_sided')}
+                  className="px-5 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-xl shadow-amber-500/20 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>Launch AI Campaign Generator</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Metrics Bar */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-8 pt-6 border-t border-slate-800/80">
+              <div className="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800">
+                <span className="text-[10px] text-slate-400 uppercase font-bold">Scrap Yard Hubs Target</span>
+                <p className="text-lg font-mono font-bold text-amber-400 mt-1">5 Core SA Metro Hubs</p>
+                <span className="text-[10px] text-slate-500">Booysens, Mayfair, Clairwood, Stikland, Korsten</span>
+              </div>
+              <div className="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800">
+                <span className="text-[10px] text-slate-400 uppercase font-bold">Buyer Search Demand</span>
+                <p className="text-lg font-mono font-bold text-emerald-400 mt-1">High-Failure Models</p>
+                <span className="text-[10px] text-slate-500">Hilux, Polo TSI, Ranger 2.2, Quantum Taxi</span>
+              </div>
+              <div className="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800">
+                <span className="text-[10px] text-slate-400 uppercase font-bold">Buyer Fee Hook</span>
+                <p className="text-lg font-mono font-bold text-blue-400 mt-1">0% Buyer Commission</p>
+                <span className="text-[10px] text-slate-500">Direct WhatsApp connection to verified yards</span>
+              </div>
+              <div className="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800">
+                <span className="text-[10px] text-slate-400 uppercase font-bold">Saved AI Campaigns</span>
+                <p className="text-lg font-mono font-bold text-purple-400 mt-1">{marketingCampaigns.length} Custom Plans</p>
+                <span className="text-[10px] text-slate-500">Stored in Cloud Firestore</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Strategic Columns: Sellers vs Buyers */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            {/* COLUMN 1: HOW TO GET SELLERS (SCRAP YARDS) */}
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                    <Building2 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white">1. Seller & Scrap Yard Acquisition</h3>
+                    <p className="text-xs text-slate-400">Getting auto dismantlers to see and use the app</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => openMarketingHub('sellers')}
+                  className="text-xs font-bold text-amber-400 hover:text-amber-300 underline cursor-pointer"
+                >
+                  Open Tactics →
+                </button>
+              </div>
+
+              <div className="space-y-4 text-xs">
+                
+                {/* Tactic A: Walk-In Industrial Hub Blitz */}
+                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-amber-300 flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-amber-400" />
+                      In-Person Industrial Yard Blitz
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-mono">High Impact</span>
+                  </div>
+                  <p className="text-slate-300 leading-relaxed">
+                    Scrap yard owners spend their day on the yard floor, not in front of computers. Send brand ambassadors or sales reps directly to major scrap hubs with laminated flyers and a mobile demo.
+                  </p>
+                  <div className="pt-2 border-t border-slate-800/80 flex flex-wrap gap-1.5">
+                    <span className="px-2 py-0.5 rounded bg-slate-900 text-slate-400 text-[10px]">Booysens (JHB)</span>
+                    <span className="px-2 py-0.5 rounded bg-slate-900 text-slate-400 text-[10px]">Mayfair (JHB)</span>
+                    <span className="px-2 py-0.5 rounded bg-slate-900 text-slate-400 text-[10px]">Pretoria West</span>
+                    <span className="px-2 py-0.5 rounded bg-slate-900 text-slate-400 text-[10px]">Clairwood (Durban)</span>
+                    <span className="px-2 py-0.5 rounded bg-slate-900 text-slate-400 text-[10px]">Stikland (Cape Town)</span>
+                  </div>
+                </div>
+
+                {/* Tactic B: 60-Second Onboarding Concierge */}
+                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-emerald-300 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                      60-Second "Do It For Them" Concierge
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-mono">100% Conversion</span>
+                  </div>
+                  <p className="text-slate-300 leading-relaxed">
+                    Don't ask them to download an app and figure it out. Stand with the owner, take photos of 5 fast-moving stripped engines/gearboxes in their yard, and list them directly via the mobile app in under 60 seconds.
+                  </p>
+                </div>
+
+                {/* Tactic C: WhatsApp Broadcast Script */}
+                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-blue-300 flex items-center gap-1.5">
+                      <Phone className="w-3.5 h-3.5 text-blue-400" />
+                      Direct WhatsApp Outreach to Scrap Yard Groups
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 text-[10px] font-mono">WhatsApp First</span>
+                  </div>
+                  <p className="text-slate-300 leading-relaxed">
+                    Target automotive salvage WhatsApp groups. Emphasize: "Stop dealing with Gumtree & Facebook scammers asking 'is this available?'. Part Source ZA sends real buyers directly to your WhatsApp with cash."
+                  </p>
+                </div>
+
+                {/* Tactic D: Free 14-Day Pro Badge */}
+                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-purple-300 flex items-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
+                      "Verified Gold Supplier" Window Badge
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 text-[10px] font-mono">Trust Currency</span>
+                  </div>
+                  <p className="text-slate-300 leading-relaxed">
+                    Provide every signed-up yard with a physical laminated gate sticker: "Official Part Source ZA Verified Yard". Legitimizes their yard against fly-by-night operators.
+                  </p>
+                </div>
+
+              </div>
+
+              <div className="pt-2">
+                <button
+                  onClick={() => openMarketingHub('sellers')}
+                  className="w-full py-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
+                >
+                  <Building2 className="w-4 h-4" />
+                  <span>Generate AI Seller Acquisition Campaign</span>
+                </button>
+              </div>
+            </div>
+
+            {/* COLUMN 2: HOW TO GET BUYERS ACROSS SA */}
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white">2. National Buyer Discovery</h3>
+                    <p className="text-xs text-slate-400">Getting car owners from around SA to discover the app</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => openMarketingHub('buyers')}
+                  className="text-xs font-bold text-blue-400 hover:text-blue-300 underline cursor-pointer"
+                >
+                  Open Tactics →
+                </button>
+              </div>
+
+              <div className="space-y-4 text-xs">
+                
+                {/* Tactic A: Price Shock Comparison Ads */}
+                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-amber-300 flex items-center gap-1.5">
+                      <TrendingUp className="w-3.5 h-3.5 text-amber-400" />
+                      Dealership Price Shock Comparison
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-mono">Viral Angle</span>
+                  </div>
+                  <p className="text-slate-300 leading-relaxed">
+                    Side-by-side graphic ads posted on Facebook Auto Buy/Sell groups and TikTok: "Dealership Quote: R24,000 for Hilux Steering Rack. Part Source ZA Verified Yard: R4,200. Save R19,800 today."
+                  </p>
+                </div>
+
+                {/* Tactic B: Facebook Auto Community Penetration */}
+                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-blue-300 flex items-center gap-1.5">
+                      <Globe className="w-3.5 h-3.5 text-blue-400" />
+                      Target SA Enthusiast & Fixer Groups
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 text-[10px] font-mono">Organic Traffic</span>
+                  </div>
+                  <p className="text-slate-300 leading-relaxed">
+                    Active presence in South Africa's largest automotive groups (VW Club SA, 4x4 Community SA, Toyota Hilux SA, BMW Fanatics SA). When members post "Looking for gearbox", reply with direct link to live verified inventory.
+                  </p>
+                </div>
+
+                {/* Tactic C: Mechanic Referral Network */}
+                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-emerald-300 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                      Independent Workshop Trade Pipeline
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-mono">Recurring Orders</span>
+                  </div>
+                  <p className="text-slate-300 leading-relaxed">
+                    Backyard mechanics and independent RMI workshops fix 70% of South Africa's post-warranty cars. Give workshops a dedicated QR search tool on their phone to quote clients in 2 minutes.
+                  </p>
+                </div>
+
+                {/* Tactic D: TikTok / Reels #CarTokSA */}
+                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-purple-300 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                      #CarTokSA Short-Form Video Content
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 text-[10px] font-mono">Zero Ad Spend</span>
+                  </div>
+                  <p className="text-slate-300 leading-relaxed">
+                    Film raw 15-second tours inside scrap yards: "Look at what just arrived at Booysens yard: 2021 Hilux GD6 stripped for parts, pristine headlights and tailgate." Millions of views across SA car lovers.
+                  </p>
+                </div>
+
+              </div>
+
+              <div className="pt-2">
+                <button
+                  onClick={() => openMarketingHub('buyers')}
+                  className="w-full py-3 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
+                >
+                  <Users className="w-4 h-4" />
+                  <span>Generate AI Buyer Discovery Campaign</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Master Geographic Hubs Checklist */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-amber-400" />
+              National Automotive Scrap Yard Clusters Across South Africa
+            </h3>
+            <p className="text-xs text-slate-400">
+              Focus your ambassador blitz on these exact geographic coordinates to capture 80% of South Africa's dismantled vehicle supply.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-1.5">
+                <span className="text-xs font-bold text-amber-400">Gauteng (JHB & PTA)</span>
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  Booysens, Mayfair, Crown Mines, Selby, Pretoria West, Hermanstad, Silverton.
+                </p>
+                <span className="text-[10px] text-slate-500 block">Est. 220+ Scrap Yards</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-1.5">
+                <span className="text-xs font-bold text-blue-400">KwaZulu-Natal (Durban)</span>
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  Clairwood, Jacobs, Springfield Park, Phoenix Industrial, Pinetown.
+                </p>
+                <span className="text-[10px] text-slate-500 block">Est. 95+ Scrap Yards</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-1.5">
+                <span className="text-xs font-bold text-emerald-400">Western Cape (Cape Town)</span>
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  Stikland (Bellville), Philippi, Maitland, Voortrekker Road corridor, Montague Gardens.
+                </p>
+                <span className="text-[10px] text-slate-500 block">Est. 80+ Scrap Yards</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-1.5">
+                <span className="text-xs font-bold text-purple-400">Eastern Cape & Inland</span>
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  Korsten (Gqeberha), North End, East London Arcadia, Bloemfontein Industrial.
+                </p>
+                <span className="text-[10px] text-slate-500 block">Est. 45+ Scrap Yards</span>
               </div>
             </div>
           </div>

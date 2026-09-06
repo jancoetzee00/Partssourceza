@@ -45,7 +45,8 @@ export const Header: React.FC = () => {
     isAdminAuthenticated,
     setIsAdminAuthModalOpen,
     filters,
-    setFilters
+    setFilters,
+    openMarketingHub
   } = useApp();
 
   const [isToolsDropdownOpen, setIsToolsDropdownOpen] = useState(false);
@@ -325,6 +326,28 @@ export const Header: React.FC = () => {
                       </div>
                       <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-300 font-bold">
                         Google
+                      </span>
+                    </button>
+
+                    {/* Tool 3: AI Growth Strategy */}
+                    <button
+                      onClick={() => {
+                        setIsToolsDropdownOpen(false);
+                        openMarketingHub('dual_sided');
+                      }}
+                      className="w-full px-3 py-2 rounded-xl text-left text-xs text-slate-200 hover:text-white hover:bg-slate-800/90 flex items-center justify-between group transition-colors"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                          <Sparkles className="w-3.5 h-3.5" />
+                        </div>
+                        <div>
+                          <div className="font-bold text-white group-hover:text-amber-400">AI Growth Strategy</div>
+                          <div className="text-[10px] text-slate-400">Acquire sellers & buyers in SA</div>
+                        </div>
+                      </div>
+                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold">
+                        AI
                       </span>
                     </button>
 

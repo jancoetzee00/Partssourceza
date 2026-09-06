@@ -264,3 +264,33 @@ export interface VehicleFilterState {
   inStockOnly: boolean;
   sortBy: 'price-asc' | 'price-desc' | 'newest' | 'rating';
 }
+
+export type MarketingAudience = 'sellers' | 'buyers' | 'dual_sided';
+
+export type MarketingChannel = 
+  | 'whatsapp_broadcast'
+  | 'facebook_marketplace'
+  | 'google_seo'
+  | 'tiktok_reels'
+  | 'yard_visit'
+  | 'fleet_b2b'
+  | 'meta_ads';
+
+export interface MarketingCampaign {
+  id: string;
+  title: string;
+  targetAudience: MarketingAudience;
+  channel: MarketingChannel;
+  targetProvince: SouthAfricanProvince | 'All South Africa';
+  vehicleFocus: string;
+  executiveSummary: string;
+  coreGrowthHook: string;
+  keyTactics: string[];
+  readyCopyWhatsApp: string;
+  readyCopySocial: string;
+  physicalDigitalLocations: string[];
+  callToAction: string;
+  kpiMetrics: string;
+  createdAt: string;
+  isCustomGenerated?: boolean;
+}

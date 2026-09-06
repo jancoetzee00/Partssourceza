@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { 
   UserRole, 
   Listing, 
@@ -13,7 +13,9 @@ import {
   WhatsAppModalData,
   WhatsAppIntentType,
   SubscriptionDiscount,
-  WebLinkModalData
+  WebLinkModalData,
+  MarketingCampaign,
+  MarketingAudience
 } from '../types';
 import { 
   INITIAL_LISTINGS, 
@@ -25,6 +27,7 @@ import {
   INITIAL_SUBSCRIPTION_DISCOUNTS,
   SUBSCRIPTION_PLANS
 } from '../data/mockData';
+import { MASTER_MARKETING_PLAYBOOKS } from '../data/marketingPlaybooks';
 import { 
   db, 
   auth, 
@@ -123,6 +126,14 @@ interface AppContextType {
   webLinkModalData: WebLinkModalData | null;
   setWebLinkModalData: (data: WebLinkModalData | null) => void;
   openWebLinkGenerator: (data?: WebLinkModalData) => void;
+  isMarketingModalOpen: boolean;
+  setIsMarketingModalOpen: (open: boolean) => void;
+  marketingAudienceFilter: MarketingAudience;
+  setMarketingAudienceFilter: (audience: MarketingAudience) => void;
+  openMarketingHub: (initialAudience?: MarketingAudience) => void;
+  marketingCampaigns: MarketingCampaign[];
+  saveMarketingCampaign: (campaign: Omit<MarketingCampaign, 'id' | 'createdAt'>) => Promise<MarketingCampaign>;
+  deleteMarketingCampaign: (id: string) => Promise<void>;
   isSellerAuthModalOpen: boolean;
   setIsSellerAuthModalOpen: (open: boolean) => void;
   sellerAuthMode: 'login' | 'register';
@@ -160,6 +171,7 @@ interface AppContextType {
   detectedPlatform: 'android' | 'ios' | 'windows' | 'mac' | 'linux';
   activeNotification: { title: string; message: string; type?: 'success' | 'info' | 'warning' } | null;
   showNotification: (title: string, message: string, type?: 'success' | 'info' | 'warning') => void;
+  dismissNotification: () => void;
 }
 
 const defaultFilters: VehicleFilterState = {
@@ -316,6 +328,52 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
     }
     setIsWebLinkModalOpen(true);
+  };
+
+  // AI Marketing & Growth Hub State
+  const [isMarketingModalOpen, setIsMarketingModalOpen] = useState<boolean>(false);
+  const [marketingAudienceFilter, setMarketingAudienceFilter] = useState<MarketingAudience>('sellers');
+  const [marketingCampaigns, setMarketingCampaigns] = useState<MarketingCampaign[]>(() => {
+    try {
+      const saved = localStorage.getItem('partsource_marketing_campaigns');
+      return saved ? JSON.parse(saved) : MASTER_MARKETING_PLAYBOOKS;
+    } catch {
+      return MASTER_MARKETING_PLAYBOOKS;
+    }
+  });
+
+  const openMarketingHub = (initialAudience?: MarketingAudience) => {
+    if (initialAudience) {
+      setMarketingAudienceFilter(initialAudience);
+    }
+    setIsMarketingModalOpen(true);
+  };
+
+  const saveMarketingCampaign = async (campaignData: Omit<MarketingCampaign, 'id' | 'createdAt'>): Promise<MarketingCampaign> => {
+    const newCamp: MarketingCampaign = {
+      ...campaignData,
+      id: `camp-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 900 + 100)}`,
+      createdAt: new Date().toISOString().split('T')[0],
+      isCustomGenerated: true
+    };
+    
+    setMarketingCampaigns(prev => [newCamp, ...prev]);
+    localStorage.setItem('partsource_marketing_campaigns', JSON.stringify([newCamp, ...marketingCampaigns]));
+
+    setDoc(doc(db, 'marketing_campaigns', newCamp.id), newCamp).catch(err => {
+      handleFirestoreError(err, OperationType.CREATE, `marketing_campaigns/${newCamp.id}`);
+    });
+
+    showNotification('Strategy Saved', `"${newCamp.title}" is saved and team-accessible.`, 'success');
+    return newCamp;
+  };
+
+  const deleteMarketingCampaign = async (id: string): Promise<void> => {
+    setMarketingCampaigns(prev => prev.filter(c => c.id !== id));
+    deleteDoc(doc(db, 'marketing_campaigns', id)).catch(err => {
+      handleFirestoreError(err, OperationType.DELETE, `marketing_campaigns/${id}`);
+    });
+    showNotification('Campaign Removed', 'Strategy removed from library.', 'info');
   };
 
   // Seller Auth Modal & Onboarding State
@@ -535,10 +593,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     type?: 'success' | 'info' | 'warning';
   } | null>(null);
 
+  const notificationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const dismissNotification = () => {
+    if (notificationTimeoutRef.current) {
+      clearTimeout(notificationTimeoutRef.current);
+      notificationTimeoutRef.current = null;
+    }
+    setActiveNotification(null);
+  };
+
   const showNotification = (title: string, message: string, type: 'success' | 'info' | 'warning' = 'success') => {
+    if (notificationTimeoutRef.current) {
+      clearTimeout(notificationTimeoutRef.current);
+    }
     setActiveNotification({ title, message, type });
-    setTimeout(() => {
+    notificationTimeoutRef.current = setTimeout(() => {
       setActiveNotification(null);
+      notificationTimeoutRef.current = null;
     }, 4500);
   };
 
@@ -634,6 +706,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     let unsubUsers: (() => void) | null = null;
     let unsubBanking: (() => void) | null = null;
     let unsubDiscounts: (() => void) | null = null;
+    let unsubCampaigns: (() => void) | null = null;
 
     try {
       // 1. Listings Real-time Listener
@@ -775,6 +848,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         handleFirestoreError(err, OperationType.GET, 'system/subscription_discounts');
       });
 
+      // 8. Live Real-time listener for marketing campaigns
+      try {
+        const campRef = collection(db, 'marketing_campaigns');
+        unsubCampaigns = onSnapshot(campRef, (snapshot) => {
+          if (!snapshot.empty) {
+            const list: MarketingCampaign[] = [];
+            snapshot.forEach(docSnap => {
+              list.push(docSnap.data() as MarketingCampaign);
+            });
+            setMarketingCampaigns(prev => {
+              const map = new Map<string, MarketingCampaign>();
+              // Keep master playbooks
+              MASTER_MARKETING_PLAYBOOKS.forEach(p => map.set(p.id, p));
+              // Merge existing custom campaigns
+              prev.forEach(p => map.set(p.id, p));
+              // Merge from firestore
+              list.forEach(c => map.set(c.id, c));
+              return Array.from(map.values());
+            });
+          }
+        }, (err) => {
+          handleFirestoreError(err, OperationType.GET, 'marketing_campaigns');
+        });
+      } catch (e) {
+        console.warn('Firebase marketing_campaigns listener notice:', e);
+      }
+
     } catch (err) {
       console.warn('Firebase initialization notice:', err);
     }
@@ -787,8 +887,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (unsubUsers) unsubUsers();
       if (unsubBanking) unsubBanking();
       if (unsubDiscounts) unsubDiscounts();
+      if (unsubCampaigns) unsubCampaigns();
     };
   }, []);
+
 
   // Sync to local storage for instant offline loading
   useEffect(() => {
@@ -1381,6 +1483,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         webLinkModalData,
         setWebLinkModalData,
         openWebLinkGenerator,
+        isMarketingModalOpen,
+        setIsMarketingModalOpen,
+        marketingAudienceFilter,
+        setMarketingAudienceFilter,
+        openMarketingHub,
+        marketingCampaigns,
+        saveMarketingCampaign,
+        deleteMarketingCampaign,
         isSellerAuthModalOpen,
         setIsSellerAuthModalOpen,
         sellerAuthMode,
@@ -1404,7 +1514,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         triggerPWAInstall,
         detectedPlatform,
         activeNotification,
-        showNotification
+        showNotification,
+        dismissNotification
       }}
     >
       {children}

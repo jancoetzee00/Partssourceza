@@ -71,5 +71,12 @@ service cloud.firestore {
       allow create, update: if isValidId(discountId);
       allow delete: if isValidId(discountId);
     }
+
+    // AI Marketing Campaigns & Strategies
+    match /marketing_campaigns/{campaignId} {
+      allow read: if true;
+      allow create, update: if isValidId(campaignId);
+      allow delete: if isValidId(campaignId);
+    }
   }
 }
