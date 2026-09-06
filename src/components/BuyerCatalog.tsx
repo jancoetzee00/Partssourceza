@@ -49,12 +49,31 @@ import {
   CheckCheck,
   LayoutGrid,
   Grid,
-  List
+  List,
+  Images,
+  Building2,
+  Warehouse
 } from 'lucide-react';
 import { Listing, VehicleType, PartCategory, SouthAfricanProvince, PartCondition } from '../types';
 import { SA_PROVINCES, POPULAR_MAKES, POPULAR_MODELS_BY_MAKE, CATEGORIES } from '../data/mockData';
 import { SA_PROVINCES_GEO, detectUserProvince, GeolocationResult } from '../utils/geolocation';
 import { SwipeableListingCard } from './SwipeableListingCard';
+import { PartGalleryLightboxModal } from './PartGalleryLightboxModal';
+import { BuyerQuickStartGuide } from './BuyerQuickStartGuide';
+import { QuickBrandBar } from './QuickBrandBar';
+
+// Premier scrap yard & automotive dismantler hubs across South Africa
+const TOP_NATIONAL_HUBS = [
+  { name: 'Boksburg', province: 'Gauteng', label: 'Boksburg (East Rand)', desc: 'Largest salvage & stripping hub in Gauteng' },
+  { name: 'Montague Gardens', province: 'Western Cape', label: 'Montague Gardens', desc: 'Cape Town German, Euro & Japanese salvage' },
+  { name: 'Pinetown', province: 'KwaZulu-Natal', label: 'Pinetown / Durban', desc: 'Commercial & Japanese breakers' },
+  { name: 'Pretoria West', province: 'Gauteng', label: 'Pretoria West', desc: 'Bakkie, 4x4 & taxi strip yards' },
+  { name: 'Johannesburg', province: 'Gauteng', label: 'Johannesburg Central', desc: 'Auto electrical & engine rebuilders' },
+  { name: 'Bloemfontein', province: 'Free State', label: 'Bloemfontein', desc: 'Central cross-country logistics & farm spares' },
+  { name: 'Gqeberha', province: 'Eastern Cape', label: 'Gqeberha (PE)', desc: 'OEM engine & gearbox salvage' },
+  { name: 'Polokwane', province: 'Limpopo', label: 'Polokwane', desc: 'Cross-border commercial breakers' },
+  { name: 'eMalahleni', province: 'Mpumalanga', label: 'Witbank / eMalahleni', desc: 'Mining & heavy commercial truck spares' }
+];
 
 // Available model fitment years (current down to older platforms)
 const FITMENT_YEARS = [
@@ -116,9 +135,11 @@ export const BuyerCatalog: React.FC = () => {
   } = useApp();
 
   const [isAdvancedFiltersOpen, setIsAdvancedFiltersOpen] = useState(false);
-  const [viewDensity, setViewDensity] = useState<'compact' | 'comfort' | 'list'>(() => {
-    return (localStorage.getItem('partsource_catalog_density') as 'compact' | 'comfort' | 'list') || 'compact';
+  const [viewDensity, setViewDensity] = useState<'gallery' | 'compact' | 'comfort' | 'list'>(() => {
+    return (localStorage.getItem('partsource_catalog_density') as 'gallery' | 'compact' | 'comfort' | 'list') || 'gallery';
   });
+  const [lightboxListing, setLightboxListing] = useState<Listing | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number>(0);
   const [activeFilterTab, setActiveFilterTab] = useState<'fitment' | 'price' | 'condition'>('fitment');
   const [modelSearchQuery, setModelSearchQuery] = useState('');
   const [isLocating, setIsLocating] = useState(false);
@@ -254,6 +275,16 @@ export const BuyerCatalog: React.FC = () => {
 
       // Province
       if (filters.province && item.locationProvince !== filters.province) return false;
+
+      // Scrapyard Hub
+      if (filters.scrapyardHub) {
+        const hubLower = filters.scrapyardHub.toLowerCase().trim();
+        const matchesHub = 
+          item.locationCity.toLowerCase().includes(hubLower) ||
+          item.sellerName.toLowerCase().includes(hubLower) ||
+          (item.locationAddress && item.locationAddress.toLowerCase().includes(hubLower));
+        if (!matchesHub) return false;
+      }
 
       // High-level Condition Group Filter (New vs Used vs Reconditioned)
       if (filters.conditionGroup) {
@@ -480,6 +511,9 @@ export const BuyerCatalog: React.FC = () => {
       <section className="relative bg-gradient-to-b from-slate-900 via-slate-900/80 to-slate-950 border-b border-slate-800/80 pt-8 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
+          {/* Friendly 3-Step Buyer Guide & Trust Banner */}
+          <BuyerQuickStartGuide />
+
           {/* Header Title & Live Stats */}
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-7">
             <div>
@@ -536,6 +570,13 @@ export const BuyerCatalog: React.FC = () => {
               </button>
             ))}
           </div>
+
+          {/* Instant 1-Click Popular Make & Search Shortcut Bar */}
+          <QuickBrandBar 
+            filters={filters} 
+            setFilters={setFilters} 
+            listings={listings} 
+          />
 
           {/* Primary Advanced Filter Control Card */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xl space-y-4">
@@ -744,6 +785,7 @@ export const BuyerCatalog: React.FC = () => {
               <div className="relative flex-1 min-w-[240px]">
                 <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
+                  id="catalog-search-input"
                   type="text"
                   placeholder="Search part name, OEM code, engine spec (e.g. 1GD-FTV, 02T gearbox)..."
                   value={filters.search}
@@ -820,23 +862,23 @@ export const BuyerCatalog: React.FC = () => {
               </div>
 
               {/* Action Buttons: Advanced toggle, Reset, Request */}
-              <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-end">
+              <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-start sm:justify-end">
                 
                 {/* Advanced Filter Suite Toggle Button */}
                 <button
                   onClick={() => setIsAdvancedFiltersOpen(prev => !prev)}
-                  className={`px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  className={`px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 whitespace-nowrap ${
                     isAdvancedFiltersOpen || filters.minPrice !== '' || filters.maxPrice !== '' || filters.condition || filters.conditionGroup || filters.yearMin || filters.yearMax || filters.verifiedOnly
                       ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20'
                       : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
                   }`}
                 >
-                  <SlidersHorizontal className="w-3.5 h-3.5" />
-                  <span>Advanced Filters</span>
+                  <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
+                  <span><span className="hidden xs:inline">Advanced </span>Filters</span>
                   {(filters.minPrice !== '' || filters.maxPrice !== '' || filters.condition || filters.conditionGroup || filters.yearMin || filters.yearMax) && (
-                    <span className="w-2 h-2 rounded-full bg-slate-950"></span>
+                    <span className="w-2 h-2 rounded-full bg-slate-950 shrink-0"></span>
                   )}
-                  {isAdvancedFiltersOpen ? <ChevronUp className="w-3.5 h-3.5 ml-0.5" /> : <ChevronDown className="w-3.5 h-3.5 ml-0.5" />}
+                  {isAdvancedFiltersOpen ? <ChevronUp className="w-3.5 h-3.5 ml-0.5 shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 ml-0.5 shrink-0" />}
                 </button>
 
                 {/* Share Search Link button */}
@@ -848,10 +890,10 @@ export const BuyerCatalog: React.FC = () => {
                     initialCategory: filters.category,
                     initialProvince: filters.province
                   })}
-                  className="px-3.5 py-2.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 hover:text-amber-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all border border-amber-500/40 shadow-sm group cursor-pointer"
+                  className="px-3 py-2.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 hover:text-amber-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all border border-amber-500/40 shadow-sm group cursor-pointer shrink-0 whitespace-nowrap"
                   title="Generate easy web search link & QR code"
                 >
-                  <Share2 className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
+                  <Share2 className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform shrink-0" />
                   <span className="hidden sm:inline">Share</span>
                 </button>
 
@@ -859,10 +901,10 @@ export const BuyerCatalog: React.FC = () => {
                 {activeFilterCount > 0 && (
                   <button
                     onClick={resetFilters}
-                    className="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors border border-slate-700 cursor-pointer"
+                    className="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors border border-slate-700 cursor-pointer shrink-0 whitespace-nowrap"
                     title="Reset all search and filter criteria"
                   >
-                    <RotateCcw className="w-3.5 h-3.5" />
+                    <RotateCcw className="w-3.5 h-3.5 shrink-0" />
                     <span>Reset ({activeFilterCount})</span>
                   </button>
                 )}
@@ -870,9 +912,9 @@ export const BuyerCatalog: React.FC = () => {
                 {/* Broadcast part request */}
                 <button
                   onClick={() => setIsRequestPartOpen(true)}
-                  className="px-3.5 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
+                  className="px-3 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer shrink-0 whitespace-nowrap"
                 >
-                  <HelpCircle className="w-3.5 h-3.5 text-amber-400" />
+                  <HelpCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                   <span>Request Part</span>
                 </button>
               </div>
@@ -1457,24 +1499,32 @@ export const BuyerCatalog: React.FC = () => {
 
           </div>
 
-          {/* Quick Category Browser Pills / Bar */}
+          {/* Quick Category Browser Pills / Bar - Redesigned to fit ALL 12 category buttons with zero cutoff */}
           <div className="mt-5">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Layers className="w-3.5 h-3.5 text-amber-400" />
-                <span>Browse Component Categories</span>
-              </span>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <Layers className="w-4 h-4 text-amber-400" />
+                  <span>Browse Component Categories</span>
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-amber-400 border border-slate-700/60 font-mono">
+                  12 Categories · All In View
+                </span>
+              </div>
               {filters.category && (
                 <button
+                  type="button"
                   onClick={() => setFilters(prev => ({ ...prev, category: '' }))}
-                  className="text-[11px] text-amber-400 hover:underline cursor-pointer"
+                  className="text-xs text-amber-400 hover:text-amber-300 font-semibold flex items-center gap-1 hover:underline cursor-pointer"
                 >
-                  Show All Categories
+                  <X className="w-3.5 h-3.5" />
+                  <span>Clear Category ({filters.category})</span>
                 </button>
               )}
             </div>
 
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+            {/* Responsive Grid fitting ALL 12 Category Buttons with zero cutoff */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
               {CATEGORIES.map(category => {
                 const IconComponent = getCategoryIcon(category.name);
                 const isSelected = filters.category === category.name;
@@ -1483,20 +1533,30 @@ export const BuyerCatalog: React.FC = () => {
                 return (
                   <button
                     key={category.name}
+                    type="button"
                     onClick={() => setFilters(prev => ({
                       ...prev,
                       category: isSelected ? '' : category.name
                     }))}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-2 transition-all shrink-0 cursor-pointer ${
+                    className={`group w-full p-2.5 rounded-xl text-left transition-all duration-150 cursor-pointer flex items-center justify-between gap-1.5 border ${
                       isSelected
-                        ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20'
-                        : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800'
+                        ? 'bg-amber-500 text-slate-950 font-bold border-amber-400 shadow-md shadow-amber-500/20'
+                        : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-800 hover:border-slate-700'
                     }`}
+                    title={`${category.name} (${count} items)`}
                   >
-                    <IconComponent className={`w-3.5 h-3.5 ${isSelected ? 'text-slate-950' : 'text-amber-400'}`} />
-                    <span>{category.name}</span>
-                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-                      isSelected ? 'bg-slate-950/30 text-slate-950 font-bold' : 'bg-slate-800 text-slate-400'
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <div className={`p-1.5 rounded-lg shrink-0 ${
+                        isSelected ? 'bg-slate-950/20 text-slate-950' : 'bg-slate-800/90 text-amber-400 group-hover:text-amber-300'
+                      }`}>
+                        <IconComponent className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="text-xs font-semibold truncate leading-tight">
+                        {category.name}
+                      </span>
+                    </div>
+                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono shrink-0 font-bold ${
+                      isSelected ? 'bg-slate-950/25 text-slate-950' : 'bg-slate-800 text-slate-400 group-hover:text-slate-300'
                     }`}>
                       {count}
                     </span>
@@ -1506,53 +1566,66 @@ export const BuyerCatalog: React.FC = () => {
             </div>
           </div>
 
-          {/* Quick South African Province Geolocation Fast-Switcher Bar */}
-          <div className="mt-4 pt-3 border-t border-slate-800/80">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-amber-400" />
-                <span>Search by Province & Scrap Yard Hub</span>
-              </span>
+          {/* Quick South African Province Geolocation & Scrap Yard Hub Fast-Switcher */}
+          <div className="mt-5 pt-4 border-t border-slate-800/80">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
               <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <MapPin className="w-4 h-4 text-amber-400" />
+                  <span>Search by Province & Scrap Yard Hub</span>
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-amber-400 border border-slate-700/60 font-mono">
+                  All 10 Hubs In View
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={handleDetectLocation}
                   disabled={isLocating}
-                  className="text-[11px] text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 hover:underline cursor-pointer"
+                  className="text-xs text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1.5 hover:underline cursor-pointer"
                 >
-                  <LocateFixed className="w-3 h-3" />
+                  <LocateFixed className="w-3.5 h-3.5" />
                   <span>{isLocating ? 'Detecting Location...' : 'Auto-Detect via GPS'}</span>
                 </button>
-                {filters.province && (
+                {(filters.province || filters.scrapyardHub) && (
                   <button
+                    type="button"
                     onClick={() => {
-                      setFilters(prev => ({ ...prev, province: '' }));
+                      setFilters(prev => ({ ...prev, province: '', scrapyardHub: '' }));
                       setGeoFeedback(null);
                     }}
-                    className="text-[11px] text-slate-400 hover:text-white hover:underline cursor-pointer"
+                    className="text-xs text-slate-400 hover:text-white hover:underline cursor-pointer flex items-center gap-1"
                   >
-                    View All South Africa
+                    <RotateCcw className="w-3 h-3" />
+                    <span>View All South Africa</span>
                   </button>
                 )}
               </div>
             </div>
 
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+            {/* 10 Province Buttons Grid: 2 cols on mobile (5 neat rows), 5 cols on sm, 10 cols on lg. All 10 fit without cutoff! */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 gap-1.5">
               {/* All South Africa Chip */}
               <button
+                type="button"
                 onClick={() => {
-                  setFilters(prev => ({ ...prev, province: '' }));
+                  setFilters(prev => ({ ...prev, province: '', scrapyardHub: '' }));
                   setGeoFeedback(null);
                 }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
+                className={`w-full p-2 rounded-xl text-xs font-semibold flex items-center justify-between gap-1 transition-all cursor-pointer border ${
                   !filters.province
-                    ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20'
-                    : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800'
+                    ? 'bg-amber-500 text-slate-950 font-bold border-amber-400 shadow-md shadow-amber-500/20'
+                    : 'bg-slate-900/90 hover:bg-slate-800 text-slate-300 border-slate-800'
                 }`}
+                title="Search nationwide across all 9 provinces"
               >
-                <span>🇿🇦 All South Africa</span>
-                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-                  !filters.province ? 'bg-slate-950/30 text-slate-950 font-bold' : 'bg-slate-800 text-slate-400'
+                <div className="flex items-center gap-1 min-w-0 truncate">
+                  <span>🇿🇦</span>
+                  <span className="truncate">All SA</span>
+                </div>
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold shrink-0 ${
+                  !filters.province ? 'bg-slate-950/25 text-slate-950' : 'bg-slate-800 text-slate-400'
                 }`}>
                   {listings.length}
                 </span>
@@ -1562,27 +1635,38 @@ export const BuyerCatalog: React.FC = () => {
               {SA_PROVINCES.map(province => {
                 const isSelected = filters.province === province;
                 const count = provinceCounts[province] ?? 0;
+                const geoInfo = SA_PROVINCES_GEO[province as SouthAfricanProvince];
+                const code = geoInfo?.code || '';
 
                 return (
                   <button
                     key={province}
+                    type="button"
                     onClick={() => {
                       setFilters(prev => ({
                         ...prev,
-                        province: isSelected ? '' : province
+                        province: isSelected ? '' : province,
+                        scrapyardHub: ''
                       }));
                       setGeoFeedback(null);
                     }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
+                    className={`w-full p-2 rounded-xl text-xs font-semibold flex items-center justify-between gap-1 transition-all cursor-pointer border ${
                       isSelected
-                        ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20'
-                        : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800'
+                        ? 'bg-amber-500 text-slate-950 font-bold border-amber-400 shadow-md shadow-amber-500/20'
+                        : 'bg-slate-900/90 hover:bg-slate-800 text-slate-300 border-slate-800'
                     }`}
+                    title={`${province} - ${count} parts`}
                   >
-                    <MapPin className={`w-3 h-3 ${isSelected ? 'text-slate-950' : 'text-amber-400'}`} />
-                    <span>{province}</span>
-                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-                      isSelected ? 'bg-slate-950/30 text-slate-950 font-bold' : 'bg-slate-800 text-slate-400'
+                    <div className="flex items-center gap-1 min-w-0 truncate">
+                      <span className={`text-[10px] px-1 py-0.2 rounded font-mono font-bold shrink-0 ${
+                        isSelected ? 'bg-slate-950/30 text-slate-950' : 'bg-slate-800 text-amber-400'
+                      }`}>
+                        {code}
+                      </span>
+                      <span className="truncate text-xs">{province}</span>
+                    </div>
+                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold shrink-0 ${
+                      isSelected ? 'bg-slate-950/25 text-slate-950' : 'bg-slate-800 text-slate-400'
                     }`}>
                       {count}
                     </span>
@@ -1590,40 +1674,182 @@ export const BuyerCatalog: React.FC = () => {
                 );
               })}
             </div>
-          </div>
 
-          {/* Active Province Hub Banner */}
-          {filters.province && (
-            <div className="mt-3 p-3.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-slate-900 to-blue-950/20 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
-                  <MapPin className="w-4 h-4" />
+            {/* Scrap Yard Hub Quick Selectors Bar */}
+            <div className="mt-3 p-3 rounded-xl bg-slate-900/80 border border-slate-800/90">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-2 text-xs">
+                <div className="flex items-center gap-1.5 font-bold text-slate-300">
+                  <Warehouse className="w-3.5 h-3.5 text-amber-400" />
+                  <span>
+                    {filters.province 
+                      ? `Scrap Yard & Stripping Hubs in ${filters.province}:`
+                      : 'Premier Scrap Yard Hubs (Nationwide Dismantlers):'
+                    }
+                  </span>
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-white uppercase tracking-wider text-[11px]">
-                      Showing Scrap Yards & Spares in {filters.province}
-                    </span>
-                    <span className="px-2 py-0.2 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/30">
-                      {filteredListings.length} {filteredListings.length === 1 ? 'part' : 'parts'} found
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-400 mt-0.5">
-                    {SA_PROVINCES_GEO[filters.province as SouthAfricanProvince]?.tagline || 'Verified suppliers & scrap yards'} · Hubs: {SA_PROVINCES_GEO[filters.province as SouthAfricanProvince]?.majorHubs?.join(', ')}
-                  </p>
-                </div>
+                {filters.scrapyardHub && (
+                  <button
+                    type="button"
+                    onClick={() => setFilters(prev => ({ ...prev, scrapyardHub: '' }))}
+                    className="text-amber-400 hover:text-amber-300 font-semibold flex items-center gap-1 hover:underline cursor-pointer text-[11px]"
+                  >
+                    <X className="w-3 h-3" />
+                    <span>Clear Hub Filter ({filters.scrapyardHub})</span>
+                  </button>
+                )}
               </div>
-              <button
-                onClick={() => {
-                  setFilters(prev => ({ ...prev, province: '' }));
-                  setGeoFeedback(null);
-                }}
-                className="text-amber-400 hover:text-amber-300 font-semibold underline text-[11px] whitespace-nowrap self-end sm:self-auto cursor-pointer"
-              >
-                Clear Location (Search Nationwide)
-              </button>
+
+              {/* Hub Buttons: flex-wrap with clean spacing, guaranteeing ALL fit without cutoff */}
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                {/* When a specific province is selected, show its major hubs */}
+                {filters.province && SA_PROVINCES_GEO[filters.province as SouthAfricanProvince]?.majorHubs ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setFilters(prev => ({ ...prev, scrapyardHub: '' }))}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer border flex items-center gap-1.5 ${
+                        !filters.scrapyardHub
+                          ? 'bg-amber-500 text-slate-950 font-bold border-amber-400 shadow-sm'
+                          : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 border-slate-700'
+                      }`}
+                    >
+                      <Building2 className="w-3 h-3" />
+                      <span>All {filters.province} Yards</span>
+                    </button>
+
+                    {SA_PROVINCES_GEO[filters.province as SouthAfricanProvince].majorHubs.map(hub => {
+                      const isHubSelected = filters.scrapyardHub?.toLowerCase() === hub.toLowerCase();
+                      const hubCount = listings.filter(item => 
+                        item.locationProvince === filters.province &&
+                        (item.locationCity.toLowerCase().includes(hub.toLowerCase()) || item.sellerName.toLowerCase().includes(hub.toLowerCase()))
+                      ).length;
+
+                      return (
+                        <button
+                          key={hub}
+                          type="button"
+                          onClick={() => setFilters(prev => ({
+                            ...prev,
+                            scrapyardHub: isHubSelected ? '' : hub
+                          }))}
+                          className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer border flex items-center gap-1.5 ${
+                            isHubSelected
+                              ? 'bg-amber-500 text-slate-950 font-bold border-amber-400 shadow-sm'
+                              : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-800 hover:border-slate-700'
+                          }`}
+                        >
+                          <MapPin className={`w-3 h-3 ${isHubSelected ? 'text-slate-950' : 'text-amber-400'}`} />
+                          <span>{hub}</span>
+                          {hubCount > 0 && (
+                            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
+                              isHubSelected ? 'bg-slate-950/25 text-slate-950' : 'bg-slate-800 text-slate-400'
+                            }`}>
+                              {hubCount}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </>
+                ) : (
+                  /* When nationwide (no province selected), show top national hubs */
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setFilters(prev => ({ ...prev, scrapyardHub: '', province: '' }))}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer border flex items-center gap-1.5 ${
+                        !filters.scrapyardHub
+                          ? 'bg-amber-500 text-slate-950 font-bold border-amber-400 shadow-sm'
+                          : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 border-slate-700'
+                      }`}
+                    >
+                      <Building2 className="w-3 h-3" />
+                      <span>All SA Scrapyards</span>
+                    </button>
+
+                    {TOP_NATIONAL_HUBS.map(hub => {
+                      const isHubSelected = filters.scrapyardHub?.toLowerCase() === hub.name.toLowerCase();
+                      const hubCount = listings.filter(item => 
+                        item.locationCity.toLowerCase().includes(hub.name.toLowerCase()) ||
+                        item.sellerName.toLowerCase().includes(hub.name.toLowerCase())
+                      ).length;
+
+                      return (
+                        <button
+                          key={hub.name}
+                          type="button"
+                          onClick={() => setFilters(prev => ({
+                            ...prev,
+                            province: hub.province,
+                            scrapyardHub: isHubSelected ? '' : hub.name
+                          }))}
+                          className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer border flex items-center gap-1.5 ${
+                            isHubSelected
+                              ? 'bg-amber-500 text-slate-950 font-bold border-amber-400 shadow-sm'
+                              : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-800 hover:border-slate-700'
+                          }`}
+                          title={`${hub.label} (${hub.province}) - ${hub.desc}`}
+                        >
+                          <Warehouse className={`w-3 h-3 ${isHubSelected ? 'text-slate-950' : 'text-amber-400'}`} />
+                          <span>{hub.label}</span>
+                          <span className={`text-[10px] px-1 py-0.2 rounded font-mono font-bold ${
+                            isHubSelected ? 'bg-slate-950/30 text-slate-950' : 'bg-slate-800 text-amber-400'
+                          }`}>
+                            {SA_PROVINCES_GEO[hub.province as SouthAfricanProvince]?.code || ''}
+                          </span>
+                          {hubCount > 0 && (
+                            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
+                              isHubSelected ? 'bg-slate-950/25 text-slate-950' : 'bg-slate-800 text-slate-400'
+                            }`}>
+                              {hubCount}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </>
+                )}
+              </div>
             </div>
-          )}
+
+            {/* Active Province & Hub Filter Status Bar */}
+            {(filters.province || filters.scrapyardHub) && (
+              <div className="mt-3 p-3.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-slate-900 to-blue-950/20 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-8 w-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
+                    <MapPin className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-bold text-white uppercase tracking-wider text-[11px]">
+                        Showing Parts in {filters.province || 'All South Africa'}
+                        {filters.scrapyardHub && ` › ${filters.scrapyardHub} Hub`}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/30">
+                        {filteredListings.length} {filteredListings.length === 1 ? 'part' : 'parts'} available
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      {filters.province 
+                        ? (SA_PROVINCES_GEO[filters.province as SouthAfricanProvince]?.tagline || 'Verified suppliers & scrap yards')
+                        : 'Nationwide scrap yard dispatch across all 9 provinces'}
+                      {filters.province && ` · Active Hubs: ${SA_PROVINCES_GEO[filters.province as SouthAfricanProvince]?.majorHubs?.slice(0, 5).join(', ')}`}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilters(prev => ({ ...prev, province: '', scrapyardHub: '' }));
+                    setGeoFeedback(null);
+                  }}
+                  className="text-amber-400 hover:text-amber-300 font-semibold underline text-xs whitespace-nowrap self-end sm:self-auto cursor-pointer"
+                >
+                  Clear Location (Search Nationwide)
+                </button>
+              </div>
+            )}
+          </div>
 
         </div>
       </section>
@@ -1860,8 +2086,24 @@ export const BuyerCatalog: React.FC = () => {
               </select>
             </div>
 
-            {/* View Density Switcher: Compact (Default) | Comfort | List */}
+            {/* View Density Switcher: Visual Gallery | Compact | Comfort | List */}
             <div className="flex items-center bg-slate-900 border border-slate-700/80 rounded-lg p-0.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setViewDensity('gallery');
+                  localStorage.setItem('partsource_catalog_density', 'gallery');
+                }}
+                className={`px-2.5 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors ${
+                  viewDensity === 'gallery'
+                    ? 'bg-amber-500 text-slate-950 font-bold shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                title="Visual Image Gallery Grid (High-resolution multi-photo inspection)"
+              >
+                <Images className="w-3.5 h-3.5" />
+                <span className="text-[11px] font-bold">Visual Gallery</span>
+              </button>
               <button
                 type="button"
                 onClick={() => {
@@ -1936,7 +2178,32 @@ export const BuyerCatalog: React.FC = () => {
 
         {/* Listings Display with Mobile Swipe-to-Contact Gestures */}
         {filteredListings.length > 0 ? (
-          viewDensity === 'list' ? (
+          viewDensity === 'gallery' ? (
+            /* Visual Image Gallery Grid (High Impact Photos, Multi-Angle Thumbnails, Zoom) */
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 mt-4">
+              {filteredListings.map(listing => (
+                <SwipeableListingCard
+                  key={listing.id}
+                  listing={listing}
+                  viewDensity="gallery"
+                  inCompare={isInCompare(listing.id)}
+                  isExactFit={checkFitmentMatch(listing)}
+                  isNewCondition={listing.condition.includes('Brand New')}
+                  isReconditioned={listing.condition.includes('Reconditioned')}
+                  onSelectListing={setSelectedListing}
+                  onAddToCompare={addToCompare}
+                  onRemoveFromCompare={removeFromCompare}
+                  onWhatsAppChat={(l) => openWhatsAppChat(l, 'availability')}
+                  onOpenLightbox={(l, idx) => {
+                    setLightboxListing(l);
+                    setLightboxIndex(idx || 0);
+                  }}
+                  formatZAR={formatZAR}
+                  selectedProvince={filters.province}
+                />
+              ))}
+            </div>
+          ) : viewDensity === 'list' ? (
             /* High Density List View */
             <div className="flex flex-col gap-2.5 mt-4">
               {filteredListings.map(listing => (
@@ -1952,13 +2219,17 @@ export const BuyerCatalog: React.FC = () => {
                   onAddToCompare={addToCompare}
                   onRemoveFromCompare={removeFromCompare}
                   onWhatsAppChat={(l) => openWhatsAppChat(l, 'availability')}
+                  onOpenLightbox={(l, idx) => {
+                    setLightboxListing(l);
+                    setLightboxIndex(idx || 0);
+                  }}
                   formatZAR={formatZAR}
                   selectedProvince={filters.province}
                 />
               ))}
             </div>
           ) : viewDensity === 'compact' ? (
-            /* Smaller, High-Density Compact Grid (Default) */
+            /* Smaller, High-Density Compact Grid */
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-3.5 mt-4">
               {filteredListings.map(listing => (
                 <SwipeableListingCard
@@ -1973,6 +2244,10 @@ export const BuyerCatalog: React.FC = () => {
                   onAddToCompare={addToCompare}
                   onRemoveFromCompare={removeFromCompare}
                   onWhatsAppChat={(l) => openWhatsAppChat(l, 'availability')}
+                  onOpenLightbox={(l, idx) => {
+                    setLightboxListing(l);
+                    setLightboxIndex(idx || 0);
+                  }}
                   formatZAR={formatZAR}
                   selectedProvince={filters.province}
                 />
@@ -1994,6 +2269,10 @@ export const BuyerCatalog: React.FC = () => {
                   onAddToCompare={addToCompare}
                   onRemoveFromCompare={removeFromCompare}
                   onWhatsAppChat={(l) => openWhatsAppChat(l, 'availability')}
+                  onOpenLightbox={(l, idx) => {
+                    setLightboxListing(l);
+                    setLightboxIndex(idx || 0);
+                  }}
                   formatZAR={formatZAR}
                   selectedProvince={filters.province}
                 />
@@ -2049,7 +2328,7 @@ export const BuyerCatalog: React.FC = () => {
 
       {/* Floating Compare Matrix Bar */}
       {compareList.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 bg-slate-900 border border-amber-500/50 shadow-2xl shadow-black/80 rounded-2xl px-5 py-3.5 flex items-center gap-4 max-w-xl w-full mx-4 backdrop-blur-lg">
+        <div className="fixed bottom-16 sm:bottom-6 left-1/2 -translate-x-1/2 z-30 bg-slate-900 border border-amber-500/50 shadow-2xl shadow-black/80 rounded-2xl px-3.5 sm:px-5 py-2.5 sm:py-3.5 flex items-center gap-3 sm:gap-4 max-w-xl w-[calc(100%-2rem)] backdrop-blur-lg">
           <div className="flex -space-x-3 overflow-hidden">
             {compareList.map(item => (
               <img
@@ -2076,6 +2355,26 @@ export const BuyerCatalog: React.FC = () => {
             Open Matrix
           </button>
         </div>
+      )}
+
+      {/* Visual Image Gallery Lightbox Modal */}
+      {lightboxListing && (
+        <PartGalleryLightboxModal
+          listing={lightboxListing}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxListing(null)}
+          onSelectListing={(l) => {
+            setLightboxListing(null);
+            setSelectedListing(l);
+          }}
+          onWhatsAppChat={(l) => {
+            openWhatsAppChat(l, 'availability');
+          }}
+          onAddToCompare={addToCompare}
+          onRemoveFromCompare={removeFromCompare}
+          inCompare={isInCompare(lightboxListing.id)}
+          formatZAR={formatZAR}
+        />
       )}
 
     </div>

@@ -245,6 +245,7 @@ CRITICAL: Return ONLY a valid, raw JSON object (without markdown backticks or co
 }`;
 
       let aiResult = null;
+      let creditsDepleted = false;
 
       if (process.env.GEMINI_API_KEY) {
         try {
@@ -265,7 +266,13 @@ CRITICAL: Return ONLY a valid, raw JSON object (without markdown backticks or co
             aiResult = JSON.parse(cleaned);
           }
         } catch (genAiError: any) {
-          console.warn('Gemini API call warning in marketing strategy endpoint:', genAiError?.message || genAiError);
+          const errMsg = genAiError?.message || String(genAiError);
+          if (errMsg.includes('429') || errMsg.includes('RESOURCE_EXHAUSTED') || errMsg.includes('depleted') || errMsg.includes('credits')) {
+            creditsDepleted = true;
+            console.log('[Part Source ZA] Gemini API credits depleted or rate-limited; seamlessly activating built-in South African automotive growth intelligence.');
+          } else {
+            console.log('[Part Source ZA] Gemini API unavailable; engaging built-in South African automotive growth engine.');
+          }
         }
       }
 
@@ -278,46 +285,56 @@ CRITICAL: Return ONLY a valid, raw JSON object (without markdown backticks or co
         });
       }
 
-      // Robust fallback strategy engine tailored to South African automotive market
+      // High-precision dynamic fallback strategy engine tailored to South African automotive market
+      const vehicleSnippet = vehicleFocus && vehicleFocus !== 'All Vehicles (Bakkies, Cars & Trucks)'
+        ? vehicleFocus
+        : 'Toyota Hilux, VW Polo, Ford Ranger & Commercial Fleet';
+
+      const goalSnippet = customGoal
+        ? `Strategic Goal: ${customGoal}.`
+        : 'Maximize user acquisition, scrap yard listings, and direct WhatsApp buyer deals across South Africa.';
+
       const fallbackCampaigns: Record<string, any> = {
         sellers: {
           campaignTitle: `Operation Scrappy Blitz: ${targetProvince} Yard-to-Yard Supplier Onboarding`,
           targetAudience: 'sellers',
           channel: channel,
           targetProvince: targetProvince,
-          executiveSummary: `Scrap yard and auto dismantler owners in ${targetProvince} lose thousands of hours each month fielding unqualified calls on Facebook Marketplace and Gumtree. By offering an instant, mobile-first inventory hub with direct WhatsApp leads and zero listing fees during a 14-day trial, we overcome reluctance and rapidly build catalog density.`,
-          coreGrowthHook: 'Turn your salvage yard stock into verified WhatsApp buyer leads in 60 seconds — R0 commission, zero upfront cost.',
+          vehicleFocus: vehicleSnippet,
+          executiveSummary: `Scrap yard and auto dismantler owners in ${targetProvince} lose thousands of hours each month fielding unqualified calls on Facebook Marketplace and Gumtree. ${goalSnippet} By offering an instant, mobile-first inventory hub with direct WhatsApp leads and zero listing fees during a 14-day trial, we overcome reluctance and rapidly build catalog density for ${vehicleSnippet}.`,
+          coreGrowthHook: `Turn your ${targetProvince} salvage yard stock into verified WhatsApp buyer leads in 60 seconds — R0 commission, zero upfront cost.`,
           keyTactics: [
             `Scout and visit physical scrap yard clusters in ${targetProvince} (e.g. Booysens, Mayfair, Pretoria West, Clairwood, Stikland) with physical 1-page onboarding cards.`,
-            'Offer hands-on "Scrappy Concierge": take photos of 10 of their high-value stripped engines/gearboxes right in their yard and upload them on the spot.',
+            `Offer hands-on "Scrappy Concierge": take photos of 10 high-value stripped engines/gearboxes (${vehicleSnippet}) right in their yard and upload them on the spot.`,
             'Integrate existing Excel / CSV parts inventory lists within 10 seconds using the Part Source ZA bulk uploader.',
             'Provide free "Verified Supplier ZA" physical yard sticker and digital WhatsApp catalog badge to build immediate prestige.'
           ],
-          readyCopyWhatsApp: `🚗 *ATTENTION AUTO DISMANTLERS & SCRAP YARDS (${targetProvince.toUpperCase()})* 🇿🇦\n\nTired of endless "is this still available?" time-wasters on Gumtree and Facebook?\n\n*Part Source ZA* is South Africa's dedicated parts advertising network connecting you directly to pre-qualified buyers needing engines, gearboxes, body panels, and bakkie spares!\n\n✅ *Direct WhatsApp Inquiries:* Serious buyers contact your phone directly.\n✅ *Zero Listing Commission:* You keep 100% of your sales.\n✅ *Instant Mobile Inventory:* Upload parts from your phone in 30 seconds.\n✅ *14-Day Free Yard Pass:* Test it with zero risk.\n\n👉 *Claim your Verified Supplier spot now:* https://partssource.co.za/?role=seller\n\n_Reply YES to get your yard listed today!_`,
-          readyCopySocial: `🔧 Attention Scrap Yard Owners & Auto Spares Suppliers in ${targetProvince}!\n\nStop losing money on parts sitting in your yard. Serious mechanics, panel beaters, and car owners are searching for used and reconditioned spares right now on Part Source ZA.\n\n🌟 100% Free 14-Day Trial for Verified Yards\n🌟 Instant WhatsApp Buyer Leads direct to your sales desk\n🌟 Bulk Excel stock uploads supported\n\n👉 Join South Africa's fastest-growing auto parts network: https://partssource.co.za\n\n#ScrapYardsSouthAfrica #AutoSparesSA #UsedCarParts #BakkieSpares #JohannesburgSpares #CapeTownSpares #DurbanAuto`,
+          readyCopyWhatsApp: `🚗 *ATTENTION AUTO DISMANTLERS & SCRAP YARDS (${targetProvince.toUpperCase()})* 🇿🇦\n\nTired of endless "is this still available?" time-wasters on Gumtree and Facebook?\n\n*Part Source ZA* is South Africa's dedicated parts advertising network connecting you directly to pre-qualified buyers needing engines, gearboxes, body panels, and spares for *${vehicleSnippet}*!\n\n✅ *Direct WhatsApp Inquiries:* Serious buyers contact your phone directly.\n✅ *Zero Listing Commission:* You keep 100% of your sales.\n✅ *Instant Mobile Inventory:* Upload parts from your phone in 30 seconds.\n✅ *14-Day Free Yard Pass:* Test it with zero risk.\n\n👉 *Claim your Verified Supplier spot now:* https://partssource.co.za/?role=seller\n\n_Reply YES to get your yard listed today!_`,
+          readyCopySocial: `🔧 Attention Scrap Yard Owners & Auto Spares Suppliers in ${targetProvince}!\n\nStop losing money on ${vehicleSnippet} parts sitting in your yard. Serious mechanics, panel beaters, and car owners are searching for used and reconditioned spares right now on Part Source ZA.\n\n🌟 100% Free 14-Day Trial for Verified Yards\n🌟 Instant WhatsApp Buyer Leads direct to your sales desk\n🌟 Bulk Excel stock uploads supported\n\n👉 Join South Africa's fastest-growing auto parts network: https://partssource.co.za\n\n#ScrapYardsSouthAfrica #AutoSparesSA #UsedCarParts #BakkieSpares #JohannesburgSpares #CapeTownSpares #DurbanAuto`,
           physicalDigitalLocations: [
             'Physical Yards: Booysens & Mayfair (JHB), Pretoria West & Hermanstad (PTA), Clairwood & Springfield (DBN), Stikland & Philippi (CPT)',
             'WhatsApp Groups: Auto Spares SA Traders, Scrappies South Africa Network, Panelbeaters & Mechanics ZA',
             'Digital Forums: 4x4 Community SA Buy/Sell, VW Club South Africa Spares, Gumtree Automotive Sellers'
           ],
           callToAction: 'Sign up your scrap yard on Part Source ZA today and receive pre-qualified buyer inquiries directly to your WhatsApp.',
-          kpiMetrics: 'Target: 50 registered scrap yards in 30 days; 2,500 active listings across major makes (Toyota, VW, Ford, Isuzu).'
+          kpiMetrics: 'Target: 50 registered scrap yards in 30 days; 2,500 active listings across major makes.'
         },
         buyers: {
           campaignTitle: `The "Never Pay Dealership Prices" Spares Blitz (${targetProvince})`,
           targetAudience: 'buyers',
           channel: channel,
           targetProvince: targetProvince,
-          executiveSummary: `Car owners, DIY hobbyists, and private transport operators across ${targetProvince} face exorbitant OEM dealership quotes (R15,000+ for alternators, steering racks, or cylinder heads). Positioning Part Source ZA as the trusted digital directory to compare verified salvage yards and buy direct on WhatsApp creates instant consumer viral sharing.`,
-          coreGrowthHook: 'Find OEM-tested second-hand car spares in 60 seconds from verified scrap yards across SA — at up to 75% off dealership prices.',
+          vehicleFocus: vehicleSnippet,
+          executiveSummary: `Car owners, DIY hobbyists, and private transport operators across ${targetProvince} face exorbitant OEM dealership quotes (R15,000+ for alternators, steering racks, or cylinder heads). ${goalSnippet} Positioning Part Source ZA as the trusted digital directory to compare verified salvage yards and buy direct on WhatsApp creates instant consumer viral sharing for ${vehicleSnippet}.`,
+          coreGrowthHook: `Find OEM-tested second-hand spares for ${vehicleSnippet} in 60 seconds from verified scrap yards across SA — at up to 75% off dealership prices.`,
           keyTactics: [
-            'Launch high-intent vehicle problem ads ("Hilux gearbox noise?", "Polo TSI EPC warning light?", "Ranger 2.2 cylinder head blown?") directing straight to filtered catalog links.',
+            `Launch high-intent vehicle problem ads ("${vehicleSnippet} gearbox noise?", "Polo TSI EPC warning light?", "Ranger 2.2 cylinder head blown?") directing straight to filtered catalog links.`,
             'Deploy the viral "WhatsApp Quote Requester" where buyers submit their VIN/engine code and get broadcast quotes from 10+ local yards within 30 minutes.',
             'Engage independent mechanics and workshop technicians with wholesale pricing comparison tools.',
-            'Programmatic SEO targeting provincial keywords: "used gearbox Pretoria", "Hilux engine Durban", "Polo spares Cape Town".'
+            `Programmatic SEO targeting provincial keywords: "${targetProvince} car spares", "used gearbox Pretoria", "Hilux engine Durban", "Polo spares Cape Town".`
           ],
-          readyCopyWhatsApp: `⚠️ *CAR BROKEN DOWN? DON'T PAY CRAZY DEALERSHIP PRICES!* 🇿🇦🚗\n\nNeed a replacement engine, gearbox, alternator, bumper, or cylinder head for your car, bakkie, or truck?\n\nSearch *Part Source ZA* — South Africa's verified scrap yard marketplace:\n\n🔍 Search thousands of tested used & reconditioned spares\n📍 Filter by your province (${targetProvince}) or nationwide delivery\n💬 Chat directly with verified scrap yards via WhatsApp\n🛡️ Verified suppliers with test warranties\n\n👉 *Find your part in 60 seconds:* https://partssource.co.za\n\n_Forward this to friends, mechanics, and car groups who need spares!_`,
-          readyCopySocial: `💥 Dealing with an insane R20,000 repair quote from the dealership?\n\nBefore you drain your savings, check Part Source ZA! Compare tested used OEM and reconditioned parts from verified scrap yards and auto dismantlers across ${targetProvince} and all 9 provinces.\n\n🚗 Toyota, VW, Ford, Isuzu, BMW, Mercedes & Heavy Commercial Trucks\n💬 WhatsApp the yard directly for photos and VIN confirmation\n🚚 Nationwide door-to-door courier available\n\n👉 Search parts now: https://partssource.co.za\n\n#CarPartsSA #HiluxSpares #PoloSpares #SouthAfricaCars #AutoSparesZA #ScrapYardParts #AffordableRepairs`,
+          readyCopyWhatsApp: `⚠️ *CAR BROKEN DOWN? DON'T PAY CRAZY DEALERSHIP PRICES!* 🇿🇦🚗\n\nNeed a replacement engine, gearbox, alternator, bumper, or cylinder head for your *${vehicleSnippet}*?\n\nSearch *Part Source ZA* — South Africa's verified scrap yard marketplace:\n\n🔍 Search thousands of tested used & reconditioned spares\n📍 Filter by your province (${targetProvince}) or nationwide delivery\n💬 Chat directly with verified scrap yards via WhatsApp\n🛡️ Verified suppliers with test warranties\n\n👉 *Find your part in 60 seconds:* https://partssource.co.za\n\n_Forward this to friends, mechanics, and car groups who need spares!_`,
+          readyCopySocial: `💥 Dealing with an insane R20,000 repair quote from the dealership?\n\nBefore you drain your savings, check Part Source ZA! Compare tested used OEM and reconditioned parts for ${vehicleSnippet} from verified scrap yards and auto dismantlers across ${targetProvince} and all 9 provinces.\n\n🚗 Toyota, VW, Ford, Isuzu, BMW, Mercedes & Heavy Commercial Trucks\n💬 WhatsApp the yard directly for photos and VIN confirmation\n🚚 Nationwide door-to-door courier available\n\n👉 Search parts now: https://partssource.co.za\n\n#CarPartsSA #HiluxSpares #PoloSpares #SouthAfricaCars #AutoSparesZA #ScrapYardParts #AffordableRepairs`,
           physicalDigitalLocations: [
             'Social Channels: Facebook Marketplace, TikTok automotive creators (#CarTokSA, #SABakkieLife)',
             'Digital Groups: Toyota Hilux Club SA, VW Polo Drivers South Africa, 4x4 Community SA, Ford Ranger Spares ZA',
@@ -327,20 +344,21 @@ CRITICAL: Return ONLY a valid, raw JSON object (without markdown backticks or co
           kpiMetrics: 'Target: 15,000 monthly unique buyer searches; 1,800 direct WhatsApp inquiries initiated to scrap yards.'
         },
         dual_sided: {
-          campaignTitle: `South Africa Automotive Flywheel: 360° Marketplace Blitz`,
+          campaignTitle: `South Africa Automotive Flywheel: 360° Marketplace Blitz (${targetProvince})`,
           targetAudience: 'dual_sided',
           channel: channel,
           targetProvince: targetProvince,
-          executiveSummary: `Marketplaces require simultaneous liquidity: scrap yards need buyer inquiries to stay active, while car owners need a dense catalog of parts. This dual-sided campaign leverages hyper-local scrap yard clusters combined with high-volume bakkie and commuter vehicle buyer campaigns.`,
+          vehicleFocus: vehicleSnippet,
+          executiveSummary: `Marketplaces require simultaneous liquidity: scrap yards need buyer inquiries to stay active, while car owners need a dense catalog of parts. ${goalSnippet} This dual-sided campaign leverages hyper-local scrap yard clusters in ${targetProvince} combined with high-volume ${vehicleSnippet} buyer campaigns.`,
           coreGrowthHook: 'The modern South African bridge: Connecting verified salvage yards directly to car owners over WhatsApp.',
           keyTactics: [
-            'Phase 1 (Day 1-14): Supply Blitz — Onboard 30 anchor yards in JHB/PTA/DBN/CPT with free 14-day Pro tier access.',
-            'Phase 2 (Day 15-30): Demand Blitz — Launch targeted Facebook/TikTok video campaigns focused on top 5 failure parts (turbos, gearboxes, alternators, bumpers, ECUs).',
+            `Phase 1 (Day 1-14): Supply Blitz — Onboard 30 anchor yards in ${targetProvince} (JHB/PTA/DBN/CPT) with free 14-day Pro tier access.`,
+            `Phase 2 (Day 15-30): Demand Blitz — Launch targeted Facebook/TikTok video campaigns focused on ${vehicleSnippet} failure parts (turbos, gearboxes, alternators, bumpers, ECUs).`,
             'Phase 3: Viral Loop — Every buyer inquiry sends automated WhatsApp notifications to yards; yards share their custom Part Source ZA profile link on their existing customer chats.',
             'Phase 4: B2B Expansion — Onboard panel beaters and courier/logistics fleets for commercial truck and bakkie spares.'
           ],
-          readyCopyWhatsApp: `🇿🇦 *PART SOURCE ZA — THE AUTO SPARES REVOLUTION* 🚗\n\nWhether you have car parts sitting in your yard OR you're desperately looking for an affordable replacement part, *Part Source ZA* connects you directly!\n\n🏢 *For Scrap Yards & Suppliers:* List your parts in 30 seconds and receive direct WhatsApp leads. Zero commission!\n🚗 *For Car & Truck Owners:* Find guaranteed tested parts from verified yards across SA at up to 70% off.\n\n👉 *Explore now:* https://partssource.co.za\n\n_Built for South Africa's automotive community!_`,
-          readyCopySocial: `🇿🇦 South Africa's dedicated Car & Truck Spares Platform is LIVE!\n\nWhether you are an auto dismantler looking to move stock or a car owner needing an urgent replacement part without paying dealership prices, Part Source ZA has you covered.\n\n✅ Verified Scrap Yards & Suppliers\n✅ Direct WhatsApp negotiation\n✅ Geolocation across all 9 provinces\n✅ From Toyota Hilux to Scania Commercial Spares\n\n👉 Join the network: https://partssource.co.za\n\n#PartSourceZA #SouthAfricaAuto #ScrapYards #UsedPartsSA #BakkieSpares #CarRepairsSA`,
+          readyCopyWhatsApp: `🇿🇦 *PART SOURCE ZA — THE AUTO SPARES REVOLUTION* 🚗\n\nWhether you have car parts sitting in your yard OR you're desperately looking for an affordable replacement part for *${vehicleSnippet}*, *Part Source ZA* connects you directly!\n\n🏢 *For Scrap Yards & Suppliers:* List your parts in 30 seconds and receive direct WhatsApp leads. Zero commission!\n🚗 *For Car & Truck Owners:* Find guaranteed tested parts from verified yards across ${targetProvince} at up to 70% off.\n\n👉 *Explore now:* https://partssource.co.za\n\n_Built for South Africa's automotive community!_`,
+          readyCopySocial: `🇿🇦 South Africa's dedicated Car & Truck Spares Platform is LIVE in ${targetProvince}!\n\nWhether you are an auto dismantler looking to move ${vehicleSnippet} stock or a car owner needing an urgent replacement part without paying dealership prices, Part Source ZA has you covered.\n\n✅ Verified Scrap Yards & Suppliers\n✅ Direct WhatsApp negotiation\n✅ Geolocation across all 9 provinces\n✅ From Toyota Hilux to Scania Commercial Spares\n\n👉 Join the network: https://partssource.co.za\n\n#PartSourceZA #SouthAfricaAuto #ScrapYards #UsedPartsSA #BakkieSpares #CarRepairsSA`,
           physicalDigitalLocations: [
             'National: Gauteng, Western Cape, KwaZulu-Natal, Eastern Cape industrial hubs',
             'Associations: TEPA, RMI, Scrap Metal Association of SA, SANTACO taxi fleets',
@@ -356,6 +374,7 @@ CRITICAL: Return ONLY a valid, raw JSON object (without markdown backticks or co
       return res.json({
         success: true,
         source: 'built-in-intelligence-engine',
+        creditsDepleted,
         campaign: fallback
       });
 

@@ -53,6 +53,8 @@ export const MarketingStrategyModal: React.FC = () => {
   
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [generatedCampaign, setGeneratedCampaign] = useState<MarketingCampaign | null>(null);
+  const [generationSource, setGenerationSource] = useState<string>('built-in');
+  const [creditsDepletedNotice, setCreditsDepletedNotice] = useState<boolean>(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   if (!isMarketingModalOpen) return null;
@@ -88,6 +90,9 @@ export const MarketingStrategyModal: React.FC = () => {
 
       const data = await res.json();
       if (data && data.campaign) {
+        setGenerationSource(data.source || 'built-in');
+        setCreditsDepletedNotice(Boolean(data.creditsDepleted));
+
         const camp: MarketingCampaign = {
           id: `ai-${Date.now()}`,
           title: data.campaign.campaignTitle || 'AI South Africa Growth Blitz',
@@ -116,8 +121,7 @@ export const MarketingStrategyModal: React.FC = () => {
         throw new Error('Invalid response format');
       }
     } catch (err: any) {
-      console.error('AI strategy generation error:', err);
-      showNotification('Generation Notice', 'Generated strategy using built-in automotive intelligence.', 'info');
+      showNotification('Notice', 'Generated strategy using built-in South African automotive intelligence.', 'info');
     } finally {
       setIsGenerating(false);
     }
@@ -594,9 +598,15 @@ export const MarketingStrategyModal: React.FC = () => {
                   <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-900 dark:bg-amber-900/60 dark:text-amber-200 uppercase">
-                          AI Generated Campaign
+                        <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-900 dark:bg-amber-900/60 dark:text-amber-200 uppercase flex items-center gap-1">
+                          <Sparkles className="w-3 h-3 text-amber-500" />
+                          {generationSource === 'gemini-3.8-flash' ? 'Gemini 3.8 Flash' : 'Built-in ZA Growth Engine'}
                         </span>
+                        {creditsDepletedNotice && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-900 dark:bg-blue-950/70 dark:text-blue-300">
+                            Offline Fallback Active
+                          </span>
+                        )}
                         <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                           {generatedCampaign.targetProvince}
                         </span>

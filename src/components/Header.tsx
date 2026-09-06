@@ -130,39 +130,39 @@ export const Header: React.FC = () => {
             </div>
           </div>
 
-          {/* CENTER: Clean Segmented Navigation Tabs (Hidden on <md, moved to sub-bar for perfect fit) */}
-          <nav className="hidden md:flex items-center bg-slate-950/80 p-1 rounded-2xl border border-slate-800/80 shadow-inner flex-shrink-0">
+          {/* CENTER: Clean Segmented Navigation Tabs (On large screens >= lg; moved to sub-bar on <lg for zero cutoff) */}
+          <nav className="hidden lg:flex items-center bg-slate-950/80 p-1 rounded-2xl border border-slate-800/80 shadow-inner flex-shrink-0">
             
             {/* Tab 1: Marketplace */}
             <button
               onClick={() => setRole('buyer')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap shrink-0 ${
                 role === 'buyer'
                   ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
               }`}
             >
-              <Car className="w-3.5 h-3.5" />
+              <Car className="w-3.5 h-3.5 shrink-0" />
               <span>Marketplace</span>
             </button>
 
             {/* Tab 2: Seller Hub */}
             <button
               onClick={() => setRole('seller')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap shrink-0 ${
                 role === 'seller'
                   ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
               }`}
             >
-              <Store className="w-3.5 h-3.5" />
+              <Store className="w-3.5 h-3.5 shrink-0" />
               <span>Seller Hub</span>
             </button>
 
             {/* Tab 3: Admin Hub */}
             <button
               onClick={handleAdminClick}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
                 role === 'admin' || role === 'owner'
                   ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
@@ -170,9 +170,9 @@ export const Header: React.FC = () => {
               title={isAdminAuthenticated ? "Administrator Dashboard Active" : "Admin Hub (Password Protected)"}
             >
               {isAdminAuthenticated ? (
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-950" />
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-950 shrink-0" />
               ) : (
-                <Lock className="w-3.5 h-3.5" />
+                <Lock className="w-3.5 h-3.5 shrink-0" />
               )}
               <span>Admin Hub</span>
               {!isAdminAuthenticated && (
@@ -182,14 +182,14 @@ export const Header: React.FC = () => {
           </nav>
 
           {/* RIGHT: Actions, Search & Utility Menu */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             
-            {/* Quick Search Bar (Desktop) */}
+            {/* Quick Search Bar (Desktop xl) */}
             {role === 'buyer' && (
-              <div className="hidden lg:block relative w-48 xl:w-60">
+              <div className="hidden xl:block relative w-44 2xl:w-56">
                 <input
                   type="text"
-                  placeholder="Search parts, OEM, make..."
+                  placeholder="Search parts, OEM..."
                   value={filters.search}
                   onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
                   className="w-full pl-8 pr-7 py-1.5 bg-slate-950/90 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 transition-all"
@@ -206,24 +206,24 @@ export const Header: React.FC = () => {
               </div>
             )}
 
-            {/* Mobile Search Toggle */}
+            {/* Mobile / Tablet Search Toggle */}
             {role === 'buyer' && (
               <button
                 onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
-                className="lg:hidden p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 border border-slate-700/80"
+                className="xl:hidden p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 border border-slate-700/80 shrink-0"
                 title="Search spares"
               >
-                <Search className="w-4 h-4 text-amber-400" />
+                <Search className="w-4 h-4 text-amber-400 shrink-0" />
               </button>
             )}
 
             {/* Compare Parts Button */}
             <button
               onClick={() => setIsCompareOpen(true)}
-              className="relative px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 hover:text-white border border-slate-700/80 transition-colors flex items-center gap-1.5 text-xs font-semibold"
+              className="relative px-2 sm:px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 hover:text-white border border-slate-700/80 transition-colors flex items-center gap-1.5 text-xs font-semibold whitespace-nowrap shrink-0"
               title="Compare selected spares"
             >
-              <GitCompare className="w-3.5 h-3.5 text-amber-400" />
+              <GitCompare className="w-3.5 h-3.5 text-amber-400 shrink-0" />
               <span className="hidden sm:inline">Compare</span>
               {compareList.length > 0 && (
                 <span className="inline-flex items-center justify-center px-1.5 py-0.2 text-[9px] font-black text-slate-950 bg-amber-400 rounded-full shadow-sm">
@@ -239,36 +239,38 @@ export const Header: React.FC = () => {
                   setEditingListing(null);
                   setIsAddEditModalOpen(true);
                 }}
-                className="px-3 sm:px-4 py-1.5 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 font-black rounded-xl text-xs transition-all shadow-md shadow-amber-500/20 flex items-center gap-1.5 whitespace-nowrap"
+                className="px-2.5 sm:px-3.5 py-1.5 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 font-black rounded-xl text-xs transition-all shadow-md shadow-amber-500/20 flex items-center gap-1.5 whitespace-nowrap shrink-0"
               >
-                <PlusCircle className="w-3.5 h-3.5" />
-                <span>+ ADD PART</span>
+                <PlusCircle className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden sm:inline">+ ADD PART</span>
+                <span className="sm:hidden font-black">+ PART</span>
               </button>
             ) : (
               <button
                 onClick={() => openSellerAuth('login')}
-                className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-amber-500/15 text-amber-400 hover:text-amber-300 border border-slate-700/80 hover:border-amber-500/40 text-xs font-bold transition-all whitespace-nowrap"
+                className="hidden md:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-amber-500/15 text-amber-400 hover:text-amber-300 border border-slate-700/80 hover:border-amber-500/40 text-xs font-bold transition-all whitespace-nowrap shrink-0"
                 title="Scrap Yard & Auto Supplier Sign In or Registration"
               >
-                <Store className="w-3.5 h-3.5 text-amber-400" />
-                <span>Supplier Portal</span>
+                <Store className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span className="hidden lg:inline">Supplier Portal</span>
+                <span className="lg:hidden">Supplier</span>
               </button>
             )}
 
             {/* Tools & SEO Dropdown Hub */}
-            <div className="relative" ref={toolsDropdownRef}>
+            <div className="relative shrink-0" ref={toolsDropdownRef}>
               <button
                 onClick={() => setIsToolsDropdownOpen(!isToolsDropdownOpen)}
-                className={`px-2.5 sm:px-3 py-1.5 rounded-xl border transition-all flex items-center gap-1.5 text-xs font-bold whitespace-nowrap ${
+                className={`px-2 sm:px-3 py-1.5 rounded-xl border transition-all flex items-center gap-1 text-xs font-bold whitespace-nowrap shrink-0 ${
                   isToolsDropdownOpen 
                     ? 'bg-amber-500/20 text-amber-300 border-amber-500/50' 
                     : 'bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 hover:text-white border-slate-700/80'
                 }`}
                 title="Marketplace Tools, Web Link & SEO exposure"
               >
-                <Share2 className="w-3.5 h-3.5 text-amber-400" />
+                <Share2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                 <span className="hidden sm:inline">Tools</span>
-                <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${isToolsDropdownOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-3 h-3 text-slate-400 shrink-0 transition-transform ${isToolsDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {/* Tools Dropdown Menu */}
@@ -450,8 +452,8 @@ export const Header: React.FC = () => {
         </div>
       )}
 
-      {/* MOBILE DEDICATED SUB-BAR FOR TABS (Fits perfectly with 100% width distribution) */}
-      <div className="md:hidden px-3 py-1.5 bg-slate-950/90 border-t border-slate-800/80">
+      {/* MOBILE & TABLET DEDICATED SUB-BAR FOR TABS (Fits perfectly with 100% width distribution) */}
+      <div className="lg:hidden px-3 py-1.5 bg-slate-950/90 border-t border-slate-800/80">
         <nav className="grid grid-cols-3 gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800/80">
           
           <button

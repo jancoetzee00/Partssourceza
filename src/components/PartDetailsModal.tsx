@@ -87,16 +87,16 @@ export const PartDetailsModal: React.FC = () => {
       <div className="relative w-full max-w-4xl bg-slate-900 border border-slate-700/80 rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col">
         
         {/* Header bar */}
-        <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/90">
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-1 rounded-md text-xs font-extrabold bg-amber-500 text-slate-950 uppercase tracking-wider">
-              {selectedListing.vehicleType.toUpperCase()} SPARES
+        <div className="px-3.5 sm:px-6 py-3 sm:py-4 border-b border-slate-800 flex items-center justify-between gap-2 bg-slate-900/90">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+            <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md text-[10px] sm:text-xs font-extrabold bg-amber-500 text-slate-950 uppercase tracking-wider shrink-0 whitespace-nowrap">
+              {selectedListing.vehicleType.toUpperCase()}
             </span>
-            <span className="text-xs text-slate-400 font-mono">
+            <span className="text-[11px] sm:text-xs text-slate-400 font-mono truncate hidden xs:inline">
               Ref: {selectedListing.id}
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               onClick={() => openWebLinkGenerator({
                 initialPartId: selectedListing.id,
@@ -105,24 +105,24 @@ export const PartDetailsModal: React.FC = () => {
                 initialCategory: selectedListing.category,
                 initialProvince: selectedListing.locationProvince
               })}
-              className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30"
+              className="px-2 sm:px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 shrink-0 whitespace-nowrap cursor-pointer"
               title="Share deep-link & QR code for this part"
             >
-              <Share2 className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden sm:inline">Share Link & QR</span>
+              <Share2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span className="hidden sm:inline">Share</span>
             </button>
             <button
               onClick={() => inCompare ? removeFromCompare(selectedListing.id) : addToCompare(selectedListing)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+              className={`px-2 sm:px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shrink-0 whitespace-nowrap cursor-pointer ${
                 inCompare ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
               }`}
             >
-              <GitCompare className="w-3.5 h-3.5" />
-              <span>{inCompare ? 'In Comparison Matrix' : 'Compare Part'}</span>
+              <GitCompare className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:inline">{inCompare ? 'In Matrix' : 'Compare'}</span>
             </button>
             <button
               onClick={() => setSelectedListing(null)}
-              className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+              className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -268,27 +268,27 @@ export const PartDetailsModal: React.FC = () => {
                     onClick={() => {
                       setIsCheckoutOpen(true);
                     }}
-                    className="w-full py-3 px-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl text-sm transition-all shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2"
+                    className="w-full py-3 px-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl text-sm transition-all shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
                   >
-                    <CreditCard className="w-4 h-4" />
+                    <CreditCard className="w-4 h-4 shrink-0" />
                     <span>Purchase Component Online</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => openWhatsAppChat(selectedListing, 'availability')}
-                    className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-2 shadow-md cursor-pointer"
+                    className="w-full py-2.5 px-3 sm:px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-2 shadow-md cursor-pointer whitespace-nowrap"
                   >
-                    <MessageCircle className="w-4 h-4 fill-white" />
-                    <span>Direct WhatsApp Chat ({selectedListing.sellerWhatsApp})</span>
+                    <MessageCircle className="w-4 h-4 fill-white shrink-0" />
+                    <span className="truncate">Direct WhatsApp Supplier ({selectedListing.sellerWhatsApp})</span>
                   </button>
 
                   <a
                     href={`tel:${selectedListing.sellerPhone}`}
-                    className="w-full py-2 px-4 bg-slate-900 hover:bg-slate-750 text-slate-200 border border-slate-700 font-semibold rounded-xl text-xs transition-colors flex items-center justify-center gap-2"
+                    className="w-full py-2 px-3 sm:px-4 bg-slate-900 hover:bg-slate-750 text-slate-200 border border-slate-700 font-semibold rounded-xl text-xs transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
                   >
-                    <Phone className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Call Supplier ({selectedListing.sellerPhone})</span>
+                    <Phone className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <span className="truncate">Call Supplier ({selectedListing.sellerPhone})</span>
                   </a>
                 </div>
 

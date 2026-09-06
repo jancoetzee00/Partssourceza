@@ -323,7 +323,8 @@ export const INITIAL_LISTINGS: Listing[] = [
     locationProvince: 'Gauteng',
     images: [
       'https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=800&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=800&auto=format&fit=crop&q=80'
+      'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=800&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=800&auto=format&fit=crop&q=80'
     ],
     description: 'Complete low-mileage tested 1GD-FTV 2.8 GD-6 motor imported and compression tested. Includes common rail pump, high-pressure injectors, wiring loom, and factory turbocharger. Dyno tested with 6-month warranty on motor block and head.',
     sellerId: 'seller-jhb-01',
@@ -362,7 +363,8 @@ export const INITIAL_LISTINGS: Listing[] = [
     locationProvince: 'KwaZulu-Natal',
     images: [
       'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=800&auto=format&fit=crop&q=80'
+      'https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=800&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=800&auto=format&fit=crop&q=80'
     ],
     description: 'Clean genuine OEM 5-speed 02T manual transmission removed from low km running accident-damaged 2019 Polo Vivo. Shift forks inspected, all synchros smooth, no bearing whine. Ready for direct installation.',
     sellerId: 'seller-dbn-03',
@@ -401,7 +403,8 @@ export const INITIAL_LISTINGS: Listing[] = [
     locationProvince: 'Western Cape',
     images: [
       'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=800&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1519003722824-194d4455a60c?w=800&auto=format&fit=crop&q=80'
+      'https://images.unsplash.com/photo-1519003722824-194d4455a60c?w=800&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=800&auto=format&fit=crop&q=80'
     ],
     description: 'Heavy duty heavy commercial truck air disc brake caliper assembly. Certified ISO/TS16949 specs. Fits Actros and Axor front steer and drive axles. High thermal resistance guide pins and premium seals.',
     sellerId: 'seller-cpt-02',
@@ -440,7 +443,8 @@ export const INITIAL_LISTINGS: Listing[] = [
     locationProvince: 'Gauteng',
     images: [
       'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?w=800&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=800&auto=format&fit=crop&q=80'
+      'https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=800&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=800&auto=format&fit=crop&q=80'
     ],
     description: 'Complete genuine rear axle with factory electric differential lock motor. Crown wheel & pinion backlash professionally set with new Timken bearings and seals. Ready to bolt on.',
     sellerId: 'seller-pta-04',
@@ -596,7 +600,8 @@ export const INITIAL_LISTINGS: Listing[] = [
     locationProvince: 'Gauteng',
     images: [
       'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?w=800&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&auto=format&fit=crop&q=80'
+      'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=800&auto=format&fit=crop&q=80'
     ],
     description: 'Genuine OEM Valeo BMW South Africa assembly. All mounting lugs intact, clear unclouded polycarbonate lens with no cracks or internal water damage. Includes ballast module and angel eyes ballast.',
     sellerId: 'seller-pta-04',
@@ -635,7 +640,8 @@ export const INITIAL_LISTINGS: Listing[] = [
     locationProvince: 'Gauteng',
     images: [
       'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?w=800&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&auto=format&fit=crop&q=80'
+      'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=800&auto=format&fit=crop&q=80'
     ],
     description: 'High grade OEM-spec replacement front bumper bar with lower black textured honeycomb grille and fog light cutouts. Primed ready for painting.',
     sellerId: 'seller-jhb-01',

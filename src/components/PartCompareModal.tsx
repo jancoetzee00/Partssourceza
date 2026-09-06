@@ -231,24 +231,24 @@ export const PartCompareModal: React.FC = () => {
                     const waLink = `https://wa.me/${item.sellerWhatsApp.replace(/[^0-9]/g, '')}?text=${waMessage}`;
 
                     return (
-                      <div key={item.id} className="space-y-1.5">
+                      <div key={item.id} className="space-y-1.5 min-w-0">
                         <button
                           onClick={() => {
                             setSelectedListing(item);
                             setIsCompareOpen(false);
                           }}
-                          className="w-full py-1.5 px-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs transition-colors flex items-center justify-center gap-1"
+                          className="w-full py-1.5 px-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs transition-colors flex items-center justify-center gap-1 whitespace-nowrap cursor-pointer"
                         >
-                          <Eye className="w-3.5 h-3.5" />
+                          <Eye className="w-3.5 h-3.5 shrink-0" />
                           <span>View / Buy</span>
                         </button>
                         <a
                           href={waLink}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="w-full py-1 px-2 bg-emerald-900/60 hover:bg-emerald-800/60 text-emerald-300 border border-emerald-700/50 rounded-lg text-[11px] font-semibold transition-colors flex items-center justify-center gap-1"
+                          className="w-full py-1 px-2 bg-emerald-900/60 hover:bg-emerald-800/60 text-emerald-300 border border-emerald-700/50 rounded-lg text-[11px] font-semibold transition-colors flex items-center justify-center gap-1 whitespace-nowrap"
                         >
-                          <MessageCircle className="w-3 h-3 text-emerald-400" />
+                          <MessageCircle className="w-3 h-3 text-emerald-400 shrink-0" />
                           <span>WhatsApp</span>
                         </a>
                       </div>

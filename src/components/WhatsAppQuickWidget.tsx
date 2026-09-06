@@ -33,11 +33,11 @@ export const WhatsAppQuickWidget: React.FC = () => {
   };
 
   return (
-    <div className="fixed bottom-5 left-5 z-40 font-sans">
+    <div className="fixed bottom-16 sm:bottom-5 left-3 sm:left-5 z-30 font-sans">
       
       {/* Expanded Quick WhatsApp Drawer */}
       {isOpen && (
-        <div className="mb-3 w-80 sm:w-88 bg-slate-900 border border-emerald-500/40 rounded-3xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-200">
+        <div className="mb-3 w-[calc(100vw-1.5rem)] max-w-sm sm:w-88 bg-slate-900 border border-emerald-500/40 rounded-3xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-200">
           
           {/* Header */}
           <div className="px-4 py-3.5 bg-gradient-to-r from-emerald-800 to-emerald-950 border-b border-emerald-600/40 flex items-center justify-between text-white">
@@ -127,14 +127,16 @@ export const WhatsAppQuickWidget: React.FC = () => {
       {/* Floating Pill / Button */}
       <button
         onClick={() => setIsOpen(prev => !prev)}
-        className="group flex items-center gap-2.5 px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full shadow-2xl shadow-emerald-600/40 border border-emerald-400/40 transition-all hover:scale-105 active:scale-95"
+        className="group flex items-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full shadow-2xl shadow-emerald-600/40 border border-emerald-400/40 transition-all hover:scale-105 active:scale-95 whitespace-nowrap"
       >
-        <div className="relative">
-          <MessageCircle className="w-5 h-5 fill-white" />
+        <div className="relative shrink-0">
+          <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 fill-white" />
           <span className="w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-emerald-600 absolute -top-1 -right-1 animate-pulse"></span>
         </div>
-        <span className="text-xs font-black tracking-wide pr-1">
-          WhatsApp Sellers
+        <span className="text-xs font-black tracking-wide pr-0.5">
+          <span className="hidden xs:inline">WhatsApp</span>
+          <span className="hidden sm:inline"> Sellers</span>
+          <span className="xs:hidden">Chat</span>
         </span>
       </button>
 

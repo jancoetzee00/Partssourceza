@@ -18,6 +18,7 @@ import { PartRequestModal } from './components/PartRequestModal';
 import { InstallAppModal } from './components/InstallAppModal';
 import { WhatsAppDirectModal } from './components/WhatsAppDirectModal';
 import { WhatsAppQuickWidget } from './components/WhatsAppQuickWidget';
+import { MobileBottomNav } from './components/MobileBottomNav';
 import { AdminAuthModal } from './components/AdminAuthModal';
 import { SearchEngineExposureModal } from './components/SearchEngineExposureModal';
 import { BulkInventoryModal } from './components/BulkInventoryModal';
@@ -45,7 +46,7 @@ const MainContent: React.FC = () => {
       <Header />
 
       {/* Main Role-based View */}
-      <main className="flex-1">
+      <main className="flex-1 pb-20 md:pb-0">
         {role === 'buyer' && <BuyerCatalog />}
         {role === 'seller' && <SellerDashboard />}
         {(role === 'owner' || role === 'admin') && <OwnerAdminDashboard />}
@@ -70,10 +71,13 @@ const MainContent: React.FC = () => {
       {/* Floating Direct WhatsApp Widget */}
       <WhatsAppQuickWidget />
 
+      {/* Sticky Mobile Bottom Navigation Bar */}
+      <MobileBottomNav />
+
       {/* Swipeable Toast Notification Container */}
       <AnimatePresence mode="wait">
         {activeNotification && (
-          <div className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 left-4 sm:left-auto z-50 flex justify-center sm:justify-end pointer-events-none">
+          <div className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 left-4 sm:left-auto z-50 flex justify-center sm:justify-end pointer-events-none">
             <motion.div
               key={`${activeNotification.title}-${activeNotification.message}`}
               layout
@@ -137,7 +141,7 @@ const MainContent: React.FC = () => {
       </AnimatePresence>
 
       {/* Global Footer */}
-      <footer className="bg-slate-900 border-t border-slate-800 py-8 text-xs text-slate-400">
+      <footer className="bg-slate-900 border-t border-slate-800 pt-8 pb-24 md:pb-8 text-xs text-slate-400">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <div className="h-7 w-7 rounded-lg bg-amber-500 flex items-center justify-center text-slate-950 font-black text-xs">

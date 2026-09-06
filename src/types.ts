@@ -255,6 +255,7 @@ export interface VehicleFilterState {
   vehicleType: string;
   category: string;
   province: string;
+  scrapyardHub?: string;
   condition: string;
   conditionGroup?: 'all' | 'new' | 'used' | 'reconditioned' | '';
   minPrice: number | '';

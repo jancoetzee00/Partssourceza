@@ -184,6 +184,7 @@ const defaultFilters: VehicleFilterState = {
   vehicleType: '',
   category: '',
   province: '',
+  scrapyardHub: '',
   condition: '',
   conditionGroup: '',
   minPrice: '',
