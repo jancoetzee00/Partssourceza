@@ -295,3 +295,52 @@ export interface MarketingCampaign {
   createdAt: string;
   isCustomGenerated?: boolean;
 }
+
+export type ClientArchetype = 
+  | 'scrap_yard' 
+  | 'auto_dismantler' 
+  | 'part_store'
+  | 'engine_importer' 
+  | 'panel_beater' 
+  | 'workshop_mechanic' 
+  | 'commercial_fleet' 
+  | 'taxi_association';
+
+export type ClientOutreachStatus = 'pending' | 'sent' | 'responded' | 'subscribed' | 'declined';
+
+export type OutreachContactMethod = 'whatsapp' | 'email' | 'call' | 'in_person';
+
+export interface ContactHistoryEntry {
+  id: string;
+  date: string; // ISO date string
+  method: OutreachContactMethod;
+  status: ClientOutreachStatus;
+  notes?: string;
+  contactPerson?: string;
+}
+
+export interface ProspectiveClient {
+  id: string;
+  businessName: string;
+  archetype: ClientArchetype;
+  contactPerson: string;
+  phone: string;
+  whatsapp: string;
+  email: string;
+  city: string;
+  province: SouthAfricanProvince;
+  industrialHub: string;
+  vehicleSpecialty: string;
+  recommendedTier: SellerTier | 'buyer_alerts';
+  potentialMonthlyZAR: number;
+  pitchHook: string;
+  personalizedMessageWhatsApp: string;
+  personalizedMessageEmail: string;
+  status: ClientOutreachStatus;
+  lastContactedAt?: string;
+  contactMethod?: OutreachContactMethod;
+  contactHistory?: ContactHistoryEntry[];
+  notes?: string;
+  addedSource: 'ai_search' | 'manual';
+  createdAt: string;
+}

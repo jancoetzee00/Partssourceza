@@ -37,7 +37,8 @@ import {
   Check,
   Zap,
   Lock,
-  Copy
+  Copy,
+  Mail
 } from 'lucide-react';
 import { SUBSCRIPTION_PLANS } from '../data/mockData';
 import { Listing, SellerTier } from '../types';
@@ -64,7 +65,9 @@ export const SellerDashboard: React.FC = () => {
     bankingDetails,
     subscriptionDiscounts,
     validateAndApplyPromoCode,
-    showNotification
+    showNotification,
+    openClientOutreach,
+    purgeMockSellers
   } = useApp();
 
   const [searchFilter, setSearchFilter] = useState('');
@@ -73,6 +76,106 @@ export const SellerDashboard: React.FC = () => {
   const [copiedAccountNum, setCopiedAccountNum] = useState(false);
   const [listingToDelete, setListingToDelete] = useState<Listing | null>(null);
   const [isDeletingListing, setIsDeletingListing] = useState(false);
+
+  // Empty state when all mock sellers have been purged and no new seller is registered yet
+  if (!currentSeller || sellers.length === 0) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-8 sm:p-10 shadow-2xl relative overflow-hidden backdrop-blur-xl">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
+            
+            <div className="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase tracking-wider mb-3">
+              <ShieldCheck className="w-4 h-4" /> Real Supplier Network • Database Clean
+            </div>
+            
+            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight mb-3">
+              All Mock Sellers Purged
+            </h1>
+            
+            <p className="text-slate-300 text-sm leading-relaxed max-w-2xl mb-8">
+              All legacy mock sellers have been permanently purged from Firestore. Search real South African automotive scrap yards, dismantlers, and parts distributors via the AI Prospecting Engine, or register a new verified supplier account.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+              <div className="p-5 rounded-2xl bg-slate-950/70 border border-slate-800/80 hover:border-amber-500/40 transition-all group flex flex-col justify-between">
+                <div>
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center mb-3">
+                    <Search className="w-5 h-5" />
+                  </div>
+                  <h3 className="font-bold text-white text-sm mb-1 group-hover:text-amber-400 transition-colors">
+                    Search Real Clients
+                  </h3>
+                  <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+                    Discover real scrap yards and parts suppliers across South Africa with Google search grounding and instant WhatsApp outreach.
+                  </p>
+                </div>
+                <button
+                  onClick={() => openClientOutreach()}
+                  className="w-full py-2.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-amber-500/20"
+                >
+                  <Search className="w-3.5 h-3.5" /> Search Real Clients
+                </button>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-slate-950/70 border border-slate-800/80 hover:border-blue-500/40 transition-all group flex flex-col justify-between">
+                <div>
+                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center mb-3">
+                    <Building2 className="w-5 h-5" />
+                  </div>
+                  <h3 className="font-bold text-white text-sm mb-1 group-hover:text-blue-400 transition-colors">
+                    Browse SA Directory
+                  </h3>
+                  <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+                    View automotive scrap yards and dismantlers across all 9 provinces: Booysens, Clairwood, Maitland, Stikland & more.
+                  </p>
+                </div>
+                <button
+                  onClick={() => openClientOutreach()}
+                  className="w-full py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition-all flex items-center justify-center gap-1.5 border border-slate-700"
+                >
+                  <Building2 className="w-3.5 h-3.5" /> Open Directory
+                </button>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-slate-950/70 border border-slate-800/80 hover:border-emerald-500/40 transition-all group flex flex-col justify-between">
+                <div>
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-3">
+                    <UserPlus className="w-5 h-5" />
+                  </div>
+                  <h3 className="font-bold text-white text-sm mb-1 group-hover:text-emerald-400 transition-colors">
+                    Register New Supplier
+                  </h3>
+                  <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+                    Create a new supplier profile with instant 14-day free pass, zero sales commission, and bulk Excel upload.
+                  </p>
+                </div>
+                <button
+                  onClick={() => openSellerAuth('register')}
+                  className="w-full py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/20"
+                >
+                  <UserPlus className="w-3.5 h-3.5" /> Register Supplier
+                </button>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-4 pt-6 border-t border-slate-800/80 text-xs text-slate-400">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Firestore Connected (Production Clean State)</span>
+              </div>
+              <button
+                onClick={() => purgeMockSellers()}
+                className="text-slate-400 hover:text-slate-200 text-xs underline"
+              >
+                Re-verify and clean Firestore mock documents
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Filter listings for current seller
   const sellerListings = listings.filter(l => l.sellerId === currentSeller.id);
@@ -1096,6 +1199,44 @@ export const SellerDashboard: React.FC = () => {
               <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800">
                 <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Branch Code / Type</span>
                 <span className="text-xs font-mono font-bold text-white">{bankingDetails.branchCode} ({bankingDetails.accountType})</span>
+              </div>
+            </div>
+
+            {/* Proof of Payment & Primary Platform Support */}
+            <div className="mt-4 bg-slate-950 p-3.5 rounded-2xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 flex-shrink-0">
+                  <Mail className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Primary POP & Supplier Support Email</span>
+                  <a 
+                    href="mailto:partssource-za@outlook.com?subject=Supplier%20POP%20Submission%20-%20Part%20Source%20ZA" 
+                    className="text-xs font-mono font-bold text-amber-400 hover:text-amber-300 hover:underline"
+                  >
+                    partssource-za@outlook.com
+                  </a>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText('partssource-za@outlook.com');
+                    showNotification('Copied', 'partssource-za@outlook.com copied to clipboard', 'success');
+                  }}
+                  className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 border border-slate-700 transition-colors"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>Copy Email</span>
+                </button>
+                <a
+                  href="mailto:partssource-za@outlook.com?subject=Supplier%20POP%20Submission%20-%20Part%20Source%20ZA"
+                  className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-black flex items-center gap-1.5 transition-colors shadow-sm"
+                >
+                  <Mail className="w-3.5 h-3.5" />
+                  <span>Email POP</span>
+                </a>
               </div>
             </div>
           </div>

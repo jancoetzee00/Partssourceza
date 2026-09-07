@@ -46,7 +46,8 @@ export const Header: React.FC = () => {
     setIsAdminAuthModalOpen,
     filters,
     setFilters,
-    openMarketingHub
+    openMarketingHub,
+    openClientOutreach
   } = useApp();
 
   const [isToolsDropdownOpen, setIsToolsDropdownOpen] = useState(false);
@@ -328,6 +329,28 @@ export const Header: React.FC = () => {
                       </div>
                       <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-300 font-bold">
                         Google
+                      </span>
+                    </button>
+
+                    {/* Tool: AI Client Discovery & Messaging */}
+                    <button
+                      onClick={() => {
+                        setIsToolsDropdownOpen(false);
+                        openClientOutreach();
+                      }}
+                      className="w-full px-3 py-2 rounded-xl text-left text-xs text-slate-200 hover:text-white hover:bg-slate-800/90 flex items-center justify-between group transition-colors"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-1.5 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                          <Sparkles className="w-3.5 h-3.5" />
+                        </div>
+                        <div>
+                          <div className="font-bold text-white group-hover:text-emerald-400">AI Client Outreach</div>
+                          <div className="text-[10px] text-slate-400">Search yards & send WhatsApp pitch</div>
+                        </div>
+                      </div>
+                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold">
+                        Clients
                       </span>
                     </button>
 

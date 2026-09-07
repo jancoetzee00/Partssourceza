@@ -19,11 +19,13 @@ export const INITIAL_BANKING_DETAILS: AppBankingDetails = {
   swiftCode: 'FIRNZAJJ',
   referenceFormat: 'PS-SUB-[SELLER_ID]',
   vatRegistrationNumber: '4890281742',
-  sellerFeeNotice: 'Please use your Seller ID or Invoice Reference as payment reference. Send Proof of Payment (POP) to billing@partsource.co.za for immediate monthly listing activation.',
-  supportContact: '+27 (0)11 894 2200 / billing@partsource.co.za',
+  sellerFeeNotice: 'Please use your Seller ID or Invoice Reference as payment reference. Send Proof of Payment (POP) to partssource-za@outlook.com for immediate monthly listing activation.',
+  supportContact: '+27 (0)11 894 2200 / partssource-za@outlook.com',
   lastUpdated: new Date().toISOString(),
   updatedBy: 'Platform SuperAdmin (Dev Mode)'
 };
+
+export const PRIMARY_PLATFORM_EMAIL = 'partssource-za@outlook.com';
 
 export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
@@ -210,96 +212,7 @@ export const INITIAL_SUBSCRIPTION_DISCOUNTS: SubscriptionDiscount[] = [
   }
 ];
 
-export const INITIAL_SELLERS: SellerAccount[] = [
-  {
-    id: 'seller-jhb-01',
-    businessName: 'Gauteng Spares & Scrap World',
-    registrationNumber: '2018/394821/07',
-    contactPerson: 'Sipho Ndlovu',
-    email: 'spares@gautengsparesworld.co.za',
-    phone: '+27 82 459 1029',
-    whatsapp: '27824591029',
-    province: 'Gauteng',
-    city: 'Johannesburg (Boksburg)',
-    address: '14 Commissioner St, Boksburg East Industrial, 1459',
-    rating: 4.9,
-    totalReviews: 184,
-    verified: true,
-    subscriptionTier: 'pro',
-    subscriptionStatus: 'active',
-    subscriptionRenewsAt: '2026-09-15',
-    joinedDate: '2024-01-10',
-    totalSalesZAR: 428000,
-    activeListingsCount: 38,
-    logoImg: 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=120&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 'seller-cpt-02',
-    businessName: 'Cape Truck & Heavy Axles',
-    registrationNumber: '2016/112948/07',
-    contactPerson: 'Dirk van der Merwe',
-    email: 'sales@capetruckparts.co.za',
-    phone: '+27 71 884 9210',
-    whatsapp: '27718849210',
-    province: 'Western Cape',
-    city: 'Cape Town (Montague Gardens)',
-    address: '88 Koeberg Rd, Montague Gardens, Cape Town, 7441',
-    rating: 4.8,
-    totalReviews: 96,
-    verified: true,
-    subscriptionTier: 'enterprise',
-    subscriptionStatus: 'active',
-    subscriptionRenewsAt: '2026-09-28',
-    joinedDate: '2023-11-04',
-    totalSalesZAR: 980000,
-    activeListingsCount: 64,
-    logoImg: 'https://images.unsplash.com/photo-1519003722824-194d4455a60c?w=120&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 'seller-dbn-03',
-    businessName: 'Durban Jap & German Auto Salvage',
-    registrationNumber: '2020/554910/07',
-    contactPerson: 'Rajen Govender',
-    email: 'orders@japandgermanauto.co.za',
-    phone: '+27 83 912 3456',
-    whatsapp: '27839123456',
-    province: 'KwaZulu-Natal',
-    city: 'Durban (Pinetown)',
-    address: '42 Josiah Gumede Rd, Pinetown, 3610',
-    rating: 4.7,
-    totalReviews: 128,
-    verified: true,
-    subscriptionTier: 'pro',
-    subscriptionStatus: 'active',
-    subscriptionRenewsAt: '2026-09-02',
-    joinedDate: '2024-03-12',
-    totalSalesZAR: 310000,
-    activeListingsCount: 22,
-    logoImg: 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=120&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 'seller-pta-04',
-    businessName: 'Pretoria Bakkie Centre & Spares',
-    registrationNumber: '2021/829471/07',
-    contactPerson: 'Johan Botha',
-    email: 'info@ptabakkiespares.co.za',
-    phone: '+27 76 341 9901',
-    whatsapp: '27763419901',
-    province: 'Gauteng',
-    city: 'Pretoria West',
-    address: '112 Rebecca St, Pretoria West, 0183',
-    rating: 4.9,
-    totalReviews: 210,
-    verified: true,
-    subscriptionTier: 'starter',
-    subscriptionStatus: 'active',
-    subscriptionRenewsAt: '2026-09-20',
-    joinedDate: '2024-05-18',
-    totalSalesZAR: 195000,
-    activeListingsCount: 12,
-    logoImg: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?w=120&auto=format&fit=crop&q=80'
-  }
-];
+export const INITIAL_SELLERS: SellerAccount[] = [];
 
 export const INITIAL_LISTINGS: Listing[] = [
   {

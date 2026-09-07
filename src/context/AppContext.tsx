@@ -15,7 +15,12 @@ import {
   SubscriptionDiscount,
   WebLinkModalData,
   MarketingCampaign,
-  MarketingAudience
+  MarketingAudience,
+  ProspectiveClient,
+  ClientArchetype,
+  ClientOutreachStatus,
+  OutreachContactMethod,
+  ContactHistoryEntry
 } from '../types';
 import { 
   INITIAL_LISTINGS, 
@@ -25,8 +30,10 @@ import {
   INITIAL_INQUIRIES,
   INITIAL_PLATFORM_USERS,
   INITIAL_SUBSCRIPTION_DISCOUNTS,
-  SUBSCRIPTION_PLANS
+  SUBSCRIPTION_PLANS,
+  PRIMARY_PLATFORM_EMAIL
 } from '../data/mockData';
+import { INITIAL_PROSPECTIVE_CLIENTS } from '../data/mockProspectiveClients';
 import { MASTER_MARKETING_PLAYBOOKS } from '../data/marketingPlaybooks';
 import { 
   db, 
@@ -60,10 +67,13 @@ interface AppContextType {
   updateListing: (id: string, updates: Partial<Listing>) => void;
   deleteListing: (id: string) => Promise<void> | void;
   sellers: SellerAccount[];
-  currentSeller: SellerAccount;
+  currentSeller: SellerAccount | null;
   setCurrentSellerId: (id: string) => void;
   updateSellerSubscription: (sellerId: string, tier: SellerTier) => void;
   updateSellerStatus: (sellerId: string, status: 'active' | 'past_due' | 'trial', verified?: boolean) => void;
+  deleteSeller: (sellerId: string) => Promise<void>;
+  purgeMockSellers: () => Promise<void>;
+  convertClientToSeller: (client: ProspectiveClient, tier?: SellerTier) => SellerAccount;
   subscriptionDiscounts: SubscriptionDiscount[];
   addSubscriptionDiscount: (discount: Omit<SubscriptionDiscount, 'id' | 'createdAt' | 'usageCount'>) => SubscriptionDiscount;
   updateSubscriptionDiscount: (id: string, updates: Partial<SubscriptionDiscount>) => void;
@@ -83,6 +93,7 @@ interface AppContextType {
   updateUser: (userId: string, updates: Partial<PlatformUser>) => void;
   addUser: (userData: Omit<PlatformUser, 'id' | 'joinedDate'>) => PlatformUser;
   deleteUser: (userId: string) => void;
+  primaryEmail: string;
   bankingDetails: AppBankingDetails;
   updateBankingDetails: (details: Partial<AppBankingDetails>) => void;
   compareList: Listing[];
@@ -134,6 +145,16 @@ interface AppContextType {
   marketingCampaigns: MarketingCampaign[];
   saveMarketingCampaign: (campaign: Omit<MarketingCampaign, 'id' | 'createdAt'>) => Promise<MarketingCampaign>;
   deleteMarketingCampaign: (id: string) => Promise<void>;
+  isClientOutreachModalOpen: boolean;
+  setIsClientOutreachModalOpen: (open: boolean) => void;
+  openClientOutreach: (filterPreset?: { archetype?: ClientArchetype; province?: SouthAfricanProvince | 'All South Africa' }) => void;
+  prospectiveClients: ProspectiveClient[];
+  setProspectiveClients: React.Dispatch<React.SetStateAction<ProspectiveClient[]>>;
+  addProspectiveClients: (newClients: ProspectiveClient[]) => void;
+  updateClientStatus: (clientId: string, status: ClientOutreachStatus, notes?: string, contactMethod?: OutreachContactMethod, customDate?: string) => void;
+  logContactInteraction: (clientId: string, entry: { date?: string; method: OutreachContactMethod; status: ClientOutreachStatus; notes?: string }) => void;
+  deleteProspectiveClient: (clientId: string) => void;
+  addManualClient: (client: Omit<ProspectiveClient, 'id' | 'createdAt' | 'status' | 'addedSource'>) => ProspectiveClient;
   isSellerAuthModalOpen: boolean;
   setIsSellerAuthModalOpen: (open: boolean) => void;
   sellerAuthMode: 'login' | 'register';
@@ -233,17 +254,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   });
 
-  // Persistent sellers
+  // Persistent sellers (strictly real suppliers; all mock sellers purged)
   const [sellers, setSellers] = useState<SellerAccount[]>(() => {
+    const mockIds = ['seller-jhb-01', 'seller-cpt-02', 'seller-dbn-03', 'seller-pta-04'];
     try {
       const saved = localStorage.getItem('partsource_sellers');
-      return saved ? JSON.parse(saved) : INITIAL_SELLERS;
+      if (saved) {
+        const parsed: SellerAccount[] = JSON.parse(saved);
+        const filtered = parsed.filter(s => !mockIds.includes(s.id));
+        return filtered;
+      }
+      return [];
     } catch {
-      return INITIAL_SELLERS;
+      return [];
     }
   });
 
-  const [currentSellerId, setCurrentSellerId] = useState<string>('seller-jhb-01');
+  const [currentSellerId, setCurrentSellerId] = useState<string>('');
 
   // Persistent subscription discounts & promotional specials
   const [subscriptionDiscounts, setSubscriptionDiscounts] = useState<SubscriptionDiscount[]>(() => {
@@ -259,7 +286,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [bankingDetails, setBankingDetails] = useState<AppBankingDetails>(() => {
     try {
       const saved = localStorage.getItem('partsource_banking_details');
-      return saved ? JSON.parse(saved) : INITIAL_BANKING_DETAILS;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.sellerFeeNotice && parsed.sellerFeeNotice.includes('billing@partsource.co.za')) {
+          parsed.sellerFeeNotice = parsed.sellerFeeNotice.replace('billing@partsource.co.za', 'partssource-za@outlook.com');
+        }
+        if (parsed.supportContact && parsed.supportContact.includes('billing@partsource.co.za')) {
+          parsed.supportContact = parsed.supportContact.replace('billing@partsource.co.za', 'partssource-za@outlook.com');
+        }
+        return parsed;
+      }
+      return INITIAL_BANKING_DETAILS;
     } catch {
       return INITIAL_BANKING_DETAILS;
     }
@@ -375,6 +412,226 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       handleFirestoreError(err, OperationType.DELETE, `marketing_campaigns/${id}`);
     });
     showNotification('Campaign Removed', 'Strategy removed from library.', 'info');
+  };
+
+  // Helper to ensure every client with prior contact has initial contact history entry
+  const normalizeProspectiveClients = (clients: ProspectiveClient[]): ProspectiveClient[] => {
+    return clients.map(c => {
+      if (c.lastContactedAt && (!c.contactHistory || c.contactHistory.length === 0)) {
+        return {
+          ...c,
+          contactHistory: [
+            {
+              id: `hist-init-${c.id}`,
+              date: c.lastContactedAt,
+              method: c.contactMethod || 'whatsapp',
+              status: c.status,
+              notes: c.notes || 'Prior platform outreach recorded in South African directory.',
+              contactPerson: c.contactPerson
+            }
+          ]
+        };
+      }
+      return c;
+    });
+  };
+
+  // AI Client Discovery & Subscription Outreach State
+  const [isClientOutreachModalOpen, setIsClientOutreachModalOpen] = useState<boolean>(false);
+  const [prospectiveClients, setProspectiveClients] = useState<ProspectiveClient[]>(() => {
+    try {
+      const saved = localStorage.getItem('partsource_prospective_clients');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const existingIds = new Set(parsed.map((p: any) => p.id));
+          const missing = INITIAL_PROSPECTIVE_CLIENTS.filter(c => !existingIds.has(c.id));
+          return normalizeProspectiveClients([...parsed, ...missing]);
+        }
+      }
+      return normalizeProspectiveClients(INITIAL_PROSPECTIVE_CLIENTS);
+    } catch {
+      return normalizeProspectiveClients(INITIAL_PROSPECTIVE_CLIENTS);
+    }
+  });
+
+  const openClientOutreach = () => {
+    setIsClientOutreachModalOpen(true);
+  };
+
+  const addProspectiveClients = (newClients: ProspectiveClient[]) => {
+    setProspectiveClients(prev => {
+      // deduplicate by businessName or id
+      const existingNames = new Set(prev.map(p => p.businessName.toLowerCase().trim()));
+      const filtered = newClients.filter(c => !existingNames.has(c.businessName.toLowerCase().trim()));
+      const combined = normalizeProspectiveClients([...filtered, ...prev]);
+      try {
+        localStorage.setItem('partsource_prospective_clients', JSON.stringify(combined));
+      } catch (err) {
+        console.error('Failed to save prospective clients to localStorage', err);
+      }
+      return combined;
+    });
+
+    // Save batch to Firestore
+    newClients.forEach(c => {
+      setDoc(doc(db, 'prospective_clients', c.id), c).catch(err => {
+        handleFirestoreError(err, OperationType.CREATE, `prospective_clients/${c.id}`);
+      });
+    });
+
+    showNotification(
+      'Prospective Clients Added',
+      `Identified ${newClients.length} new prospective automotive business clients with tailored pitches.`,
+      'success'
+    );
+  };
+
+  const updateClientStatus = (
+    clientId: string, 
+    status: ClientOutreachStatus, 
+    notes?: string,
+    contactMethod?: OutreachContactMethod,
+    customDate?: string
+  ) => {
+    const now = new Date().toISOString();
+    const contactDate = customDate || now;
+
+    let clientToPersist: ProspectiveClient | undefined;
+
+    setProspectiveClients(prev => {
+      const updated = prev.map(c => {
+        if (c.id === clientId) {
+          const isContacted = status !== 'pending';
+          const effectiveMethod = isContacted ? (contactMethod || c.contactMethod || 'whatsapp') : undefined;
+          
+          let history = c.contactHistory ? [...c.contactHistory] : [];
+          if (isContacted) {
+            // If historical list was empty but lastContactedAt existed, preserve prior record
+            if (history.length === 0 && c.lastContactedAt) {
+              history.push({
+                id: `hist-prev-${c.id}`,
+                date: c.lastContactedAt,
+                method: c.contactMethod || 'whatsapp',
+                status: c.status,
+                notes: c.notes || 'Prior contact logged in directory',
+                contactPerson: c.contactPerson
+              });
+            }
+
+            const newEntry: ContactHistoryEntry = {
+              id: `hist-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+              date: contactDate,
+              method: effectiveMethod || 'whatsapp',
+              status,
+              notes: notes !== undefined ? notes : (c.notes || 'Outreach dispatched'),
+              contactPerson: c.contactPerson
+            };
+            history = [newEntry, ...history];
+          }
+
+          const targetClient: ProspectiveClient = {
+            ...c,
+            status,
+            lastContactedAt: isContacted ? contactDate : undefined,
+            contactMethod: effectiveMethod,
+            notes: notes !== undefined ? notes : c.notes,
+            contactHistory: isContacted ? history : []
+          };
+          clientToPersist = targetClient;
+          return targetClient;
+        }
+        return c;
+      });
+      try {
+        localStorage.setItem('partsource_prospective_clients', JSON.stringify(updated));
+      } catch (err) {
+        console.error('Failed to save to localStorage', err);
+      }
+      return updated;
+    });
+
+    // Save/merge in Firestore using setDoc with { merge: true } so non-existent documents are created without error
+    const targetDoc = doc(db, 'prospective_clients', clientId);
+    const firestorePayload: Record<string, any> = {
+      status,
+      lastContactedAt: status !== 'pending' ? contactDate : null,
+      ...(contactMethod ? { contactMethod } : {}),
+      ...(notes !== undefined ? { notes } : {})
+    };
+
+    if (clientToPersist) {
+      // Include full client details so fresh/seed clients are preserved in Firestore
+      Object.entries(clientToPersist).forEach(([k, v]) => {
+        if (v !== undefined) {
+          firestorePayload[k] = v;
+        }
+      });
+    }
+
+    setDoc(targetDoc, firestorePayload, { merge: true }).catch(err => {
+      handleFirestoreError(err, OperationType.UPDATE, `prospective_clients/${clientId}`);
+    });
+
+    if (status === 'sent') {
+      showNotification('Outreach Dispatched', 'Client outreach recorded in Contact History.', 'info');
+    } else if (status === 'responded') {
+      showNotification('Response Recorded', 'Client logged as responded / in conversation.', 'info');
+    } else if (status === 'subscribed') {
+      showNotification('🎉 Client Subscribed!', 'Client converted to active subscriber and logged.', 'success');
+    }
+  };
+
+  const logContactInteraction = (
+    clientId: string, 
+    entry: { date?: string; method: OutreachContactMethod; status: ClientOutreachStatus; notes?: string }
+  ) => {
+    updateClientStatus(clientId, entry.status, entry.notes, entry.method, entry.date || new Date().toISOString());
+  };
+
+  const deleteProspectiveClient = (clientId: string) => {
+    setProspectiveClients(prev => {
+      const filtered = prev.filter(c => c.id !== clientId);
+      try {
+        localStorage.setItem('partsource_prospective_clients', JSON.stringify(filtered));
+      } catch (err) {
+        console.error('Failed to update localStorage', err);
+      }
+      return filtered;
+    });
+
+    deleteDoc(doc(db, 'prospective_clients', clientId)).catch(err => {
+      handleFirestoreError(err, OperationType.DELETE, `prospective_clients/${clientId}`);
+    });
+
+    showNotification('Lead Removed', 'Prospective client removed from outreach list.', 'info');
+  };
+
+  const addManualClient = (clientData: Omit<ProspectiveClient, 'id' | 'createdAt' | 'status' | 'addedSource'>): ProspectiveClient => {
+    const newClient: ProspectiveClient = {
+      ...clientData,
+      id: `lead-manual-${Date.now()}-${Math.floor(Math.random() * 900 + 100)}`,
+      status: 'pending',
+      addedSource: 'manual',
+      createdAt: new Date().toISOString()
+    };
+
+    setProspectiveClients(prev => {
+      const combined = [newClient, ...prev];
+      try {
+        localStorage.setItem('partsource_prospective_clients', JSON.stringify(combined));
+      } catch (err) {
+        console.error('Failed to save to localStorage', err);
+      }
+      return combined;
+    });
+
+    setDoc(doc(db, 'prospective_clients', newClient.id), newClient).catch(err => {
+      handleFirestoreError(err, OperationType.CREATE, `prospective_clients/${newClient.id}`);
+    });
+
+    showNotification('Client Lead Added', `${newClient.businessName} added to outreach pipeline.`, 'success');
+    return newClient;
   };
 
   // Seller Auth Modal & Onboarding State
@@ -501,6 +758,77 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
 
     return newSeller;
+  };
+
+  const convertClientToSeller = (client: ProspectiveClient, tier: SellerTier = 'pro'): SellerAccount => {
+    const cleanPhone = client.phone || '+27 82 000 0000';
+    const cleanWa = client.whatsapp.replace(/[^0-9]/g, '') || cleanPhone.replace(/[^0-9]/g, '');
+    const newId = `seller-${client.id.replace(/^lead-/, '')}`;
+    const newSeller: SellerAccount = {
+      id: newId,
+      businessName: client.businessName,
+      registrationNumber: `${new Date().getFullYear()}/${Math.floor(100000 + Math.random() * 900000)}/07`,
+      contactPerson: client.contactPerson,
+      email: client.email,
+      phone: cleanPhone,
+      whatsapp: cleanWa,
+      province: client.province,
+      city: `${client.city}${client.industrialHub ? ` (${client.industrialHub})` : ''}`,
+      address: `${client.industrialHub || client.city}, South Africa`,
+      rating: 5.0,
+      totalReviews: 1,
+      verified: true,
+      subscriptionTier: tier,
+      subscriptionStatus: 'active',
+      subscriptionRenewsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      joinedDate: new Date().toISOString().split('T')[0],
+      totalSalesZAR: 0,
+      activeListingsCount: 0
+    };
+
+    setSellers(prev => [newSeller, ...prev.filter(s => s.id !== newSeller.id)]);
+    setCurrentSellerId(newSeller.id);
+    setDoc(doc(db, 'sellers', newSeller.id), newSeller, { merge: true }).catch(err => {
+      handleFirestoreError(err, OperationType.WRITE, `sellers/${newSeller.id}`);
+    });
+    updateClientStatus(client.id, 'subscribed');
+    showNotification('Supplier Registered', `${client.businessName} is now registered as an active supplier!`, 'success');
+    return newSeller;
+  };
+
+  const deleteSeller = async (sellerId: string) => {
+    try {
+      await deleteDoc(doc(db, 'sellers', sellerId));
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, `sellers/${sellerId}`);
+    }
+    setSellers(prev => prev.filter(s => s.id !== sellerId));
+    if (currentSellerId === sellerId) {
+      setCurrentSellerId('');
+    }
+    showNotification('Supplier Removed', 'Supplier account removed from database.', 'info');
+  };
+
+  const purgeMockSellers = async () => {
+    const mockIds = ['seller-jhb-01', 'seller-cpt-02', 'seller-dbn-03', 'seller-pta-04'];
+    for (const mid of mockIds) {
+      try {
+        await deleteDoc(doc(db, 'sellers', mid));
+      } catch {}
+    }
+    setSellers(prev => prev.filter(s => !mockIds.includes(s.id)));
+    if (mockIds.includes(currentSellerId)) {
+      setCurrentSellerId('');
+    }
+    try {
+      const saved = localStorage.getItem('partsource_sellers');
+      if (saved) {
+        const parsed: SellerAccount[] = JSON.parse(saved);
+        const filtered = parsed.filter(s => !mockIds.includes(s.id));
+        localStorage.setItem('partsource_sellers', JSON.stringify(filtered));
+      }
+    } catch {}
+    showNotification('Mock Suppliers Deleted', 'All mock suppliers have been purged from Firestore and local storage.', 'info');
   };
   const [isAdminAuthModalOpen, setIsAdminAuthModalOpen] = useState<boolean>(false);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
@@ -708,6 +1036,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     let unsubBanking: (() => void) | null = null;
     let unsubDiscounts: (() => void) | null = null;
     let unsubCampaigns: (() => void) | null = null;
+    let unsubProspectiveClients: (() => void) | null = null;
 
     try {
       // 1. Listings Real-time Listener
@@ -733,23 +1062,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         handleFirestoreError(err, OperationType.GET, 'listings');
       });
 
-      // 2. Sellers Real-time Listener
+      // Purge legacy mock sellers from cloud database
+      const mockSellerIds = ['seller-jhb-01', 'seller-cpt-02', 'seller-dbn-03', 'seller-pta-04'];
+      mockSellerIds.forEach(id => {
+        deleteDoc(doc(db, 'sellers', id)).catch(() => {});
+      });
+
+      // 2. Sellers Real-time Listener (Real Registered Suppliers Only)
       unsubSellers = onSnapshot(collection(db, 'sellers'), (snapshot) => {
+        const cloudSellers: SellerAccount[] = [];
         if (!snapshot.empty) {
-          const cloudSellers: SellerAccount[] = [];
           snapshot.forEach((docSnap) => {
-            cloudSellers.push({ ...(docSnap.data() as SellerAccount), id: docSnap.id });
-          });
-          setSellers(cloudSellers);
-        } else {
-          INITIAL_SELLERS.forEach(async (seller) => {
-            try {
-              await setDoc(doc(db, 'sellers', seller.id), seller);
-            } catch (err) {
-              handleFirestoreError(err, OperationType.WRITE, `sellers/${seller.id}`);
+            if (mockSellerIds.includes(docSnap.id)) {
+              deleteDoc(doc(db, 'sellers', docSnap.id)).catch(() => {});
+            } else {
+              cloudSellers.push({ ...(docSnap.data() as SellerAccount), id: docSnap.id });
             }
           });
         }
+        setSellers(cloudSellers);
       }, (err) => {
         handleFirestoreError(err, OperationType.GET, 'sellers');
       });
@@ -876,6 +1207,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         console.warn('Firebase marketing_campaigns listener notice:', e);
       }
 
+      // 9. Live Real-time listener for prospective clients
+      try {
+        const clientsRef = collection(db, 'prospective_clients');
+        unsubProspectiveClients = onSnapshot(clientsRef, (snapshot) => {
+          if (!snapshot.empty) {
+            const list: ProspectiveClient[] = [];
+            snapshot.forEach(docSnap => {
+              list.push(docSnap.data() as ProspectiveClient);
+            });
+            setProspectiveClients(prev => {
+              const map = new Map<string, ProspectiveClient>();
+              prev.forEach(p => map.set(p.id, p));
+              list.forEach(c => map.set(c.id, c));
+              const combined = normalizeProspectiveClients(Array.from(map.values()));
+              try {
+                localStorage.setItem('partsource_prospective_clients', JSON.stringify(combined));
+              } catch (e) {
+                // ignore
+              }
+              return combined;
+            });
+          }
+        }, (err) => {
+          handleFirestoreError(err, OperationType.GET, 'prospective_clients');
+        });
+      } catch (e) {
+        console.warn('Firebase prospective_clients listener notice:', e);
+      }
+
     } catch (err) {
       console.warn('Firebase initialization notice:', err);
     }
@@ -889,6 +1249,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (unsubBanking) unsubBanking();
       if (unsubDiscounts) unsubDiscounts();
       if (unsubCampaigns) unsubCampaigns();
+      if (unsubProspectiveClients) unsubProspectiveClients();
     };
   }, []);
 
@@ -930,8 +1291,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('partsource_dev_mode', isDevApp ? 'true' : 'false');
   }, [isDevApp]);
 
-  // Current active seller
-  const currentSeller = sellers.find(s => s.id === currentSellerId) || sellers[0];
+  // Current active seller (safely nullable when no suppliers exist yet)
+  const currentSeller = sellers.find(s => s.id === currentSellerId) || sellers[0] || null;
 
   const resetFilters = () => {
     setFilters(defaultFilters);
@@ -1441,6 +1802,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateUser,
         addUser,
         deleteUser,
+        primaryEmail: PRIMARY_PLATFORM_EMAIL,
         bankingDetails,
         updateBankingDetails,
         compareList,
@@ -1492,12 +1854,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         marketingCampaigns,
         saveMarketingCampaign,
         deleteMarketingCampaign,
+        isClientOutreachModalOpen,
+        setIsClientOutreachModalOpen,
+        openClientOutreach,
+        prospectiveClients,
+        setProspectiveClients,
+        addProspectiveClients,
+        updateClientStatus,
+        logContactInteraction,
+        deleteProspectiveClient,
+        addManualClient,
         isSellerAuthModalOpen,
         setIsSellerAuthModalOpen,
         sellerAuthMode,
         setSellerAuthMode,
         openSellerAuth,
         registerNewSeller,
+        convertClientToSeller,
+        deleteSeller,
+        purgeMockSellers,
         loginSeller,
         loginSellerByCredentials,
         isAdminAuthModalOpen,

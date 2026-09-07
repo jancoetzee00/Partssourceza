@@ -26,7 +26,8 @@ import {
   Sliders,
   DollarSign,
   Tag,
-  Package
+  Package,
+  Building2
 } from 'lucide-react';
 import { 
   CANONICAL_COLUMNS, 
@@ -49,6 +50,7 @@ export const BulkInventoryModal: React.FC = () => {
     listings, 
     bulkAddOrUpdateListings,
     setIsSubscriptionModalOpen,
+    openSellerAuth,
     showNotification
   } = useApp();
 
@@ -84,13 +86,46 @@ export const BulkInventoryModal: React.FC = () => {
   const [adjustValue, setAdjustValue] = useState<number>(10);
   const [isAdjusting, setIsAdjusting] = useState(false);
 
-  // Current Seller Listings and Plan Quota
-  const sellerListings = listings.filter(l => l.sellerId === currentSeller.id);
-  const currentPlan = SUBSCRIPTION_PLANS.find(p => p.id === currentSeller.subscriptionTier) || SUBSCRIPTION_PLANS[0];
+  // Current Seller Listings and Plan Quota (safely handled if currentSeller is null)
+  const sellerListings = currentSeller ? listings.filter(l => l.sellerId === currentSeller.id) : [];
+  const currentPlan = SUBSCRIPTION_PLANS.find(p => p.id === currentSeller?.subscriptionTier) || SUBSCRIPTION_PLANS[0];
   const remainingQuota = Math.max(0, currentPlan.listingLimit - sellerListings.length);
   const currentUsagePercent = Math.min(100, Math.round((sellerListings.length / currentPlan.listingLimit) * 100));
 
   if (!isBulkUploadModalOpen) return null;
+
+  if (!currentSeller) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-center">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center mx-auto mb-4">
+            <Building2 className="w-6 h-6" />
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2">Supplier Account Required</h2>
+          <p className="text-xs text-slate-400 mb-6">
+            Please register or log into a supplier account to manage bulk inventory, Excel imports, and batch adjustments.
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setIsBulkUploadModalOpen(false)}
+              className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition-all"
+            >
+              Close
+            </button>
+            <button
+              onClick={() => {
+                setIsBulkUploadModalOpen(false);
+                openSellerAuth('register');
+              }}
+              className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black transition-all"
+            >
+              Register Yard
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Handle file drop / selection
   const handleFile = async (file: File) => {

@@ -25,7 +25,8 @@ import { BulkInventoryModal } from './components/BulkInventoryModal';
 import { WebLinkShareModal } from './components/WebLinkShareModal';
 import { SellerAuthModal } from './components/SellerAuthModal';
 import { MarketingStrategyModal } from './components/MarketingStrategyModal';
-import { CheckCircle2, AlertCircle, Info, Car, Heart, ShieldCheck, Download, Smartphone, Monitor, Globe, Share2, Link as LinkIcon, X, Sparkles } from 'lucide-react';
+import { ClientOutreachModal } from './components/ClientOutreachModal';
+import { CheckCircle2, AlertCircle, Info, Car, Heart, ShieldCheck, Download, Smartphone, Monitor, Globe, Share2, Link as LinkIcon, X, Sparkles, Users, Mail } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 const MainContent: React.FC = () => {
@@ -36,7 +37,8 @@ const MainContent: React.FC = () => {
     setIsInstallModalOpen, 
     setIsSearchEngineModalOpen, 
     setIsWebLinkModalOpen,
-    openMarketingHub 
+    openMarketingHub,
+    openClientOutreach 
   } = useApp();
 
   return (
@@ -67,6 +69,7 @@ const MainContent: React.FC = () => {
       <WebLinkShareModal />
       <SellerAuthModal />
       <MarketingStrategyModal />
+      <ClientOutreachModal />
 
       {/* Floating Direct WhatsApp Widget */}
       <WhatsAppQuickWidget />
@@ -154,6 +157,15 @@ const MainContent: React.FC = () => {
 
           <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-[11px]">
             <button
+              onClick={() => openClientOutreach()}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500/25 via-amber-600/35 to-emerald-600/25 hover:from-amber-500/35 hover:to-emerald-600/35 text-amber-300 border border-amber-500/60 transition-all font-bold shadow-sm cursor-pointer"
+              title="AI Search Prospective Clients & Send Direct WhatsApp / Email Messages"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>AI Client Outreach & Messaging</span>
+            </button>
+
+            <button
               onClick={() => openMarketingHub('sellers')}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500/20 to-amber-600/30 hover:from-amber-500/30 hover:to-amber-600/40 text-amber-300 border border-amber-500/50 transition-all font-bold shadow-sm cursor-pointer"
               title="AI Marketing Engine (Get Sellers to List & Buyers to Discover)"
@@ -179,6 +191,15 @@ const MainContent: React.FC = () => {
               <Globe className="w-3.5 h-3.5" />
               <span>Search Engine & SEO Hub</span>
             </button>
+
+            <a
+              href="mailto:partssource-za@outlook.com"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700/80 text-amber-400 border border-slate-700 hover:border-amber-500/50 transition-colors font-medium shadow-sm"
+              title="Primary Platform Email: partssource-za@outlook.com"
+            >
+              <Mail className="w-3.5 h-3.5 text-amber-400" />
+              <span>partssource-za@outlook.com</span>
+            </a>
 
             <button
               onClick={() => setIsInstallModalOpen(true)}

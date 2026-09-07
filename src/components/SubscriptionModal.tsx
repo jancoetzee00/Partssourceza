@@ -16,7 +16,8 @@ import {
   Percent,
   Flame,
   Gift,
-  AlertCircle
+  AlertCircle,
+  Mail
 } from 'lucide-react';
 import { SUBSCRIPTION_PLANS } from '../data/mockData';
 import { SellerTier, SubscriptionDiscount } from '../types';
@@ -524,6 +525,29 @@ export const SubscriptionModal: React.FC = () => {
                       <span>Copy Reference</span>
                     </button>
                   </div>
+                </div>
+
+                <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                    <div>
+                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Primary POP & Support Email</span>
+                      <a 
+                        href="mailto:partssource-za@outlook.com?subject=Proof%20of%20Payment%20-%20Subscription%20Activation" 
+                        className="font-bold text-amber-400 hover:text-amber-300 text-xs hover:underline"
+                      >
+                        partssource-za@outlook.com
+                      </a>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard('partssource-za@outlook.com', 'Primary Email')}
+                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
+                  >
+                    <Copy className="w-3 h-3" />
+                    <span>Copy</span>
+                  </button>
                 </div>
 
                 <p className="text-[11px] text-slate-400 italic pt-1">

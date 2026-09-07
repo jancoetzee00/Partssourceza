@@ -80,7 +80,9 @@ export const OwnerAdminDashboard: React.FC = () => {
     setRole,
     showNotification,
     openMarketingHub,
-    marketingCampaigns
+    marketingCampaigns,
+    openClientOutreach,
+    prospectiveClients
   } = useApp();
 
   // Inline auth state for direct dashboard access
@@ -345,6 +347,19 @@ export const OwnerAdminDashboard: React.FC = () => {
             {/* Action Buttons: SEO Engine, Dev App Indicator & Lock Session */}
             <div className="flex flex-wrap items-center gap-3">
               
+              {/* AI Client Outreach & Prospecting Button */}
+              <button
+                onClick={() => openClientOutreach()}
+                className="px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-500/20 via-amber-500/20 to-amber-600/30 hover:from-emerald-500/30 hover:to-amber-600/40 text-emerald-300 border border-emerald-500/40 text-xs font-bold transition-all flex items-center gap-2 shadow-sm hover:border-emerald-500/60 cursor-pointer"
+                title="AI Search Scrap Yards, Dismantlers & Send WhatsApp Pitches"
+              >
+                <Sparkles className="w-4 h-4 text-emerald-400" />
+                <span>AI Client Outreach</span>
+                <span className="px-1.5 py-0.2 rounded bg-emerald-500/30 text-emerald-200 text-[9px] font-bold">
+                  {prospectiveClients.length} Leads
+                </span>
+              </button>
+
               {/* AI Marketing & National Growth Engine Button */}
               <button
                 onClick={() => openMarketingHub('dual_sided')}
@@ -637,6 +652,10 @@ export const OwnerAdminDashboard: React.FC = () => {
                 <div className="flex justify-between">
                   <span className="text-slate-400">VAT Reg:</span>
                   <span className="font-mono text-slate-300">{bankingDetails.vatRegistrationNumber}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Primary Email:</span>
+                  <a href="mailto:partssource-za@outlook.com" className="font-mono font-bold text-amber-400 hover:underline">partssource-za@outlook.com</a>
                 </div>
               </div>
 
@@ -2210,6 +2229,20 @@ export const OwnerAdminDashboard: React.FC = () => {
                     onChange={(e) => setBankForm(prev => ({ ...prev, sellerFeeNotice: e.target.value }))}
                     className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500 text-xs disabled:opacity-50 leading-relaxed"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-bold uppercase tracking-wider mb-1.5 text-[11px]">
+                    Primary Platform Email & POP Contact (supportContact)
+                  </label>
+                  <input
+                    type="text"
+                    disabled={!isDevApp}
+                    value={bankForm.supportContact}
+                    onChange={(e) => setBankForm(prev => ({ ...prev, supportContact: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-amber-300 font-mono focus:outline-none focus:ring-2 focus:ring-amber-500 text-xs disabled:opacity-50"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1">Official primary email for platform support, supplier outreach, and billing POP: <span className="text-amber-400 font-mono">partssource-za@outlook.com</span></p>
                 </div>
 
               </div>

@@ -41,7 +41,8 @@ export const MarketingStrategyModal: React.FC = () => {
     marketingCampaigns,
     saveMarketingCampaign,
     deleteMarketingCampaign,
-    showNotification
+    showNotification,
+    openClientOutreach
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'playbooks' | 'ai_generator' | 'saved'>('playbooks');
@@ -252,7 +253,19 @@ export const MarketingStrategyModal: React.FC = () => {
           </div>
 
           {/* Navigation Tabs */}
-          <div className="flex items-center gap-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              onClick={() => {
+                setIsMarketingModalOpen(false);
+                openClientOutreach();
+              }}
+              className="px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer"
+              title="Search South African Scrap Yards & Send Direct WhatsApp / Email Pitches"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Prospect Scrap Yards & Send Pitch</span>
+            </button>
+
             <button
               id="tab-playbooks-btn"
               onClick={() => setActiveTab('playbooks')}
