@@ -20,7 +20,8 @@ import {
   ClientArchetype,
   ClientOutreachStatus,
   OutreachContactMethod,
-  ContactHistoryEntry
+  ContactHistoryEntry,
+  OwnerProfile
 } from '../types';
 import { 
   INITIAL_LISTINGS, 
@@ -31,7 +32,8 @@ import {
   INITIAL_PLATFORM_USERS,
   INITIAL_SUBSCRIPTION_DISCOUNTS,
   SUBSCRIPTION_PLANS,
-  PRIMARY_PLATFORM_EMAIL
+  PRIMARY_PLATFORM_EMAIL,
+  INITIAL_OWNER_PROFILE
 } from '../data/mockData';
 import { INITIAL_PROSPECTIVE_CLIENTS } from '../data/mockProspectiveClients';
 import { MASTER_MARKETING_PLAYBOOKS } from '../data/marketingPlaybooks';
@@ -96,6 +98,8 @@ interface AppContextType {
   primaryEmail: string;
   bankingDetails: AppBankingDetails;
   updateBankingDetails: (details: Partial<AppBankingDetails>) => void;
+  ownerProfile: OwnerProfile;
+  updateOwnerProfile: (updates: Partial<OwnerProfile>) => Promise<void> | void;
   compareList: Listing[];
   addToCompare: (listing: Listing) => void;
   removeFromCompare: (listingId: string) => void;
@@ -299,6 +303,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return INITIAL_BANKING_DETAILS;
     } catch {
       return INITIAL_BANKING_DETAILS;
+    }
+  });
+
+  // Persistent owner profile & contact details
+  const [ownerProfile, setOwnerProfile] = useState<OwnerProfile>(() => {
+    try {
+      const saved = localStorage.getItem('partsource_owner_profile');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+      return INITIAL_OWNER_PROFILE;
+    } catch {
+      return INITIAL_OWNER_PROFILE;
     }
   });
 
@@ -1034,6 +1051,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     let unsubInquiries: (() => void) | null = null;
     let unsubUsers: (() => void) | null = null;
     let unsubBanking: (() => void) | null = null;
+    let unsubOwner: (() => void) | null = null;
     let unsubDiscounts: (() => void) | null = null;
     let unsubCampaigns: (() => void) | null = null;
     let unsubProspectiveClients: (() => void) | null = null;
@@ -1161,7 +1179,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         handleFirestoreError(err, OperationType.GET, 'system/banking');
       });
 
-      // 7. Subscription Discounts System Listener
+      // 7. Platform Owner Profile Listener
+      unsubOwner = onSnapshot(doc(db, 'system', 'owner_profile'), (docSnap) => {
+        if (docSnap.exists()) {
+          setOwnerProfile(docSnap.data() as OwnerProfile);
+        } else {
+          setDoc(doc(db, 'system', 'owner_profile'), INITIAL_OWNER_PROFILE).catch(err => {
+            handleFirestoreError(err, OperationType.WRITE, 'system/owner_profile');
+          });
+        }
+      }, (err) => {
+        handleFirestoreError(err, OperationType.GET, 'system/owner_profile');
+      });
+
+      // 8. Subscription Discounts System Listener
       unsubDiscounts = onSnapshot(doc(db, 'system', 'subscription_discounts'), (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
@@ -1247,6 +1278,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (unsubInquiries) unsubInquiries();
       if (unsubUsers) unsubUsers();
       if (unsubBanking) unsubBanking();
+      if (unsubOwner) unsubOwner();
       if (unsubDiscounts) unsubDiscounts();
       if (unsubCampaigns) unsubCampaigns();
       if (unsubProspectiveClients) unsubProspectiveClients();
@@ -1270,6 +1302,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     localStorage.setItem('partsource_banking_details', JSON.stringify(bankingDetails));
   }, [bankingDetails]);
+
+  useEffect(() => {
+    localStorage.setItem('partsource_owner_profile', JSON.stringify(ownerProfile));
+  }, [ownerProfile]);
 
   useEffect(() => {
     localStorage.setItem('partsource_users', JSON.stringify(users));
@@ -1544,6 +1580,64 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showNotification('Banking Details Updated', 'Part Source ZA official receiving bank details updated in Firestore.', 'success');
   };
 
+  const updateOwnerProfile = async (updates: Partial<OwnerProfile>) => {
+    const updated: OwnerProfile = {
+      ...ownerProfile,
+      ...updates,
+      lastUpdated: new Date().toISOString()
+    };
+    setOwnerProfile(updated);
+    try {
+      localStorage.setItem('partsource_owner_profile', JSON.stringify(updated));
+    } catch {}
+
+    try {
+      await setDoc(doc(db, 'system', 'owner_profile'), updated, { merge: true });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, 'system/owner_profile');
+    }
+
+    // Synchronize to platform owner user record in memory and Firestore
+    setUsers(prev => prev.map(u => {
+      if (u.id === 'user-adm-01' || u.role === 'admin' || (updated.email && u.email.toLowerCase() === updated.email.toLowerCase())) {
+        const userUpd: PlatformUser = {
+          ...u,
+          name: updated.name ? `${updated.name} (Platform Owner)` : u.name,
+          phone: updated.phone || u.phone,
+          address: updated.physicalAddress || u.address,
+          city: updated.city || u.city,
+          province: updated.province || u.province,
+          associatedBusinessName: updated.businessName || u.associatedBusinessName
+        };
+        updateDoc(doc(db, 'users', u.id), {
+          name: userUpd.name,
+          phone: userUpd.phone,
+          address: userUpd.address || '',
+          city: userUpd.city,
+          province: userUpd.province,
+          associatedBusinessName: userUpd.associatedBusinessName || ''
+        }).catch(err => {
+          handleFirestoreError(err, OperationType.UPDATE, `users/${u.id}`);
+        });
+        return userUpd;
+      }
+      return u;
+    }));
+
+    // Synchronize with receiving banking details owner contact fields
+    const bankingUpdates: Partial<AppBankingDetails> = {
+      ownerName: updated.name,
+      ownerPhone: updated.phone,
+      ownerAddress: updated.physicalAddress,
+      ownerCity: updated.city,
+      ownerProvince: updated.province,
+      supportContact: updated.phone ? `${updated.phone} / ${updated.supportEmail || PRIMARY_PLATFORM_EMAIL}` : undefined
+    };
+    updateBankingDetails(bankingUpdates);
+
+    showNotification('Owner Details Saved', 'Platform owner address, phone number and details updated in real-time.', 'success');
+  };
+
   const addToCompare = (listing: Listing) => {
     if (compareList.some(item => item.id === listing.id)) {
       return;
@@ -1805,6 +1899,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         primaryEmail: PRIMARY_PLATFORM_EMAIL,
         bankingDetails,
         updateBankingDetails,
+        ownerProfile,
+        updateOwnerProfile,
         compareList,
         addToCompare,
         removeFromCompare,

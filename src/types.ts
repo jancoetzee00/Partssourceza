@@ -10,11 +10,26 @@ export interface PlatformUser {
   joinedDate: string;
   province: SouthAfricanProvince;
   city: string;
+  address?: string;
   associatedBusinessName?: string;
   ordersCount: number;
   totalSpentZAR: number;
   lastActive: string;
   notes?: string;
+}
+
+export interface OwnerProfile {
+  name: string;
+  phone: string;
+  whatsapp: string;
+  email: string;
+  physicalAddress: string;
+  city: string;
+  province: SouthAfricanProvince;
+  postalCode: string;
+  businessName: string;
+  supportEmail: string;
+  lastUpdated: string;
 }
 
 export interface RolePermissionDefinition {
@@ -230,6 +245,11 @@ export interface AppBankingDetails {
   vatRegistrationNumber: string;
   sellerFeeNotice: string;
   supportContact: string;
+  ownerName?: string;
+  ownerPhone?: string;
+  ownerAddress?: string;
+  ownerCity?: string;
+  ownerProvince?: string;
   lastUpdated: string;
   updatedBy: string;
 }

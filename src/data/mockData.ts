@@ -3,11 +3,26 @@ import {
   SellerAccount, 
   SubscriptionPlan, 
   SubscriptionDiscount,
-  AppBankingDetails, 
+  AppBankingDetails,
+  OwnerProfile,
   Order, 
   BuyerInquiry,
   SouthAfricanProvince
 } from '../types';
+
+export const INITIAL_OWNER_PROFILE: OwnerProfile = {
+  name: 'Jan Coetzee',
+  email: 'jancoetzee00@gmail.com',
+  phone: '+27 82 990 1200',
+  whatsapp: '+27 82 990 1200',
+  physicalAddress: 'Sandton City Office Towers, 5th Floor, 126 Rivonia Road',
+  city: 'Sandton, Johannesburg',
+  province: 'Gauteng',
+  postalCode: '2196',
+  businessName: 'Part Source ZA Platform Headquarters',
+  supportEmail: 'partssource-za@outlook.com',
+  lastUpdated: new Date().toISOString()
+};
 
 export const INITIAL_BANKING_DETAILS: AppBankingDetails = {
   bankName: 'First National Bank (FNB)',
@@ -21,6 +36,11 @@ export const INITIAL_BANKING_DETAILS: AppBankingDetails = {
   vatRegistrationNumber: '4890281742',
   sellerFeeNotice: 'Please use your Seller ID or Invoice Reference as payment reference. Send Proof of Payment (POP) to partssource-za@outlook.com for immediate monthly listing activation.',
   supportContact: '+27 (0)11 894 2200 / partssource-za@outlook.com',
+  ownerName: 'Jan Coetzee',
+  ownerPhone: '+27 82 990 1200',
+  ownerAddress: 'Sandton City Office Towers, 5th Floor, 126 Rivonia Road',
+  ownerCity: 'Sandton, Johannesburg',
+  ownerProvince: 'Gauteng',
   lastUpdated: new Date().toISOString(),
   updatedBy: 'Platform SuperAdmin (Dev Mode)'
 };
@@ -1057,6 +1077,7 @@ export const INITIAL_PLATFORM_USERS = [
     joinedDate: '2023-11-01',
     province: 'Gauteng' as const,
     city: 'Johannesburg (Sandton)',
+    address: 'Sandton City Office Towers, 5th Floor, 126 Rivonia Road',
     associatedBusinessName: 'Part Source ZA Platform Headquarters',
     ordersCount: 0,
     totalSpentZAR: 0,

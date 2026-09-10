@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { 
   ShieldCheck, 
@@ -42,9 +42,11 @@ import {
   Filter,
   Globe,
   Tag,
-  Percent
+  Percent,
+  MessageSquare,
+  X
 } from 'lucide-react';
-import { Listing, AppBankingDetails, SellerTier, UserRole, PlatformUser, Order } from '../types';
+import { Listing, AppBankingDetails, SellerTier, UserRole, PlatformUser, Order, OwnerProfile, SouthAfricanProvince } from '../types';
 import { SUBSCRIPTION_PLANS, SA_PROVINCES, ROLE_PERMISSIONS_MATRIX } from '../data/mockData';
 import { AdminSubscriptionDiscounts } from './AdminSubscriptionDiscounts';
 
@@ -63,6 +65,8 @@ export const OwnerAdminDashboard: React.FC = () => {
     setSelectedListing,
     bankingDetails,
     updateBankingDetails,
+    ownerProfile,
+    updateOwnerProfile,
     isDevApp,
     setIsDevApp,
     setIsSearchEngineModalOpen,
@@ -90,7 +94,27 @@ export const OwnerAdminDashboard: React.FC = () => {
   const [showInlinePassword, setShowInlinePassword] = useState(false);
   const [inlineError, setInlineError] = useState('');
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'marketing' | 'users' | 'listings' | 'sellers' | 'discounts' | 'transactions' | 'roles' | 'banking'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'owner_profile' | 'marketing' | 'users' | 'listings' | 'sellers' | 'discounts' | 'transactions' | 'roles' | 'banking'>('overview');
+
+  // Platform Owner address & phone editable form state
+  const [ownerForm, setOwnerForm] = useState<OwnerProfile>(ownerProfile);
+  const [isSavingOwner, setIsSavingOwner] = useState(false);
+  const [isEditOwnerModalOpen, setIsEditOwnerModalOpen] = useState(false);
+
+  useEffect(() => {
+    setOwnerForm(ownerProfile);
+  }, [ownerProfile]);
+
+  const handleSaveOwnerProfile = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setIsSavingOwner(true);
+    try {
+      await updateOwnerProfile(ownerForm);
+      setIsEditOwnerModalOpen(false);
+    } finally {
+      setIsSavingOwner(false);
+    }
+  };
   
   // Search & Filter states
   const [listingSearch, setListingSearch] = useState('');
@@ -486,6 +510,18 @@ export const OwnerAdminDashboard: React.FC = () => {
               Overview
             </button>
             <button
+              id="admin-tab-owner-profile-btn"
+              onClick={() => setActiveTab('owner_profile')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                activeTab === 'owner_profile'
+                  ? 'bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/20'
+                  : 'bg-slate-950 text-amber-400 hover:bg-slate-800 hover:text-white border border-amber-500/40'
+              }`}
+            >
+              <MapPin className="w-3.5 h-3.5 text-amber-400" />
+              <span>Owner Address & Phone</span>
+            </button>
+            <button
               id="admin-tab-marketing-btn"
               onClick={() => setActiveTab('marketing')}
               className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
@@ -573,7 +609,7 @@ export const OwnerAdminDashboard: React.FC = () => {
       {activeTab === 'overview' && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-6">
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             {/* Quick Actions Card */}
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
@@ -583,6 +619,17 @@ export const OwnerAdminDashboard: React.FC = () => {
               </h3>
 
               <div className="space-y-3 text-xs">
+                <button
+                  onClick={() => setIsEditOwnerModalOpen(true)}
+                  className="w-full p-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-left font-semibold flex items-center justify-between transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-amber-400" />
+                    <span>Change Owner Address & Phone Number</span>
+                  </div>
+                  <Edit3 className="w-3.5 h-3.5 text-amber-400" />
+                </button>
+
                 <button
                   onClick={() => {
                     setEditingListing(null);
@@ -609,59 +656,120 @@ export const OwnerAdminDashboard: React.FC = () => {
                   <span>Moderate & Upgrade Seller Subscription Tiers</span>
                   <Building2 className="w-4 h-4 text-emerald-400" />
                 </button>
+              </div>
+            </div>
 
-                <button
-                  onClick={() => setActiveTab('banking')}
-                  className="w-full p-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-left font-semibold flex items-center justify-between transition-colors"
-                >
-                  <span>Configure App Bank Account for Seller Subscriptions & EFT</span>
-                  <CreditCard className="w-4 h-4 text-amber-400" />
-                </button>
+            {/* Platform Owner & Headquarters Card */}
+            <div className="bg-slate-900 border border-amber-500/30 rounded-2xl p-6 shadow-xl relative overflow-hidden flex flex-col justify-between">
+              <div className="absolute top-0 right-0 w-36 h-36 bg-amber-500/5 rounded-full blur-2xl pointer-events-none" />
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <UserCheck className="w-4 h-4 text-amber-400" />
+                    Platform Owner & Headquarters
+                  </h3>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 uppercase tracking-wider">
+                    Live Verified
+                  </span>
+                </div>
+
+                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2.5 text-xs">
+                  <div className="flex justify-between items-start">
+                    <span className="text-slate-400">Owner Name:</span>
+                    <span className="font-bold text-white text-right">{ownerProfile.name}</span>
+                  </div>
+                  <div className="flex justify-between items-start">
+                    <span className="text-slate-400">Phone Number:</span>
+                    <a href={`tel:${ownerProfile.phone}`} className="font-mono font-bold text-amber-400 hover:underline text-right">
+                      {ownerProfile.phone}
+                    </a>
+                  </div>
+                  {ownerProfile.whatsapp && (
+                    <div className="flex justify-between items-start">
+                      <span className="text-slate-400">WhatsApp Line:</span>
+                      <span className="font-mono font-bold text-emerald-400 text-right">{ownerProfile.whatsapp}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-start">
+                    <span className="text-slate-400">Physical Address:</span>
+                    <div className="text-right max-w-[200px]">
+                      <span className="font-medium text-slate-200 block leading-tight">{ownerProfile.physicalAddress}</span>
+                      <span className="text-[11px] text-slate-400 block mt-0.5">{ownerProfile.city}, {ownerProfile.province} {ownerProfile.postalCode}</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-start">
+                    <span className="text-slate-400">Business Entity:</span>
+                    <span className="text-slate-300 font-medium text-right truncate max-w-[180px]">{ownerProfile.businessName}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between">
+                <span className="text-slate-500 text-[10px]">
+                  Synced: {new Date(ownerProfile.lastUpdated).toLocaleDateString('en-ZA')}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsEditOwnerModalOpen(true)}
+                    className="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-lg text-xs transition-all shadow-md shadow-amber-500/20 flex items-center gap-1"
+                  >
+                    <Sliders className="w-3.5 h-3.5" />
+                    <span>Change Address & Phone</span>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('owner_profile')}
+                    className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-lg text-xs transition-colors"
+                  >
+                    Full View →
+                  </button>
+                </div>
               </div>
             </div>
 
             {/* Live Banking Snapshot */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 text-amber-400" />
-                  Official Receiving Bank Details
-                </h3>
-                <span className={`text-[11px] font-mono font-bold ${isDevApp ? 'text-emerald-400' : 'text-slate-500'}`}>
-                  {isDevApp ? 'Dev Context: Editable' : 'Protected Mode'}
-                </span>
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <CreditCard className="w-4 h-4 text-amber-400" />
+                    Official Receiving Bank Details
+                  </h3>
+                  <span className={`text-[11px] font-mono font-bold ${isDevApp ? 'text-emerald-400' : 'text-slate-500'}`}>
+                    {isDevApp ? 'Dev Context: Editable' : 'Protected Mode'}
+                  </span>
+                </div>
+
+                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Bank:</span>
+                    <span className="font-bold text-white">{bankingDetails.bankName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Account Holder:</span>
+                    <span className="font-bold text-slate-200">{bankingDetails.accountHolder}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Account Number:</span>
+                    <span className="font-mono font-bold text-amber-400">{bankingDetails.accountNumber}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Branch Code:</span>
+                    <span className="font-mono text-slate-300">{bankingDetails.branchCode} ({bankingDetails.branchName})</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">VAT Reg:</span>
+                    <span className="font-mono text-slate-300">{bankingDetails.vatRegistrationNumber}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Primary Email:</span>
+                    <a href="mailto:partssource-za@outlook.com" className="font-mono font-bold text-amber-400 hover:underline">partssource-za@outlook.com</a>
+                  </div>
+                </div>
               </div>
 
-              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Bank:</span>
-                  <span className="font-bold text-white">{bankingDetails.bankName}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Account Holder:</span>
-                  <span className="font-bold text-slate-200">{bankingDetails.accountHolder}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Account Number:</span>
-                  <span className="font-mono font-bold text-amber-400">{bankingDetails.accountNumber}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Branch Code:</span>
-                  <span className="font-mono text-slate-300">{bankingDetails.branchCode} ({bankingDetails.branchName})</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">VAT Reg:</span>
-                  <span className="font-mono text-slate-300">{bankingDetails.vatRegistrationNumber}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Primary Email:</span>
-                  <a href="mailto:partssource-za@outlook.com" className="font-mono font-bold text-amber-400 hover:underline">partssource-za@outlook.com</a>
-                </div>
-              </div>
-
-              <div className="mt-4 flex items-center justify-between text-xs">
+              <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-xs">
                 <span className="text-slate-400 text-[11px]">
-                  Last modified: {new Date(bankingDetails.lastUpdated).toLocaleDateString('en-ZA')} by {bankingDetails.updatedBy}
+                  Updated: {new Date(bankingDetails.lastUpdated).toLocaleDateString('en-ZA')}
                 </span>
                 <button
                   onClick={() => setActiveTab('banking')}
@@ -2277,6 +2385,530 @@ export const OwnerAdminDashboard: React.FC = () => {
 
           </div>
 
+        </div>
+      )}
+
+      {/* TAB: OWNER PROFILE, ADDRESS & PHONE NUMBER */}
+      {activeTab === 'owner_profile' && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-6">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-800">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-amber-400" /> Platform Owner Governance
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    Live Real-Time Cloud Sync
+                  </span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2.5">
+                  <MapPin className="w-6 h-6 text-amber-400" />
+                  Platform Owner Address & Contact Information
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-3xl leading-relaxed">
+                  Configure your official physical headquarters address, direct telephone number, WhatsApp line, and legal entity details. All changes synchronize immediately to Firebase Firestore across platform registries, supplier contracts, and receiving documentation.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="px-4 py-2.5 bg-slate-950 rounded-2xl border border-slate-800 text-right">
+                  <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-bold">Current Platform Owner</span>
+                  <span className="text-xs font-bold text-amber-400 font-mono flex items-center justify-end gap-1.5">
+                    <UserCheck className="w-3.5 h-3.5 text-amber-400" /> Jan Coetzee
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveOwnerProfile} className="mt-6">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                {/* Left Column: Form Inputs */}
+                <div className="lg:col-span-7 space-y-6">
+                  {/* Identity & Contact Phone */}
+                  <div className="bg-slate-950/60 p-5 rounded-2xl border border-slate-800 space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-2">
+                        <Phone className="w-4 h-4 text-amber-400" />
+                        1. Owner Identity & Contact Telephone
+                      </h3>
+                      <span className="text-[10px] text-slate-500 font-mono">South Africa (+27)</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                          Owner Full Name *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={ownerForm.name}
+                          onChange={(e) => setOwnerForm(prev => ({ ...prev, name: e.target.value }))}
+                          placeholder="e.g. Jan Coetzee"
+                          className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 text-xs"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                          Registered Platform Entity / Business
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={ownerForm.businessName}
+                          onChange={(e) => setOwnerForm(prev => ({ ...prev, businessName: e.target.value }))}
+                          placeholder="e.g. Part Source ZA Platform Headquarters"
+                          className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
+                          <span>Owner Phone Number *</span>
+                          <span className="text-[10px] text-amber-400 font-mono font-bold">+27 Format</span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            required
+                            value={ownerForm.phone}
+                            onChange={(e) => setOwnerForm(prev => ({ ...prev, phone: e.target.value }))}
+                            placeholder="e.g. +27 82 990 1200"
+                            className="w-full pl-9 pr-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-amber-300 font-mono font-bold focus:outline-none focus:ring-2 focus:ring-amber-500 text-xs"
+                          />
+                          <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+                        </div>
+                        <p className="text-[10px] text-slate-500 mt-1">Direct contact line for platform management & verified suppliers.</p>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
+                          <span>Owner WhatsApp Line</span>
+                          <span className="text-[10px] text-emerald-400 font-mono font-bold">Fast Inquiries</span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={ownerForm.whatsapp || ''}
+                            onChange={(e) => setOwnerForm(prev => ({ ...prev, whatsapp: e.target.value }))}
+                            placeholder="e.g. +27 82 990 1200"
+                            className="w-full pl-9 pr-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-emerald-300 font-mono font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs"
+                          />
+                          <MessageSquare className="w-4 h-4 text-emerald-400 absolute left-3 top-3 pointer-events-none" />
+                        </div>
+                        <p className="text-[10px] text-slate-500 mt-1">Direct WhatsApp line for scrap yard onboarding & buyer resolution.</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                          Owner Account Email
+                        </label>
+                        <input
+                          type="email"
+                          required
+                          value={ownerForm.email}
+                          onChange={(e) => setOwnerForm(prev => ({ ...prev, email: e.target.value }))}
+                          placeholder="e.g. jancoetzee00@gmail.com"
+                          className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-amber-500 text-xs"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                          Official Billing & POP Email
+                        </label>
+                        <input
+                          type="email"
+                          required
+                          value={ownerForm.supportEmail}
+                          onChange={(e) => setOwnerForm(prev => ({ ...prev, supportEmail: e.target.value }))}
+                          placeholder="e.g. partssource-za@outlook.com"
+                          className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-amber-300 font-mono focus:outline-none focus:ring-2 focus:ring-amber-500 text-xs"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Physical Address Section */}
+                  <div className="bg-slate-950/60 p-5 rounded-2xl border border-slate-800 space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-emerald-400" />
+                        2. Official Physical Headquarters Address
+                      </h3>
+                      <span className="text-[10px] text-slate-500">Dispatch & Operations Location</span>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                        Street Address / Building Suite / Floor *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={ownerForm.physicalAddress}
+                        onChange={(e) => setOwnerForm(prev => ({ ...prev, physicalAddress: e.target.value }))}
+                        placeholder="e.g. Sandton City Office Towers, 5th Floor, 126 Rivonia Road"
+                        className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 text-xs"
+                      />
+                      <p className="text-[10px] text-slate-500 mt-1">Full street address including building name, floor level, street name and number.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                          City / Metro Area *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={ownerForm.city}
+                          onChange={(e) => setOwnerForm(prev => ({ ...prev, city: e.target.value }))}
+                          placeholder="e.g. Sandton, Johannesburg"
+                          className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 text-xs"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                          Province (South Africa) *
+                        </label>
+                        <select
+                          value={ownerForm.province}
+                          onChange={(e) => setOwnerForm(prev => ({ ...prev, province: e.target.value as SouthAfricanProvince }))}
+                          className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 text-xs"
+                        >
+                          {SA_PROVINCES.map(prov => (
+                            <option key={prov} value={prov}>{prov}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                          Postal Code *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={ownerForm.postalCode}
+                          onChange={(e) => setOwnerForm(prev => ({ ...prev, postalCode: e.target.value }))}
+                          placeholder="e.g. 2196"
+                          className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-amber-300 font-mono font-bold focus:outline-none focus:ring-2 focus:ring-amber-500 text-xs"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Submit buttons */}
+                  <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="text-slate-400 text-[11px] font-mono">
+                      Last synchronized: {new Date(ownerProfile.lastUpdated).toLocaleString('en-ZA')}
+                    </div>
+
+                    <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setOwnerForm(ownerProfile)}
+                        className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs transition-colors"
+                      >
+                        Reset / Discard
+                      </button>
+
+                      <button
+                        type="submit"
+                        disabled={isSavingOwner}
+                        className="px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50 flex items-center gap-2"
+                      >
+                        <Check className="w-4 h-4" />
+                        <span>{isSavingOwner ? 'Saving to Firestore...' : 'Save Owner Address & Phone'}</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column: Live Preview & Verification */}
+                <div className="lg:col-span-5 space-y-6">
+                  {/* Live Visual Card */}
+                  <div className="bg-slate-950 p-6 rounded-2xl border border-amber-500/30 shadow-xl relative overflow-hidden">
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <UserCheck className="w-4 h-4" /> Official Platform Registry Card
+                      </span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                        SuperAdmin Verified
+                      </span>
+                    </div>
+
+                    <div className="space-y-4 text-xs">
+                      <div>
+                        <span className="text-slate-500 text-[10px] uppercase font-bold tracking-wider block">Platform Owner & Operator</span>
+                        <p className="text-lg font-black text-white mt-0.5">{ownerForm.name || 'Jan Coetzee'}</p>
+                        <p className="text-xs text-amber-400 font-medium">{ownerForm.businessName}</p>
+                      </div>
+
+                      <div className="p-4 bg-slate-900/80 rounded-xl border border-slate-800/80 space-y-3">
+                        <div className="flex items-start gap-3">
+                          <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center flex-shrink-0">
+                            <Phone className="w-3.5 h-3.5 text-amber-400" />
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-slate-400 uppercase font-bold block">Primary Telephone</span>
+                            <a href={`tel:${ownerForm.phone}`} className="font-mono font-bold text-amber-400 hover:underline text-sm">
+                              {ownerForm.phone || 'No phone entered'}
+                            </a>
+                          </div>
+                        </div>
+
+                        {ownerForm.whatsapp && (
+                          <div className="flex items-start gap-3">
+                            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                              <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-slate-400 uppercase font-bold block">WhatsApp Line</span>
+                              <span className="font-mono font-bold text-emerald-400 text-sm">
+                                {ownerForm.whatsapp}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex items-start gap-3">
+                          <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center flex-shrink-0">
+                            <MapPin className="w-3.5 h-3.5 text-blue-400" />
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-slate-400 uppercase font-bold block">Physical Address & HQ</span>
+                            <span className="text-slate-200 font-medium leading-relaxed block">
+                              {ownerForm.physicalAddress || 'No address entered'}
+                            </span>
+                            <span className="text-slate-400 text-[11px] block mt-0.5 font-medium">
+                              {ownerForm.city}, {ownerForm.province} {ownerForm.postalCode}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-3">
+                          <div className="w-7 h-7 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center flex-shrink-0">
+                            <Mail className="w-3.5 h-3.5 text-purple-400" />
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-slate-400 uppercase font-bold block">Support & Billing Email</span>
+                            <span className="font-mono text-slate-300 text-xs">
+                              {ownerForm.supportEmail}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-3 border-t border-slate-800 space-y-2 text-[11px] text-slate-400">
+                        <div className="flex items-center gap-2 text-emerald-400 font-medium">
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>Synced to Firestore document: <span className="font-mono text-[10px] text-slate-300">system/owner_profile</span></span>
+                        </div>
+                        <div className="flex items-center gap-2 text-emerald-400 font-medium">
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>Synced to Platform Owner user: <span className="font-mono text-[10px] text-slate-300">users/user-adm-01</span></span>
+                        </div>
+                        <div className="flex items-center gap-2 text-emerald-400 font-medium">
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>Synced to Banking System POP: <span className="font-mono text-[10px] text-slate-300">system/banking</span></span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Official Notice */}
+                  <div className="p-5 bg-slate-900/50 rounded-2xl border border-slate-800 text-xs text-slate-400 space-y-2.5">
+                    <div className="flex items-center gap-2 text-white font-bold">
+                      <ShieldCheck className="w-4 h-4 text-amber-400" />
+                      Platform Owner Authority
+                    </div>
+                    <p className="leading-relaxed text-[11px]">
+                      As the platform owner, your physical address and direct telephone contact details serve as the legal dispatch and headquarters presence for Part Source ZA across South Africa. Whenever scrap yards, workshops, and verified suppliers receive invoices or customer inquiries, these details establish authentic trust.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* QUICK MODAL: Change Platform Owner Address & Phone */}
+      {isEditOwnerModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-2xl bg-slate-900 border border-amber-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-black/90 relative overflow-hidden my-8">
+            <div className="flex items-start justify-between pb-4 border-b border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 flex-shrink-0">
+                  <MapPin className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Change Owner Address & Phone Number</h3>
+                  <p className="text-xs text-slate-400">Update official platform owner contact credentials in real-time</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsEditOwnerModalOpen(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveOwnerProfile} className="mt-5 space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-slate-300 font-bold uppercase tracking-wider mb-1 text-[10px]">
+                    Owner Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={ownerForm.name}
+                    onChange={(e) => setOwnerForm(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white font-medium focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-bold uppercase tracking-wider mb-1 text-[10px]">
+                    Owner Phone Number (+27) *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={ownerForm.phone}
+                    onChange={(e) => setOwnerForm(prev => ({ ...prev, phone: e.target.value }))}
+                    placeholder="+27 82 990 1200"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-amber-400 font-mono font-bold focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-slate-300 font-bold uppercase tracking-wider mb-1 text-[10px]">
+                    Owner WhatsApp Line
+                  </label>
+                  <input
+                    type="text"
+                    value={ownerForm.whatsapp || ''}
+                    onChange={(e) => setOwnerForm(prev => ({ ...prev, whatsapp: e.target.value }))}
+                    placeholder="+27 82 990 1200"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-emerald-400 font-mono font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-bold uppercase tracking-wider mb-1 text-[10px]">
+                    Support Email
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={ownerForm.supportEmail}
+                    onChange={(e) => setOwnerForm(prev => ({ ...prev, supportEmail: e.target.value }))}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 font-mono focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-bold uppercase tracking-wider mb-1 text-[10px]">
+                  Physical Street Address / Suite *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={ownerForm.physicalAddress}
+                  onChange={(e) => setOwnerForm(prev => ({ ...prev, physicalAddress: e.target.value }))}
+                  placeholder="e.g. Sandton City Office Towers, 5th Floor, 126 Rivonia Road"
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white font-medium focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-slate-300 font-bold uppercase tracking-wider mb-1 text-[10px]">
+                    City / Metro *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={ownerForm.city}
+                    onChange={(e) => setOwnerForm(prev => ({ ...prev, city: e.target.value }))}
+                    placeholder="e.g. Sandton"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white font-medium focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-bold uppercase tracking-wider mb-1 text-[10px]">
+                    Province *
+                  </label>
+                  <select
+                    value={ownerForm.province}
+                    onChange={(e) => setOwnerForm(prev => ({ ...prev, province: e.target.value as SouthAfricanProvince }))}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white font-medium focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  >
+                    {SA_PROVINCES.map(prov => (
+                      <option key={prov} value={prov}>{prov}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-bold uppercase tracking-wider mb-1 text-[10px]">
+                    Postal Code *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={ownerForm.postalCode}
+                    onChange={(e) => setOwnerForm(prev => ({ ...prev, postalCode: e.target.value }))}
+                    placeholder="e.g. 2196"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-amber-400 font-mono font-bold focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-bold uppercase tracking-wider mb-1 text-[10px]">
+                  Registered Business Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={ownerForm.businessName}
+                  onChange={(e) => setOwnerForm(prev => ({ ...prev, businessName: e.target.value }))}
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white font-medium focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+
+              <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsEditOwnerModalOpen(false)}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingOwner}
+                  className="px-6 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50 flex items-center gap-2"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>{isSavingOwner ? 'Saving...' : 'Save Changes'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
