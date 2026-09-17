@@ -86,7 +86,8 @@ export const OwnerAdminDashboard: React.FC = () => {
     openMarketingHub,
     marketingCampaigns,
     openClientOutreach,
-    prospectiveClients
+    prospectiveClients,
+    openGmailHub
   } = useApp();
 
   // Inline auth state for direct dashboard access
@@ -404,6 +405,17 @@ export const OwnerAdminDashboard: React.FC = () => {
                 <Globe className="w-4 h-4 text-blue-400" />
                 <span>Search Engine & SEO</span>
                 <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-400 text-[9px]">Live</span>
+              </button>
+
+              {/* Gmail Workspace Hub Button */}
+              <button
+                onClick={() => openGmailHub()}
+                className="px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-red-600/20 to-red-700/30 hover:from-red-600/30 hover:to-red-700/40 text-red-300 border border-red-500/40 text-xs font-bold transition-all flex items-center gap-2 shadow-sm hover:border-red-500/60 cursor-pointer"
+                title="Open Gmail Workspace Hub to send supplier emails & view messages"
+              >
+                <Mail className="w-4 h-4 text-red-400" />
+                <span>Gmail Hub</span>
+                <span className="px-1.5 py-0.2 rounded bg-red-500/30 text-red-200 text-[9px] font-bold">Google</span>
               </button>
 
               {/* Dev App Toggle */}

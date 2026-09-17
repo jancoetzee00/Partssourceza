@@ -75,7 +75,8 @@ export const ClientOutreachModal: React.FC = () => {
     addManualClient,
     convertClientToSeller,
     purgeMockSellers,
-    showNotification 
+    showNotification,
+    openGmailHub 
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'directory' | 'history' | 'search' | 'pipeline' | 'manual'>('directory');
@@ -217,6 +218,20 @@ export const ClientOutreachModal: React.FC = () => {
     window.location.href = mailto;
     updateClientStatus(client.id, 'sent');
     showNotification('Email Client Opened', `Composing email to ${client.email}. Marked as sent.`, 'info');
+  };
+
+  const handleSendViaGmail = (client: ProspectiveClient, customMsg?: string) => {
+    const rawBody = customMsg || client.personalizedMessageEmail;
+    const subjectMatch = rawBody.match(/^Subject:\s*(.*?)(?:\n|$)/i);
+    const subject = subjectMatch ? subjectMatch[1].trim() : `Exclusive Supplier Invitation: ${client.businessName} on Part Source ZA`;
+    const bodyText = (rawBody || '').replace(/^Subject:.*?\n+/i, '').trim();
+
+    openGmailHub({
+      to: client.email,
+      subject,
+      body: bodyText
+    });
+    updateClientStatus(client.id, 'sent', 'Composed & Dispatched via Gmail Hub');
   };
 
   const handleTailorMessage = async (client: ProspectiveClient) => {
@@ -1101,13 +1116,24 @@ export const ClientOutreachModal: React.FC = () => {
                                     <span>Send via WhatsApp</span>
                                   </button>
                                 ) : (
-                                  <button
-                                    onClick={() => handleSendEmail(client)}
-                                    className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
-                                  >
-                                    <Mail className="w-3.5 h-3.5" />
-                                    <span>Open Email Client</span>
-                                  </button>
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => handleSendViaGmail(client)}
+                                      className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-black flex items-center gap-1.5 shadow-md shadow-red-950/40 transition-all cursor-pointer"
+                                      title="Send pitch directly using connected Gmail account"
+                                    >
+                                      <Mail className="w-3.5 h-3.5" />
+                                      <span>Send via Gmail</span>
+                                    </button>
+                                    <button
+                                      onClick={() => handleSendEmail(client)}
+                                      className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold flex items-center gap-1.5 transition-all cursor-pointer text-xs"
+                                      title="Open default email application"
+                                    >
+                                      <ExternalLink className="w-3.5 h-3.5" />
+                                      <span>Mailto</span>
+                                    </button>
+                                  </div>
                                 )}
                               </div>
                             </div>

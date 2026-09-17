@@ -26,6 +26,7 @@ import { WebLinkShareModal } from './components/WebLinkShareModal';
 import { SellerAuthModal } from './components/SellerAuthModal';
 import { MarketingStrategyModal } from './components/MarketingStrategyModal';
 import { ClientOutreachModal } from './components/ClientOutreachModal';
+import { GmailHubModal } from './components/GmailHubModal';
 import { CheckCircle2, AlertCircle, Info, Car, Heart, ShieldCheck, Download, Smartphone, Monitor, Globe, Share2, Link as LinkIcon, X, Sparkles, Users, Mail } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -38,7 +39,10 @@ const MainContent: React.FC = () => {
     setIsSearchEngineModalOpen, 
     setIsWebLinkModalOpen,
     openMarketingHub,
-    openClientOutreach 
+    openClientOutreach,
+    isGmailModalOpen,
+    setIsGmailModalOpen,
+    gmailComposeData
   } = useApp();
 
   return (
@@ -70,6 +74,11 @@ const MainContent: React.FC = () => {
       <SellerAuthModal />
       <MarketingStrategyModal />
       <ClientOutreachModal />
+      <GmailHubModal 
+        isOpen={isGmailModalOpen} 
+        onClose={() => setIsGmailModalOpen(false)} 
+        initialComposeData={gmailComposeData} 
+      />
 
       {/* Floating Direct WhatsApp Widget */}
       <WhatsAppQuickWidget />

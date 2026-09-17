@@ -22,7 +22,8 @@ import {
   Sparkles,
   QrCode,
   SlidersHorizontal,
-  ExternalLink
+  ExternalLink,
+  Mail
 } from 'lucide-react';
 import { UserRole } from '../types';
 
@@ -47,7 +48,8 @@ export const Header: React.FC = () => {
     filters,
     setFilters,
     openMarketingHub,
-    openClientOutreach
+    openClientOutreach,
+    openGmailHub
   } = useApp();
 
   const [isToolsDropdownOpen, setIsToolsDropdownOpen] = useState(false);
@@ -258,6 +260,16 @@ export const Header: React.FC = () => {
               </button>
             )}
 
+            {/* Gmail Hub Button */}
+            <button
+              onClick={() => openGmailHub()}
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-red-500/15 text-slate-200 hover:text-red-300 border border-slate-700/80 hover:border-red-500/40 text-xs font-bold transition-all whitespace-nowrap shrink-0 shadow-sm"
+              title="Gmail Integration Hub - Supplier Outreach & Messaging"
+            >
+              <Mail className="w-3.5 h-3.5 text-red-400 shrink-0" />
+              <span className="hidden sm:inline">Gmail</span>
+            </button>
+
             {/* Tools & SEO Dropdown Hub */}
             <div className="relative shrink-0" ref={toolsDropdownRef}>
               <button
@@ -351,6 +363,28 @@ export const Header: React.FC = () => {
                       </div>
                       <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold">
                         Clients
+                      </span>
+                    </button>
+
+                    {/* Tool: Gmail Workspace Hub */}
+                    <button
+                      onClick={() => {
+                        setIsToolsDropdownOpen(false);
+                        openGmailHub();
+                      }}
+                      className="w-full px-3 py-2 rounded-xl text-left text-xs text-slate-200 hover:text-white hover:bg-slate-800/90 flex items-center justify-between group transition-colors"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-1.5 rounded-lg bg-red-500/15 text-red-400 border border-red-500/30">
+                          <Mail className="w-3.5 h-3.5" />
+                        </div>
+                        <div>
+                          <div className="font-bold text-white group-hover:text-red-400">Gmail Workspace Hub</div>
+                          <div className="text-[10px] text-slate-400">Send supplier quotes & emails</div>
+                        </div>
+                      </div>
+                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-red-500/20 text-red-300 font-bold">
+                        Gmail
                       </span>
                     </button>
 

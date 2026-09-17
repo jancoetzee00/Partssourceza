@@ -191,6 +191,10 @@ interface AppContextType {
   whatsAppModalData: WhatsAppModalData | null;
   setWhatsAppModalData: (data: WhatsAppModalData | null) => void;
   openWhatsAppChat: (listing?: Listing, defaultIntent?: WhatsAppIntentType, customSeller?: WhatsAppModalData['customSeller']) => void;
+  isGmailModalOpen: boolean;
+  setIsGmailModalOpen: (open: boolean) => void;
+  gmailComposeData: { to?: string; subject?: string; body?: string } | null;
+  openGmailHub: (composeData?: { to?: string; subject?: string; body?: string }) => void;
   canInstallPWA: boolean;
   triggerPWAInstall: () => Promise<boolean>;
   detectedPlatform: 'android' | 'ios' | 'windows' | 'mac' | 'linux';
@@ -896,6 +900,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       customSeller
     });
     setIsWhatsAppModalOpen(true);
+  };
+
+  // Gmail Hub Integration
+  const [isGmailModalOpen, setIsGmailModalOpen] = useState<boolean>(false);
+  const [gmailComposeData, setGmailComposeData] = useState<{ to?: string; subject?: string; body?: string } | null>(null);
+
+  const openGmailHub = (composeData?: { to?: string; subject?: string; body?: string }) => {
+    if (composeData) {
+      setGmailComposeData(composeData);
+    } else {
+      setGmailComposeData(null);
+    }
+    setIsGmailModalOpen(true);
   };
 
   // Device & Platform Detection
@@ -1982,6 +1999,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         whatsAppModalData,
         setWhatsAppModalData,
         openWhatsAppChat,
+        isGmailModalOpen,
+        setIsGmailModalOpen,
+        gmailComposeData,
+        openGmailHub,
         canInstallPWA,
         triggerPWAInstall,
         detectedPlatform,

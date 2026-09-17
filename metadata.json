@@ -1,6 +1,6 @@
 {
   "name": "Part Source ZA",
-  "description": "South African advertising marketplace for car and truck parts with geolocation-based province filtering, direct WhatsApp buyer-to-seller communication, supplier subscriptions, and parts comparison.",
+  "description": "South African advertising marketplace for car and truck parts with geolocation-based province filtering, direct WhatsApp buyer-to-seller communication, Google Workspace Gmail supplier outreach, supplier subscriptions, and parts comparison.",
   "requestFramePermissions": [
     "geolocation"
   ],
