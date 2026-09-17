@@ -715,7 +715,7 @@ export const SwipeableListingCard: React.FC<SwipeableListingCardProps> = ({
                     : 'bg-slate-950/90 text-slate-300 border-slate-700'
                 }`}>
                   {isNewCondition ? <Sparkles className="w-2.5 h-2.5 text-emerald-400" /> : isReconditioned ? <Wrench className="w-2.5 h-2.5 text-amber-400" /> : <Box className="w-2.5 h-2.5 text-slate-400" />}
-                  <span>{listing.condition.replace('Brand New ', 'New ').replace('Reconditioned / Tested', 'Recon')}</span>
+                  <span>{(listing.condition || 'Used OEM').replace('Brand New ', 'New ').replace('Reconditioned / Tested', 'Recon')}</span>
                 </span>
 
                 {listing.isFeatured && (

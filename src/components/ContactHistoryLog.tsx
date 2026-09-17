@@ -209,19 +209,19 @@ export const ContactHistoryLog: React.FC<ContactHistoryLogProps> = ({ onSelectCl
     ];
 
     const rows = filteredClients.map(c => [
-      `"${c.businessName.replace(/"/g, '""')}"`,
-      `"${c.archetype}"`,
-      `"${c.contactPerson.replace(/"/g, '""')}"`,
-      `"${c.phone}"`,
-      `"${c.whatsapp}"`,
-      `"${c.email}"`,
-      `"${c.province}"`,
-      `"${c.city}"`,
-      `"${c.industrialHub}"`,
-      `"${c.vehicleSpecialty.replace(/"/g, '""')}"`,
+      `"${(c.businessName || '').replace(/"/g, '""')}"`,
+      `"${c.archetype || ''}"`,
+      `"${(c.contactPerson || '').replace(/"/g, '""')}"`,
+      `"${c.phone || ''}"`,
+      `"${c.whatsapp || ''}"`,
+      `"${c.email || ''}"`,
+      `"${c.province || ''}"`,
+      `"${c.city || ''}"`,
+      `"${c.industrialHub || ''}"`,
+      `"${(c.vehicleSpecialty || '').replace(/"/g, '""')}"`,
       `"${c.lastContactedAt ? new Date(c.lastContactedAt).toLocaleString('en-ZA') : 'Never Contacted'}"`,
       `"${c.contactMethod || 'None'}"`,
-      `"${c.status}"`,
+      `"${c.status || ''}"`,
       `"${(c.notes || '').replace(/"/g, '""')}"`
     ]);
 
@@ -362,7 +362,7 @@ export const ContactHistoryLog: React.FC<ContactHistoryLogProps> = ({ onSelectCl
       case 'panel_beater':
         return <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-indigo-500/10 text-indigo-400 border border-indigo-500/30">Panel Beater</span>;
       default:
-        return <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-800 text-slate-300 border border-slate-700">{archetype.replace('_', ' ')}</span>;
+        return <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-800 text-slate-300 border border-slate-700">{(archetype || '').replace('_', ' ')}</span>;
     }
   };
 
@@ -758,7 +758,7 @@ export const ContactHistoryLog: React.FC<ContactHistoryLogProps> = ({ onSelectCl
 
                       {/* Direct WhatsApp Action */}
                       <a
-                        href={`https://wa.me/${client.whatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(client.personalizedMessageWhatsApp)}`}
+                        href={`https://wa.me/${(client.whatsapp || client.phone || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(client.personalizedMessageWhatsApp || '')}`}
                         target="_blank"
                         rel="noreferrer"
                         onClick={() => {

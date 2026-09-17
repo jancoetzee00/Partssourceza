@@ -79,7 +79,7 @@ export const WhatsAppDirectModal: React.FC = () => {
     : (customSeller?.locationCity ? `${customSeller.locationCity}, ${customSeller.locationProvince}` : 'Johannesburg, Gauteng');
   
   // Format clean international WhatsApp phone number (e.g. 27824591029)
-  const cleanWhatsAppNumber = rawWhatsApp.replace(/[^0-9]/g, '');
+  const cleanWhatsAppNumber = (rawWhatsApp || '').replace(/[^0-9]/g, '');
   const formattedWhatsAppNumber = cleanWhatsAppNumber.startsWith('0') 
     ? '27' + cleanWhatsAppNumber.slice(1) 
     : cleanWhatsAppNumber;

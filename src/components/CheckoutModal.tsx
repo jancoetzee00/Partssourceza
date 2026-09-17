@@ -9,11 +9,13 @@ import {
   CheckCircle2, 
   Building2, 
   Copy, 
-  Check,
-  AlertCircle
+  Check, 
+  AlertCircle,
+  Clock
 } from 'lucide-react';
 import { SA_PROVINCES } from '../data/mockData';
 import { SouthAfricanProvince } from '../types';
+import { estimateDeliveryCost } from '../utils/deliveryEstimator';
 
 export const CheckoutModal: React.FC = () => {
   const { 
@@ -28,7 +30,9 @@ export const CheckoutModal: React.FC = () => {
   const [buyerName, setBuyerName] = useState('');
   const [buyerPhone, setBuyerPhone] = useState('');
   const [buyerEmail, setBuyerEmail] = useState('');
-  const [province, setProvince] = useState<SouthAfricanProvince>('Gauteng');
+  const [province, setProvince] = useState<SouthAfricanProvince>(() => {
+    return (selectedListing?.locationProvince as SouthAfricanProvince) || 'Gauteng';
+  });
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'EFT / Bank Transfer' | 'PayFast / Card' | 'Cash on Collection'>('EFT / Bank Transfer');
   const [notes, setNotes] = useState('');
@@ -37,7 +41,15 @@ export const CheckoutModal: React.FC = () => {
 
   if (!isCheckoutOpen || !selectedListing) return null;
 
-  const deliveryFee = selectedListing.deliveryCostZAR || 350;
+  // Live calculated delivery estimate based on selected province and part category
+  const deliveryEstimate = estimateDeliveryCost(
+    selectedListing.locationProvince,
+    province,
+    selectedListing.deliveryCostZAR,
+    selectedListing.category
+  );
+
+  const deliveryFee = paymentMethod === 'Cash on Collection' ? 0 : deliveryEstimate.estimatedCostZAR;
   const totalAmount = selectedListing.priceZAR + deliveryFee;
 
   const formatZAR = (amount: number) => {
@@ -166,7 +178,9 @@ export const CheckoutModal: React.FC = () => {
                 </div>
                 <div className="text-right">
                   <span className="text-base font-black text-white font-sans">{formatZAR(totalAmount)}</span>
-                  <span className="text-[10px] text-slate-400 block">(incl. R{deliveryFee} courier)</span>
+                  <span className="text-[10px] text-slate-400 block">
+                    {deliveryFee === 0 ? '(Free counter collection)' : `(incl. ${formatZAR(deliveryFee)} delivery)`}
+                  </span>
                 </div>
               </div>
 
@@ -210,9 +224,13 @@ export const CheckoutModal: React.FC = () => {
                       className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:ring-1 focus:ring-amber-500"
                     >
                       {SA_PROVINCES.map(p => (
-                        <option key={p} value={p}>{p}</option>
+                        <option key={p} value={p}>{p} {p === selectedListing.locationProvince ? '(Seller Yard Location)' : ''}</option>
                       ))}
                     </select>
+                    <div className="text-[10px] text-slate-400 mt-1 flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-amber-400 shrink-0" />
+                      <span>Est: <strong>{deliveryEstimate.deliveryDays}</strong> ({deliveryEstimate.distanceKm} km route)</span>
+                    </div>
                   </div>
 
                   <div>

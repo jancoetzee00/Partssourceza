@@ -164,7 +164,7 @@ export const ProvinceCityDirectory: React.FC<ProvinceCityDirectoryProps> = ({ on
 
   // Launch WhatsApp pitch & mark as messaged
   const handleSendWhatsAppPitch = (client: ProspectiveClient) => {
-    const rawNum = client.whatsapp || client.phone;
+    const rawNum = client.whatsapp || client.phone || '';
     let clean = rawNum.replace(/[^0-9]/g, '');
     if (clean.startsWith('0')) clean = '27' + clean.slice(1);
     if (!clean.startsWith('27') && clean.length === 9) clean = '27' + clean;
@@ -228,20 +228,20 @@ export const ProvinceCityDirectory: React.FC<ProvinceCityDirectoryProps> = ({ on
     ];
 
     const rows = filteredClients.map(c => [
-      `"${c.businessName.replace(/"/g, '""')}"`,
+      `"${(c.businessName || '').replace(/"/g, '""')}"`,
       `"${c.archetype === 'part_store' ? 'Auto Parts Store' : 'Scrap Yard & Dismantler'}"`,
-      `"${c.province}"`,
-      `"${c.city}"`,
+      `"${c.province || ''}"`,
+      `"${c.city || ''}"`,
       `"${c.industrialHub || ''}"`,
-      `"${c.contactPerson}"`,
-      `"${c.phone}"`,
-      `"${c.whatsapp}"`,
-      `"${c.email}"`,
-      `"${c.vehicleSpecialty.replace(/"/g, '""')}"`,
-      `"${c.status !== 'pending' ? 'ALREADY MESSAGED (' + c.status.toUpperCase() + ')' : 'NOT MESSAGED YET'}"`,
+      `"${c.contactPerson || ''}"`,
+      `"${c.phone || ''}"`,
+      `"${c.whatsapp || ''}"`,
+      `"${c.email || ''}"`,
+      `"${(c.vehicleSpecialty || '').replace(/"/g, '""')}"`,
+      `"${c.status !== 'pending' ? 'ALREADY MESSAGED (' + (c.status || '').toUpperCase() + ')' : 'NOT MESSAGED YET'}"`,
       `"${c.lastContactedAt ? new Date(c.lastContactedAt).toLocaleDateString() : 'N/A'}"`,
       `"${c.contactMethod || 'None'}"`,
-      `"${c.pitchHook.replace(/"/g, '""')}"`
+      `"${(c.pitchHook || '').replace(/"/g, '""')}"`
     ]);
 
     const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
@@ -604,7 +604,7 @@ export const ProvinceCityDirectory: React.FC<ProvinceCityDirectoryProps> = ({ on
                                 <div className="flex items-start justify-between gap-2 mb-2">
                                   <span className={`px-2 py-0.5 rounded text-[10px] font-bold border flex items-center gap-1 ${archetype.badgeColor}`}>
                                     <span>{archetype.icon}</span>
-                                    <span>{client.archetype === 'part_store' ? 'Auto Parts Store' : client.archetype.replace('_', ' ').toUpperCase()}</span>
+                                    <span>{client.archetype === 'part_store' ? 'Auto Parts Store' : (client.archetype || '').replace('_', ' ').toUpperCase()}</span>
                                   </span>
 
                                   {/* MESSAGED BADGE (PROMINENT) */}
@@ -680,7 +680,7 @@ export const ProvinceCityDirectory: React.FC<ProvinceCityDirectoryProps> = ({ on
                                       </span>
                                     </div>
                                     <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                                      {client.status.replace('_', ' ')}
+                                      {(client.status || '').replace('_', ' ')}
                                     </span>
                                   </div>
                                 )}

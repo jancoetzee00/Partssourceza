@@ -100,7 +100,8 @@ export const SubscriptionModal: React.FC = () => {
   };
 
   const activePayablePrice = finalDiscountedPriceZAR !== null ? finalDiscountedPriceZAR : currentPlan.priceMonthlyZAR;
-  const paymentReference = `PS-SUB-${currentSeller.id.replace('seller-', '').toUpperCase()}`;
+  const sellerIdClean = (currentSeller?.id || 'SELLER').replace('seller-', '').toUpperCase();
+  const paymentReference = `PS-SUB-${sellerIdClean}`;
 
   // Featured checkout discounts that apply to the selected tier or all tiers
   const featuredDiscounts = subscriptionDiscounts.filter(

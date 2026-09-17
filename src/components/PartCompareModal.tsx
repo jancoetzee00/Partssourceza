@@ -228,7 +228,8 @@ export const PartCompareModal: React.FC = () => {
                     const waMessage = encodeURIComponent(
                       `Hi ${item.sellerName}, I am comparing your ${item.title} (PN: ${item.partNumber}) for ${formatZAR(item.priceZAR)} on Part Source ZA. Is it ready for shipping?`
                     );
-                    const waLink = `https://wa.me/${item.sellerWhatsApp.replace(/[^0-9]/g, '')}?text=${waMessage}`;
+                    const rawItemWa = item.sellerWhatsApp || item.sellerPhone || '27824591029';
+                    const waLink = `https://wa.me/${(rawItemWa || '').replace(/[^0-9]/g, '')}?text=${waMessage}`;
 
                     return (
                       <div key={item.id} className="space-y-1.5 min-w-0">

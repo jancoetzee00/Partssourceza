@@ -352,7 +352,7 @@ export const MarketingStrategyModal: React.FC = () => {
                             {campaign.targetProvince}
                           </span>
                           <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                            Channel: {campaign.channel.replace(/_/g, ' ')}
+                            Channel: {(campaign.channel || '').replace(/_/g, ' ')}
                           </span>
                         </div>
                         <h3 className="text-base font-bold text-slate-900 dark:text-white mt-1.5">

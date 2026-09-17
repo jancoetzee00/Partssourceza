@@ -193,7 +193,7 @@ export const ClientOutreachModal: React.FC = () => {
 
   const handleSendWhatsApp = (client: ProspectiveClient, customMsg?: string) => {
     const textToSend = customMsg || client.personalizedMessageWhatsApp;
-    const cleanPhone = client.whatsapp.replace(/[^0-9]/g, '');
+    const cleanPhone = (client.whatsapp || client.phone || '').replace(/[^0-9]/g, '');
     const encoded = encodeURIComponent(textToSend);
     
     // If phone number is valid ZA format, direct wa.me/<phone>?text=...
@@ -211,7 +211,7 @@ export const ClientOutreachModal: React.FC = () => {
     // Extract subject line if present
     const subjectMatch = rawBody.match(/^Subject:\s*(.*?)(?:\n|$)/i);
     const subject = subjectMatch ? subjectMatch[1].trim() : `Exclusive Supplier Invitation: ${client.businessName} on Part Source ZA`;
-    const bodyText = rawBody.replace(/^Subject:.*?\n+/i, '').trim();
+    const bodyText = (rawBody || '').replace(/^Subject:.*?\n+/i, '').trim();
 
     const mailto = `mailto:${encodeURIComponent(client.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}`;
     window.location.href = mailto;
@@ -239,7 +239,7 @@ export const ClientOutreachModal: React.FC = () => {
         } else {
           client.personalizedMessageEmail = data.tailoredMessage;
         }
-        showNotification('Message Tailored', `Message rewritten in "${messageTone.replace('_', ' ')}" tone.`, 'success');
+        showNotification('Message Tailored', `Message rewritten in "${(messageTone || '').replace('_', ' ')}" tone.`, 'success');
       }
     } catch (err) {
       console.error(err);

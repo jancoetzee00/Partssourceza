@@ -728,7 +728,7 @@ export const SellerDashboard: React.FC = () => {
           <div className="space-y-4">
             {sellerInquiries.length > 0 ? (
               sellerInquiries.map(inq => {
-                const buyerCleanWa = inq.buyerPhone.replace(/[^0-9]/g, '');
+                const buyerCleanWa = (inq.buyerPhone || '').replace(/[^0-9]/g, '');
                 const formattedBuyerWa = buyerCleanWa.startsWith('0') ? '27' + buyerCleanWa.slice(1) : buyerCleanWa;
 
                 const replyStockMessage = encodeURIComponent(
@@ -883,7 +883,7 @@ export const SellerDashboard: React.FC = () => {
 
                   <div className="flex items-center justify-end gap-2">
                     <a
-                      href={`https://wa.me/${ord.buyerPhone.replace(/[^0-9]/g, '')}?text=Hello%20${encodeURIComponent(ord.buyerName)},%20this%20is%20${encodeURIComponent(currentSeller.businessName)}%20regarding%20Order%20${ord.id}...`}
+                      href={`https://wa.me/${(ord.buyerPhone || '').replace(/[^0-9]/g, '')}?text=Hello%20${encodeURIComponent(ord.buyerName || 'Buyer')},%20this%20is%20${encodeURIComponent(currentSeller.businessName)}%20regarding%20Order%20${ord.id}...`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs flex items-center gap-1.5 transition-colors"
@@ -1162,7 +1162,7 @@ export const SellerDashboard: React.FC = () => {
                 </div>
               </div>
               <span className="text-xs font-mono font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl self-start sm:self-auto">
-                Ref: PS-SUB-{currentSeller.id.replace('seller-', '').toUpperCase()}
+                Ref: PS-SUB-{(currentSeller?.id || 'SELLER').replace('seller-', '').toUpperCase()}
               </span>
             </div>
 

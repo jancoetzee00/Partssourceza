@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { SouthAfricanProvince } from '../types';
+import { SA_PROVINCES } from '../data/mockData';
 import { SA_PROVINCES_GEO } from '../utils/geolocation';
 import { estimateDeliveryCost } from '../utils/deliveryEstimator';
 import { 
@@ -24,7 +25,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Compass,
-  Clock
+  Clock,
+  Zap,
+  Store,
+  ArrowRight
 } from 'lucide-react';
 
 export const PartDetailsModal: React.FC = () => {
@@ -58,6 +62,18 @@ export const PartDetailsModal: React.FC = () => {
     return (selectedListing?.locationProvince as SouthAfricanProvince) || 'Gauteng';
   });
 
+  // Selected delivery speed/method: standard road courier, express overnight, or counter collection
+  const [deliveryOption, setDeliveryOption] = useState<'standard' | 'express' | 'collection'>('standard');
+
+  // Sync destination province when selectedListing changes
+  useEffect(() => {
+    if (filters?.province && filters.province in SA_PROVINCES_GEO) {
+      setDeliveryProvince(filters.province as SouthAfricanProvince);
+    } else if (selectedListing?.locationProvince && selectedListing.locationProvince in SA_PROVINCES_GEO) {
+      setDeliveryProvince(selectedListing.locationProvince as SouthAfricanProvince);
+    }
+  }, [selectedListing?.id, filters?.province]);
+
   if (!selectedListing) return null;
 
   const inCompare = isInCompare(selectedListing.id);
@@ -80,10 +96,31 @@ export const PartDetailsModal: React.FC = () => {
     );
   }, [selectedListing.locationProvince, selectedListing.deliveryCostZAR, selectedListing.category, deliveryProvince]);
 
+  // Express air/road multiplier cost calculation
+  const expressCostZAR = useMemo(() => {
+    return Math.max(220, Math.round((deliveryEstimate.estimatedCostZAR * 1.35 + 80) / 10) * 10);
+  }, [deliveryEstimate.estimatedCostZAR]);
+
+  // Effective delivery cost based on chosen method
+  const effectiveDeliveryFee = useMemo(() => {
+    if (deliveryOption === 'collection') return 0;
+    if (deliveryOption === 'express') return expressCostZAR;
+    return deliveryEstimate.estimatedCostZAR;
+  }, [deliveryOption, expressCostZAR, deliveryEstimate.estimatedCostZAR]);
+
+  // Total landed price including selected delivery method
+  const totalLandedPrice = selectedListing.priceZAR + effectiveDeliveryFee;
+
+  const deliveryOptionLabel = deliveryOption === 'collection'
+    ? 'Counter Collection (Free R0)'
+    : `${deliveryOption === 'express' ? 'Express Priority Courier' : 'Standard Road Freight'} to ${deliveryProvince} (Est. ${formatZAR(effectiveDeliveryFee)})`;
+
   const waMessage = encodeURIComponent(
-    `Hello ${selectedListing.sellerName},\nI am inquiring about the following part on Part Source ZA:\n\n*${selectedListing.title}*\nPart No: ${selectedListing.partNumber}\nPrice: ${formatZAR(selectedListing.priceZAR)}\nSeller Location: ${selectedListing.locationCity}, ${selectedListing.locationProvince}\nDelivery to: ${deliveryProvince} (Est. ${formatZAR(deliveryEstimate.estimatedCostZAR)})\n\nIs this unit currently in stock and available for courier or collection?`
+    `Hello ${selectedListing.sellerName},\nI am inquiring about the following part on Part Source ZA:\n\n*${selectedListing.title}*\nPart No: ${selectedListing.partNumber}\nPrice: ${formatZAR(selectedListing.priceZAR)}\nSeller Location: ${selectedListing.locationCity}, ${selectedListing.locationProvince}\nDelivery to: ${deliveryProvince} via ${deliveryOptionLabel}\nTotal Landed: ${formatZAR(totalLandedPrice)}\n\nIs this unit currently in stock and available for courier or collection?`
   );
-  const waLink = `https://wa.me/${selectedListing.sellerWhatsApp.replace(/[^0-9]/g, '')}?text=${waMessage}`;
+  const rawWa = selectedListing.sellerWhatsApp || selectedListing.sellerPhone || '27824591029';
+  const cleanWa = (rawWa || '').replace(/[^0-9]/g, '');
+  const waLink = `https://wa.me/${cleanWa}?text=${waMessage}`;
 
   const handleInquirySubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,7 +137,7 @@ export const PartDetailsModal: React.FC = () => {
       buyerName: inquiryName,
       buyerPhone: inquiryPhone,
       buyerEmail: inquiryEmail || 'Not specified',
-      message: `${inquiryMessage}\n[Preferred Delivery Province: ${deliveryProvince} | Est. Freight: ${formatZAR(deliveryEstimate.estimatedCostZAR)}]`
+      message: `${inquiryMessage}\n[Selected Delivery: ${deliveryOptionLabel} | Landed Total: ${formatZAR(totalLandedPrice)}]`
     });
     setIsSubmittingInquiry(false);
     setInquirySubmitted(true);
@@ -295,7 +332,7 @@ export const PartDetailsModal: React.FC = () => {
                     className="w-full py-3 px-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl text-sm transition-all shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
                   >
                     <CreditCard className="w-4 h-4 shrink-0" />
-                    <span>Purchase Component Online</span>
+                    <span>Purchase Online • {formatZAR(totalLandedPrice)}</span>
                   </button>
 
                   <button
@@ -325,12 +362,14 @@ export const PartDetailsModal: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <Truck className="w-4 h-4 text-blue-400 flex-shrink-0" />
                     <span>
-                      {deliveryEstimate.deliveryDays} (<strong>{formatZAR(deliveryEstimate.estimatedCostZAR)}</strong> to {deliveryProvince})
+                      {deliveryOption === 'collection'
+                        ? 'Counter collection at yard (FREE)'
+                        : `${deliveryOption === 'express' ? '1 - 2 Days' : deliveryEstimate.deliveryDays} (${formatZAR(effectiveDeliveryFee)} to ${deliveryProvince})`}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                    <span>Collection available at {selectedListing.locationCity}, {selectedListing.locationProvince}</span>
+                    <span>Yard location: {selectedListing.locationCity}, {selectedListing.locationProvince}</span>
                   </div>
                 </div>
 
@@ -339,100 +378,234 @@ export const PartDetailsModal: React.FC = () => {
               {/* Delivery Cost & Transit Estimator UI Field */}
               <div 
                 id="part-delivery-estimator-card"
-                className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 shadow-lg space-y-3"
+                className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 sm:p-5 shadow-xl space-y-4"
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                {/* Estimator Header */}
+                <div className="flex items-center justify-between pb-3 border-b border-slate-700/70">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
                       <Truck className="w-4 h-4" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-                        Estimate Delivery to Your Province
+                      <h4 className="text-sm font-black text-white flex items-center gap-2">
+                        Delivery Cost Estimator
                       </h4>
-                      <p className="text-[10px] text-slate-400">
-                        Dispatched from {selectedListing.locationCity}, {selectedListing.locationProvince}
+                      <p className="text-[11px] text-slate-400">
+                        Dispatched from <span className="text-slate-200 font-semibold">{selectedListing.locationCity}, {selectedListing.locationProvince}</span>
                       </p>
                     </div>
                   </div>
-                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-900 text-amber-400 border border-slate-700">
-                    SA Logistics
-                  </span>
+                  <div className="text-right">
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-slate-900 text-amber-400 border border-slate-700 block">
+                      ~{deliveryEstimate.distanceKm} km route
+                    </span>
+                    <span className="text-[9px] text-slate-400 mt-0.5 block">
+                      {deliveryEstimate.routeTier === 'local' ? 'Intra-Provincial' : 'Inter-Provincial'}
+                    </span>
+                  </div>
                 </div>
 
-                {/* Province Selector Field */}
-                <div className="space-y-1.5">
+                {/* Province Selector: Fast Pills + Dropdown */}
+                <div className="space-y-2">
                   <label 
                     htmlFor="delivery-destination-province" 
-                    className="text-[11px] font-semibold text-slate-300 flex items-center justify-between"
+                    className="text-xs font-bold text-slate-200 flex items-center justify-between"
                   >
-                    <span>Destination Province:</span>
-                    {deliveryProvince === selectedListing.locationProvince && (
+                    <span className="flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-amber-400" />
+                      Select Destination Province:
+                    </span>
+                    {deliveryProvince === selectedListing.locationProvince ? (
                       <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
-                        <Check className="w-3 h-3" /> Same Province (Local Pickup)
+                        <Check className="w-3 h-3" /> Same Province (Local)
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        9 SA Provinces
                       </span>
                     )}
                   </label>
-                  <div className="relative">
-                    <MapPin className="w-3.5 h-3.5 text-amber-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+
+                  {/* Fast Selection Chips */}
+                  <div className="flex flex-wrap gap-1.5 pt-0.5">
+                    {(['Gauteng', 'Western Cape', 'KwaZulu-Natal', 'Eastern Cape', 'Free State'] as SouthAfricanProvince[]).map((prov) => (
+                      <button
+                        key={prov}
+                        type="button"
+                        onClick={() => setDeliveryProvince(prov)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                          deliveryProvince === prov
+                            ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                            : 'bg-slate-900/90 text-slate-300 hover:bg-slate-700 border border-slate-700/80'
+                        }`}
+                      >
+                        {prov}
+                        {prov === selectedListing.locationProvince ? ' (Yard)' : ''}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Comprehensive Dropdown */}
+                  <div className="relative pt-1">
                     <select
                       id="delivery-destination-province"
                       value={deliveryProvince}
                       onChange={(e) => setDeliveryProvince(e.target.value as SouthAfricanProvince)}
-                      className="w-full pl-8 pr-8 py-2 bg-slate-900 border border-slate-700 hover:border-slate-600 rounded-xl text-xs text-white focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer"
+                      className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 hover:border-slate-600 rounded-xl text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium cursor-pointer"
                     >
-                      {Object.keys(SA_PROVINCES_GEO).map((prov) => (
+                      {SA_PROVINCES.map((prov) => (
                         <option key={prov} value={prov}>
-                          {prov} {prov === selectedListing.locationProvince ? '(Seller Location - Local Pickup)' : ''}
+                          {prov} {prov === selectedListing.locationProvince ? '— Seller Yard Location' : ''}
                         </option>
                       ))}
                     </select>
                   </div>
                 </div>
 
-                {/* Live Calculated Estimate Details */}
-                <div className="p-3 bg-slate-900/90 border border-slate-700/60 rounded-xl space-y-2.5">
-                  <div className="flex items-center justify-between">
+                {/* Delivery Method Options: Standard, Express, Counter Collection */}
+                <div className="space-y-2">
+                  <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block">
+                    Choose Shipping / Collection Method:
+                  </span>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {/* Standard Courier */}
+                    <button
+                      type="button"
+                      onClick={() => setDeliveryOption('standard')}
+                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                        deliveryOption === 'standard'
+                          ? 'bg-amber-500/15 border-amber-500 text-white shadow-md'
+                          : 'bg-slate-900/80 border-slate-700/80 text-slate-300 hover:border-slate-600'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold flex items-center gap-1.5">
+                            <Truck className="w-3.5 h-3.5 text-amber-400" />
+                            Standard
+                          </span>
+                          {deliveryOption === 'standard' && (
+                            <span className="h-2 w-2 rounded-full bg-amber-400" />
+                          )}
+                        </div>
+                        <span className="text-[10px] text-slate-400 block mt-0.5">
+                          {deliveryEstimate.deliveryDays}
+                        </span>
+                      </div>
+                      <div className="mt-2 pt-1 border-t border-slate-700/50">
+                        <span className="text-xs font-black text-amber-400 font-sans">
+                          {formatZAR(deliveryEstimate.estimatedCostZAR)}
+                        </span>
+                      </div>
+                    </button>
+
+                    {/* Express Priority */}
+                    <button
+                      type="button"
+                      onClick={() => setDeliveryOption('express')}
+                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                        deliveryOption === 'express'
+                          ? 'bg-amber-500/15 border-amber-500 text-white shadow-md'
+                          : 'bg-slate-900/80 border-slate-700/80 text-slate-300 hover:border-slate-600'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold flex items-center gap-1.5">
+                            <Zap className="w-3.5 h-3.5 text-amber-400" />
+                            Express
+                          </span>
+                          {deliveryOption === 'express' && (
+                            <span className="h-2 w-2 rounded-full bg-amber-400" />
+                          )}
+                        </div>
+                        <span className="text-[10px] text-slate-400 block mt-0.5">
+                          1 - 2 Business Days
+                        </span>
+                      </div>
+                      <div className="mt-2 pt-1 border-t border-slate-700/50">
+                        <span className="text-xs font-black text-amber-400 font-sans">
+                          {formatZAR(expressCostZAR)}
+                        </span>
+                      </div>
+                    </button>
+
+                    {/* Counter Collection */}
+                    <button
+                      type="button"
+                      onClick={() => setDeliveryOption('collection')}
+                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                        deliveryOption === 'collection'
+                          ? 'bg-emerald-500/15 border-emerald-500 text-white shadow-md'
+                          : 'bg-slate-900/80 border-slate-700/80 text-slate-300 hover:border-slate-600'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold flex items-center gap-1.5">
+                            <Store className="w-3.5 h-3.5 text-emerald-400" />
+                            Collect
+                          </span>
+                          {deliveryOption === 'collection' && (
+                            <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                          )}
+                        </div>
+                        <span className="text-[10px] text-slate-400 block mt-0.5">
+                          Same Day (Yard)
+                        </span>
+                      </div>
+                      <div className="mt-2 pt-1 border-t border-slate-700/50">
+                        <span className="text-xs font-black text-emerald-400 font-sans">
+                          FREE (R0)
+                        </span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Total Landed Cost Summary Box */}
+                <div className="p-3.5 bg-slate-900/90 border border-slate-700/80 rounded-xl space-y-2.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-400">Component Price:</span>
+                    <span className="font-semibold text-slate-200 font-mono">
+                      {formatZAR(selectedListing.priceZAR)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-400">
+                      Estimated Shipping ({deliveryProvince}):
+                    </span>
+                    <span className="font-semibold text-amber-400 font-mono">
+                      {deliveryOption === 'collection' ? 'FREE (R0)' : formatZAR(effectiveDeliveryFee)}
+                    </span>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-700/80 flex items-center justify-between">
                     <div>
-                      <span className="text-[10px] text-slate-400 block font-medium">Estimated Delivery Freight</span>
+                      <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">
+                        Total Landed Estimate:
+                      </span>
                       <span className="text-xl font-black text-amber-400 font-sans">
-                        {formatZAR(deliveryEstimate.estimatedCostZAR)}
+                        {formatZAR(totalLandedPrice)}
                       </span>
                     </div>
-                    <div className="text-right">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border inline-block ${
-                        deliveryEstimate.routeTier === 'local'
-                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                          : deliveryEstimate.routeTier === 'regional'
-                          ? 'bg-blue-500/20 text-blue-300 border-blue-500/40'
-                          : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                      }`}>
-                        {deliveryEstimate.courierService}
-                      </span>
-                      <span className="block text-[10px] text-slate-400 mt-1 font-mono">
-                        {deliveryEstimate.distanceKm > 0 ? `~${deliveryEstimate.distanceKm} km transit` : 'Intra-provincial'}
-                      </span>
-                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsCheckoutOpen(true)}
+                      className="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-lg text-xs transition-all flex items-center gap-1.5 shadow-md cursor-pointer"
+                    >
+                      <span>Checkout</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
                   </div>
 
-                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
-                    <div className="flex items-center gap-1.5 text-slate-300">
-                      <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                      <span>Transit: <strong>{deliveryEstimate.deliveryDays}</strong></span>
-                    </div>
-                    {deliveryEstimate.isLocalPickupAvailable ? (
-                      <span className="text-[10px] font-bold text-emerald-400 flex items-center gap-1">
-                        <Check className="w-3 h-3" /> Counter Collection Free
-                      </span>
-                    ) : (
-                      <span className="text-[10px] text-slate-400">
-                        Door-to-door road courier
-                      </span>
-                    )}
-                  </div>
-
-                  <p className="text-[10px] text-slate-400 leading-relaxed pt-0.5">
-                    {deliveryEstimate.breakdownNotice}
+                  <p className="text-[10px] text-slate-400 leading-relaxed pt-1 border-t border-slate-800/80">
+                    {deliveryOption === 'collection' 
+                      ? `Pick up in person at ${selectedListing.locationCity}, ${selectedListing.locationProvince}. No shipping fee applies.`
+                      : deliveryEstimate.breakdownNotice}
                   </p>
                 </div>
               </div>

@@ -674,14 +674,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const loginSellerByCredentials = (identifier: string, _passwordOrPin?: string): { success: boolean; message?: string; seller?: SellerAccount } => {
-    const cleanId = identifier.trim().toLowerCase();
-    const cleanNum = identifier.replace(/[^0-9]/g, '');
+    const cleanId = (identifier || '').trim().toLowerCase();
+    const cleanNum = (identifier || '').replace(/[^0-9]/g, '');
 
     const match = sellers.find(s => 
-      s.id.toLowerCase() === cleanId ||
-      s.email.toLowerCase() === cleanId ||
-      s.businessName.toLowerCase().includes(cleanId) ||
-      (cleanNum.length >= 7 && (s.phone.replace(/[^0-9]/g, '').includes(cleanNum) || s.whatsapp.includes(cleanNum)))
+      (s.id || '').toLowerCase() === cleanId ||
+      (s.email || '').toLowerCase() === cleanId ||
+      (s.businessName || '').toLowerCase().includes(cleanId) ||
+      (cleanNum.length >= 7 && (((s.phone || '').replace(/[^0-9]/g, '').includes(cleanNum)) || ((s.whatsapp || '').includes(cleanNum))))
     );
 
     if (match) {
@@ -710,17 +710,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     billingCycle?: 'monthly' | 'annual';
     promoCode?: string;
   }): SellerAccount => {
-    const newId = `seller-${newSellerData.province.toLowerCase().replace(/\s+/g, '').slice(0, 3)}-${Date.now().toString().slice(-4)}`;
+    const newId = `seller-${(newSellerData.province || 'gau').toLowerCase().replace(/\s+/g, '').slice(0, 3)}-${Date.now().toString().slice(-4)}`;
     const tier = newSellerData.subscriptionTier || 'pro';
     
     const newSeller: SellerAccount = {
       id: newId,
-      businessName: newSellerData.businessName.trim(),
+      businessName: (newSellerData.businessName || '').trim(),
       registrationNumber: newSellerData.registrationNumber?.trim() || `${new Date().getFullYear()}/${Math.floor(Math.random() * 899999 + 100000)}/07`,
-      contactPerson: newSellerData.contactPerson.trim(),
-      email: newSellerData.email.trim().toLowerCase(),
-      phone: newSellerData.phone.trim(),
-      whatsapp: newSellerData.whatsapp.replace(/[^0-9]/g, '') || newSellerData.phone.replace(/[^0-9]/g, ''),
+      contactPerson: (newSellerData.contactPerson || '').trim(),
+      email: (newSellerData.email || '').trim().toLowerCase(),
+      phone: (newSellerData.phone || '').trim(),
+      whatsapp: (newSellerData.whatsapp || '').replace(/[^0-9]/g, '') || (newSellerData.phone || '').replace(/[^0-9]/g, ''),
       province: newSellerData.province,
       city: newSellerData.city.trim(),
       address: newSellerData.address?.trim() || `${newSellerData.city}, ${newSellerData.province}`,
@@ -779,8 +779,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const convertClientToSeller = (client: ProspectiveClient, tier: SellerTier = 'pro'): SellerAccount => {
     const cleanPhone = client.phone || '+27 82 000 0000';
-    const cleanWa = client.whatsapp.replace(/[^0-9]/g, '') || cleanPhone.replace(/[^0-9]/g, '');
-    const newId = `seller-${client.id.replace(/^lead-/, '')}`;
+    const cleanWa = (client.whatsapp || '').replace(/[^0-9]/g, '') || cleanPhone.replace(/[^0-9]/g, '');
+    const newId = `seller-${(client.id || Date.now().toString()).replace(/^lead-/, '')}`;
     const newSeller: SellerAccount = {
       id: newId,
       businessName: client.businessName,

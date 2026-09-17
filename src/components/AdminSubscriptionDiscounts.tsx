@@ -552,7 +552,7 @@ export const AdminSubscriptionDiscounts: React.FC = () => {
                         {discount.discountType === 'trial_days' && `+${discount.discountValue} Days Trial`}
                       </div>
                       <span className="text-[10px] text-slate-500 uppercase block font-mono">
-                        {discount.discountType.replace('_', ' ')}
+                        {(discount.discountType || '').replace('_', ' ')}
                       </span>
                     </td>
 

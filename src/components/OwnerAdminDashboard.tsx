@@ -1393,7 +1393,7 @@ export const OwnerAdminDashboard: React.FC = () => {
                         <td className="py-3 px-4 text-right">
                           <div className="flex items-center justify-end gap-2">
                             <a
-                              href={`https://wa.me/${user.phone.replace(/[^0-9]/g, '')}?text=Hello%20${encodeURIComponent(user.name)},%20message%20from%20Part%20Source%20ZA%20Platform%20Owner...`}
+                              href={`https://wa.me/${(user.phone || '').replace(/[^0-9]/g, '')}?text=Hello%20${encodeURIComponent(user.name || 'User')},%20message%20from%20Part%20Source%20ZA%20Platform%20Owner...`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-400 transition-colors"
@@ -1810,7 +1810,7 @@ export const OwnerAdminDashboard: React.FC = () => {
                         </label>
 
                         <a
-                          href={`https://wa.me/${seller.whatsapp.replace(/[^0-9]/g, '')}?text=Hello%20${encodeURIComponent(seller.businessName)},%20message%20from%20Part%20Source%20ZA%20Platform%20Owner...`}
+                          href={`https://wa.me/${(seller.whatsapp || seller.phone || '').replace(/[^0-9]/g, '')}?text=Hello%20${encodeURIComponent(seller.businessName)},%20message%20from%20Part%20Source%20ZA%20Platform%20Owner...`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-emerald-300 rounded font-semibold text-[11px] transition-colors"
