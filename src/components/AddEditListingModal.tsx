@@ -23,6 +23,8 @@ import { Listing, VehicleType, PartCategory, PartCondition, SouthAfricanProvince
 import { SA_PROVINCES, POPULAR_MAKES, CATEGORIES } from '../data/mockData';
 import { CameraOptimizerModal } from './CameraOptimizerModal';
 import { AIPartAnalysis } from '../utils/imageOptimizer';
+import { SmartCategorizerCard } from './SmartCategorizerCard';
+import { SmartCategorizationResult, scanAndAutoCategorizePart } from '../utils/autoCategorizer';
 
 const SAMPLE_PART_IMAGES = [
   { label: 'Turbo Engine', url: 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=800&auto=format&fit=crop&q=80' },
@@ -194,6 +196,66 @@ export const AddEditListingModal: React.FC = () => {
     showNotification('Photo AI-Optimized', 'Cropped & compressed for ultra-fast loading across SA mobile networks.', 'success');
   };
 
+  const handleApplySmartCategorization = (result: SmartCategorizationResult) => {
+    setFormData(prev => ({
+      ...prev,
+      category: result.category,
+      make: result.make,
+      model: result.primaryModel,
+      vehicleType: result.vehicleType,
+      yearStart: result.yearStart,
+      yearEnd: result.yearEnd,
+      engineSpec: result.engineSpec,
+      priceZAR: result.estimatedPriceZAR,
+      originalPriceZAR: result.newOemPriceZAR > result.estimatedPriceZAR ? result.newOemPriceZAR : prev.originalPriceZAR,
+      title: result.partName,
+      condition: result.suggestedCondition,
+      warrantyMonths: result.warrantyMonths,
+      oemNumber: result.oemOrPartNumberHint || prev.oemNumber,
+      partNumber: result.oemOrPartNumberHint || prev.partNumber,
+      description: `Automotive Spares Inspection Report:\n• Component: ${result.partName}\n• Compatible SA Models: ${result.compatibleModels.join(', ')}\n• Visual Inspection: ${result.detectedVisualTraits.join('; ')}\n• Fitment/Bench Test: ${result.fitmentNotes}\n• Supplier Warranty: ${result.warrantyMonths} Months standard replacement.`
+    }));
+
+    showNotification(
+      'Smart Auto-Categorization Applied',
+      `Identified ${result.category} for ${result.make} ${result.primaryModel} (R ${result.estimatedPriceZAR.toLocaleString('en-ZA')})`,
+      'success'
+    );
+  };
+
+  const handleApplyPriceOnly = (priceZAR: number) => {
+    setFormData(prev => ({ ...prev, priceZAR }));
+    showNotification('Price Applied', `Updated listing price to R ${priceZAR.toLocaleString('en-ZA')}`, 'info');
+  };
+
+  const handleApplyCategoryOnly = (category: PartCategory) => {
+    setFormData(prev => ({ ...prev, category }));
+    showNotification('Category Updated', `Set to ${category}`, 'info');
+  };
+
+  const handleApplyVehicleOnly = (vehicle: { make: string; model: string; vehicleType: VehicleType; yearStart: number; yearEnd: number; engineSpec: string }) => {
+    setFormData(prev => ({ ...prev, ...vehicle }));
+    showNotification('Vehicle Fitment Updated', `Set to ${vehicle.make} ${vehicle.model} (${vehicle.yearStart}-${vehicle.yearEnd})`, 'info');
+  };
+
+  const handleApplyAndAutoCategorizeFromCamera = async (optimizedDataUrl: string, aiDetails?: Partial<AIPartAnalysis>) => {
+    handleApplyOptimizedImage(optimizedDataUrl, aiDetails);
+    
+    showNotification('Running Smart Auto-Categorization', 'Analyzing photo to auto-fill category, vehicle & price...', 'info');
+    try {
+      const isBase64 = optimizedDataUrl.startsWith('data:');
+      const scanResult = await scanAndAutoCategorizePart({
+        imageBase64: isBase64 ? optimizedDataUrl : undefined,
+        imageUrl: !isBase64 ? optimizedDataUrl : undefined,
+        currentTitle: aiDetails?.partName || formData.title,
+        currentCategory: (aiDetails?.category as PartCategory) || formData.category
+      });
+      handleApplySmartCategorization(scanResult);
+    } catch (err) {
+      console.warn('Auto-categorize from camera error:', err);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6">
       <div className="relative w-full max-w-3xl bg-slate-900 border border-slate-700/80 rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col">
@@ -227,6 +289,17 @@ export const AddEditListingModal: React.FC = () => {
         {/* Modal Body / Form */}
         <form onSubmit={handleSubmit} className="overflow-y-auto p-6 space-y-5 flex-1 text-xs">
           
+          {/* AI-Driven Smart Auto-Categorization & Price Estimator */}
+          <SmartCategorizerCard
+            currentImage={formData.images[0]}
+            currentTitle={formData.title}
+            currentCategory={formData.category}
+            onApplyAll={handleApplySmartCategorization}
+            onApplyPriceOnly={handleApplyPriceOnly}
+            onApplyCategoryOnly={handleApplyCategoryOnly}
+            onApplyVehicleOnly={handleApplyVehicleOnly}
+          />
+
           {/* Part Title */}
           <div>
             <label className="block text-slate-300 font-bold uppercase tracking-wider mb-1 text-[11px]">
@@ -735,6 +808,7 @@ export const AddEditListingModal: React.FC = () => {
           isOpen={isCameraModalOpen}
           onClose={() => setIsCameraModalOpen(false)}
           onApply={handleApplyOptimizedImage}
+          onApplyAndAutoCategorize={handleApplyAndAutoCategorizeFromCamera}
           currentDraftTitle={formData.title}
           initialImage={cameraInitialImage}
         />

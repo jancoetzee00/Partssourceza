@@ -32,6 +32,7 @@ interface CameraOptimizerModalProps {
   isOpen: boolean;
   onClose: () => void;
   onApply: (optimizedDataUrl: string, aiDetails?: Partial<AIPartAnalysis>) => void;
+  onApplyAndAutoCategorize?: (optimizedDataUrl: string, aiDetails?: Partial<AIPartAnalysis>) => void;
   currentDraftTitle?: string;
   initialImage?: string;
 }
@@ -40,6 +41,7 @@ export const CameraOptimizerModal: React.FC<CameraOptimizerModalProps> = ({
   isOpen,
   onClose,
   onApply,
+  onApplyAndAutoCategorize,
   currentDraftTitle = '',
   initialImage
 }) => {
@@ -863,19 +865,38 @@ export const CameraOptimizerModal: React.FC<CameraOptimizerModalProps> = ({
             </button>
 
             {mode === 'workbench' && (
-              <button
-                type="button"
-                disabled={!optimizedResult || isProcessingCrop}
-                onClick={() => {
-                  if (!optimizedResult) return;
-                  onApply(optimizedResult.dataUrl, aiAnalysis || undefined);
-                  onClose();
-                }}
-                className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
-              >
-                <Check className="w-4 h-4" />
-                <span>Apply Optimized Photo to Listing</span>
-              </button>
+              <>
+                <button
+                  type="button"
+                  disabled={!optimizedResult || isProcessingCrop}
+                  onClick={() => {
+                    if (!optimizedResult) return;
+                    onApply(optimizedResult.dataUrl, aiAnalysis || undefined);
+                    onClose();
+                  }}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <Check className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Apply Photo</span>
+                </button>
+
+                {onApplyAndAutoCategorize && (
+                  <button
+                    type="button"
+                    disabled={!optimizedResult || isProcessingCrop}
+                    onClick={() => {
+                      if (!optimizedResult) return;
+                      onApplyAndAutoCategorize(optimizedResult.dataUrl, aiAnalysis || undefined);
+                      onClose();
+                    }}
+                    className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
+                    title="Apply photo and instantly run Smart Auto-Categorization"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Apply & Auto-Categorize</span>
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>
