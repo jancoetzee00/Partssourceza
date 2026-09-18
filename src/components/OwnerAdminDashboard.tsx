@@ -155,6 +155,12 @@ export const OwnerAdminDashboard: React.FC = () => {
   const [bankForm, setBankForm] = useState<AppBankingDetails>(bankingDetails);
   const [isSavingBank, setIsSavingBank] = useState(false);
 
+  useEffect(() => {
+    if (bankingDetails) {
+      setBankForm(bankingDetails);
+    }
+  }, [bankingDetails]);
+
   const formatZAR = (amount: number) => {
     return new Intl.NumberFormat('en-ZA', {
       style: 'currency',
@@ -174,15 +180,24 @@ export const OwnerAdminDashboard: React.FC = () => {
   const sellersCount = users.filter(u => u.role === 'seller').length;
   const adminsCount = users.filter(u => u.role === 'admin' || u.role === 'owner').length;
 
-  const handleBankFormSubmit = (e: React.FormEvent) => {
+  const handleBankFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isDevApp) {
-      showNotification('Access Denied', 'Banking configuration is only editable on the Dev App environment.', 'warning');
-      return;
-    }
     setIsSavingBank(true);
-    updateBankingDetails(bankForm);
-    setIsSavingBank(false);
+    try {
+      await updateBankingDetails(bankForm);
+      if (bankForm.ownerName || bankForm.ownerPhone || bankForm.ownerAddress) {
+        await updateOwnerProfile({
+          name: bankForm.ownerName || ownerProfile.name,
+          phone: bankForm.ownerPhone || ownerProfile.phone,
+          physicalAddress: bankForm.ownerAddress || ownerProfile.physicalAddress,
+          city: bankForm.ownerCity || ownerProfile.city,
+          province: (bankForm.ownerProvince as SouthAfricanProvince) || ownerProfile.province,
+          businessName: bankForm.accountHolder || ownerProfile.businessName
+        });
+      }
+    } finally {
+      setIsSavingBank(false);
+    }
   };
 
   const handleCreateUser = (e: React.FormEvent) => {
@@ -610,7 +625,7 @@ export const OwnerAdminDashboard: React.FC = () => {
               }`}
             >
               <CreditCard className="w-3.5 h-3.5" />
-              <span>Dev Banking Settings {isDevApp ? '(Unlocked)' : '(Dev Only)'}</span>
+              <span>Official Banking Details</span>
             </button>
           </div>
 
@@ -746,8 +761,8 @@ export const OwnerAdminDashboard: React.FC = () => {
                     <CreditCard className="w-4 h-4 text-amber-400" />
                     Official Receiving Bank Details
                   </h3>
-                  <span className={`text-[11px] font-mono font-bold ${isDevApp ? 'text-emerald-400' : 'text-slate-500'}`}>
-                    {isDevApp ? 'Dev Context: Editable' : 'Protected Mode'}
+                  <span className="text-[11px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
+                    Active & Synced
                   </span>
                 </div>
 
@@ -2134,38 +2149,27 @@ export const OwnerAdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 7: Dev App Banking Settings (Secure Developer Settings) */}
+      {/* TAB 7: Official App Banking & Settlement Settings */}
       {activeTab === 'banking' && (
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
           
-          {/* Dev Environment Notice Box */}
-          <div className="mb-6 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/40 flex items-start gap-3.5">
-            <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 flex-shrink-0 mt-0.5">
-              <Terminal className="w-5 h-5" />
+          {/* Status Header Box */}
+          <div className="mb-6 p-5 rounded-2xl bg-slate-900 border border-slate-800 flex items-start gap-4 shadow-xl">
+            <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-400 flex-shrink-0 mt-0.5">
+              <CreditCard className="w-5 h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-amber-300">
-                  Dev App Banking Configuration Panel
+            <div className="flex-1">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <h3 className="text-sm font-bold text-white">
+                  Official Receiving Banking Details & Settlement Coordinates
                 </h3>
-                <span className="px-2 py-0.5 rounded text-[10px] font-black bg-amber-500 text-slate-950 uppercase">
-                  Dev Environment Exclusive
+                <span className="px-2.5 py-1 rounded-md text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 uppercase">
+                  STATUS: LIVE SYNCED
                 </span>
               </div>
-              <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                As per system architecture specifications, <strong>App Official Receiving Banking Details</strong> can only be configured by the owner in the Dev App environment. These details are used to receive monthly seller subscription fees (Starter R299, Pro R699, Enterprise R1,499) and direct buyer EFT transactions.
+              <p className="text-xs text-slate-300 mt-1.5 leading-relaxed">
+                These official South African banking and settlement details are used to receive monthly seller subscription fees (Starter R299, Pro R699, Enterprise R1,499) and direct buyer EFT transactions. Changes are securely saved and synced in real time across Firestore and local storage.
               </p>
-              {!isDevApp && (
-                <div className="mt-3 p-2.5 bg-red-950/80 border border-red-600/60 rounded-xl text-xs text-red-200 flex items-center justify-between">
-                  <span>⚠️ Currently in locked mode. Click "Unlock Dev Mode" to modify.</span>
-                  <button
-                    onClick={() => setIsDevApp(true)}
-                    className="px-3 py-1 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg text-xs transition-colors"
-                  >
-                    Unlock Dev Mode
-                  </button>
-                </div>
-              )}
             </div>
           </div>
 
@@ -2184,16 +2188,15 @@ export const OwnerAdminDashboard: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2">
-                <span className={`px-2.5 py-1 rounded-md text-xs font-mono font-bold ${
-                  isDevApp ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-slate-800 text-slate-500'
-                }`}>
-                  {isDevApp ? 'STATUS: DEV WRITE PERMITTED' : 'STATUS: READ ONLY'}
+                <span className="px-2.5 py-1 rounded-md text-xs font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                  FIRESTORE PERSISTED
                 </span>
               </div>
             </div>
 
-            <form onSubmit={handleBankFormSubmit} className="space-y-5 text-xs">
+            <form onSubmit={handleBankFormSubmit} className="space-y-6 text-xs">
               
+              {/* SECTION A: Bank Account Details */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 
                 {/* Bank Name */}
@@ -2202,10 +2205,9 @@ export const OwnerAdminDashboard: React.FC = () => {
                     Receiving Bank Name *
                   </label>
                   <select
-                    disabled={!isDevApp}
                     value={bankForm.bankName}
                     onChange={(e) => setBankForm(prev => ({ ...prev, bankName: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50"
+                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
                   >
                     <option value="First National Bank (FNB)">First National Bank (FNB)</option>
                     <option value="Standard Bank of South Africa">Standard Bank of South Africa</option>
@@ -2223,11 +2225,10 @@ export const OwnerAdminDashboard: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    disabled={!isDevApp}
                     required
                     value={bankForm.accountHolder}
                     onChange={(e) => setBankForm(prev => ({ ...prev, accountHolder: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium disabled:opacity-50"
+                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium"
                   />
                 </div>
 
@@ -2238,11 +2239,10 @@ export const OwnerAdminDashboard: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    disabled={!isDevApp}
                     required
                     value={bankForm.accountNumber}
                     onChange={(e) => setBankForm(prev => ({ ...prev, accountNumber: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-amber-400 font-mono font-bold text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50"
+                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-amber-400 font-mono font-bold text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
 
@@ -2253,11 +2253,10 @@ export const OwnerAdminDashboard: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    disabled={!isDevApp}
                     required
                     value={bankForm.branchCode}
                     onChange={(e) => setBankForm(prev => ({ ...prev, branchCode: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 font-mono focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50"
+                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 font-mono focus:outline-none focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
 
@@ -2268,10 +2267,9 @@ export const OwnerAdminDashboard: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    disabled={!isDevApp}
                     value={bankForm.branchName}
                     onChange={(e) => setBankForm(prev => ({ ...prev, branchName: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50"
+                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
 
@@ -2281,10 +2279,9 @@ export const OwnerAdminDashboard: React.FC = () => {
                     Account Type
                   </label>
                   <select
-                    disabled={!isDevApp}
                     value={bankForm.accountType}
                     onChange={(e: any) => setBankForm(prev => ({ ...prev, accountType: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50"
+                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
                   >
                     <option value="Business Cheque">Business Cheque Account</option>
                     <option value="Current Account">Commercial Current Account</option>
@@ -2299,10 +2296,9 @@ export const OwnerAdminDashboard: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    disabled={!isDevApp}
                     value={bankForm.swiftCode}
                     onChange={(e) => setBankForm(prev => ({ ...prev, swiftCode: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 font-mono focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50"
+                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 font-mono focus:outline-none focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
 
@@ -2313,16 +2309,97 @@ export const OwnerAdminDashboard: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    disabled={!isDevApp}
                     value={bankForm.vatRegistrationNumber}
                     onChange={(e) => setBankForm(prev => ({ ...prev, vatRegistrationNumber: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 font-mono focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50"
+                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 font-mono focus:outline-none focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
 
               </div>
 
-              {/* Payment Reference Format & Seller Notice */}
+              {/* SECTION B: Owner Coordinates & Physical Address */}
+              <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-emerald-400" />
+                    Official Owner Legal Entity, Address & Phone (Settlement Coordinates)
+                  </h3>
+                  <span className="text-[10px] text-slate-500 font-mono">Synchronized with Profile</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-slate-300 font-bold uppercase tracking-wider mb-1.5 text-[11px]">
+                      Owner / Representative Full Name
+                    </label>
+                    <input
+                      type="text"
+                      value={bankForm.ownerName || ''}
+                      onChange={(e) => setBankForm(prev => ({ ...prev, ownerName: e.target.value }))}
+                      placeholder="e.g. Jan Coetzee"
+                      className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500 text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-300 font-bold uppercase tracking-wider mb-1.5 text-[11px]">
+                      Owner Telephone / WhatsApp Number *
+                    </label>
+                    <input
+                      type="text"
+                      value={bankForm.ownerPhone || ''}
+                      onChange={(e) => setBankForm(prev => ({ ...prev, ownerPhone: e.target.value }))}
+                      placeholder="e.g. +27 64 956 2233"
+                      className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-amber-300 font-mono font-bold focus:outline-none focus:ring-2 focus:ring-amber-500 text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-bold uppercase tracking-wider mb-1.5 text-[11px]">
+                    Owner Physical Street / Operations Address *
+                  </label>
+                  <input
+                    type="text"
+                    value={bankForm.ownerAddress || ''}
+                    onChange={(e) => setBankForm(prev => ({ ...prev, ownerAddress: e.target.value }))}
+                    placeholder="e.g. unit 1 kyalami agri Normandien"
+                    className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500 text-xs font-medium"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-slate-300 font-bold uppercase tracking-wider mb-1.5 text-[11px]">
+                      City / Area *
+                    </label>
+                    <input
+                      type="text"
+                      value={bankForm.ownerCity || ''}
+                      onChange={(e) => setBankForm(prev => ({ ...prev, ownerCity: e.target.value }))}
+                      placeholder="e.g. Newcastle"
+                      className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500 text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-300 font-bold uppercase tracking-wider mb-1.5 text-[11px]">
+                      Province *
+                    </label>
+                    <select
+                      value={bankForm.ownerProvince || 'KwaZulu-Natal'}
+                      onChange={(e) => setBankForm(prev => ({ ...prev, ownerProvince: e.target.value }))}
+                      className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500 text-xs"
+                    >
+                      {SA_PROVINCES.map(prov => (
+                        <option key={prov} value={prov}>{prov}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION C: Payment Reference Format & Seller Notice */}
               <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-4">
                 
                 <div>
@@ -2331,10 +2408,9 @@ export const OwnerAdminDashboard: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    disabled={!isDevApp}
                     value={bankForm.referenceFormat}
                     onChange={(e) => setBankForm(prev => ({ ...prev, referenceFormat: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-amber-300 font-mono focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50"
+                    className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-amber-300 font-mono focus:outline-none focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
 
@@ -2344,10 +2420,9 @@ export const OwnerAdminDashboard: React.FC = () => {
                   </label>
                   <textarea
                     rows={3}
-                    disabled={!isDevApp}
                     value={bankForm.sellerFeeNotice}
                     onChange={(e) => setBankForm(prev => ({ ...prev, sellerFeeNotice: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500 text-xs disabled:opacity-50 leading-relaxed"
+                    className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500 text-xs leading-relaxed"
                   />
                 </div>
 
@@ -2357,10 +2432,9 @@ export const OwnerAdminDashboard: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    disabled={!isDevApp}
                     value={bankForm.supportContact}
                     onChange={(e) => setBankForm(prev => ({ ...prev, supportContact: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-amber-300 font-mono focus:outline-none focus:ring-2 focus:ring-amber-500 text-xs disabled:opacity-50"
+                    className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-amber-300 font-mono focus:outline-none focus:ring-2 focus:ring-amber-500 text-xs"
                   />
                   <p className="text-[10px] text-slate-500 mt-1">Official primary email for platform support, supplier outreach, and billing POP: <span className="text-amber-400 font-mono">partssource-za@outlook.com</span></p>
                 </div>
@@ -2384,11 +2458,11 @@ export const OwnerAdminDashboard: React.FC = () => {
 
                   <button
                     type="submit"
-                    disabled={!isDevApp || isSavingBank}
+                    disabled={isSavingBank}
                     className="px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs transition-all shadow-lg shadow-amber-500/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
                   >
                     <Check className="w-4 h-4" />
-                    <span>Save App Banking Details (Dev)</span>
+                    <span>{isSavingBank ? 'Saving to Firestore...' : 'Save Official Banking & Owner Details'}</span>
                   </button>
                 </div>
               </div>
