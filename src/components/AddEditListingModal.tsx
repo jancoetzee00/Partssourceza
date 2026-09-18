@@ -14,10 +14,15 @@ import {
   Image as ImageIcon,
   Sparkles,
   Info,
-  Trash2
+  Trash2,
+  Camera,
+  Zap,
+  Maximize2
 } from 'lucide-react';
 import { Listing, VehicleType, PartCategory, PartCondition, SouthAfricanProvince } from '../types';
 import { SA_PROVINCES, POPULAR_MAKES, CATEGORIES } from '../data/mockData';
+import { CameraOptimizerModal } from './CameraOptimizerModal';
+import { AIPartAnalysis } from '../utils/imageOptimizer';
 
 const SAMPLE_PART_IMAGES = [
   { label: 'Turbo Engine', url: 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=800&auto=format&fit=crop&q=80' },
@@ -46,6 +51,14 @@ export const AddEditListingModal: React.FC = () => {
 
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Camera & AI Image Optimizer State
+  const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
+  const [cameraInitialImage, setCameraInitialImage] = useState<string | undefined>(undefined);
+  const [imageOptimizationMeta, setImageOptimizationMeta] = useState<{
+    isOptimized: boolean;
+    detectedPartName?: string;
+  } | null>(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -159,6 +172,26 @@ export const AddEditListingModal: React.FC = () => {
 
     setIsAddEditModalOpen(false);
     setEditingListing(null);
+  };
+
+  const handleApplyOptimizedImage = (optimizedDataUrl: string, aiDetails?: Partial<AIPartAnalysis>) => {
+    setFormData(prev => ({
+      ...prev,
+      images: [optimizedDataUrl, ...prev.images.slice(1)],
+      title: (!prev.title || prev.title.trim() === '') && aiDetails?.partName ? aiDetails.partName : prev.title,
+      category: aiDetails?.category ? (aiDetails.category as PartCategory) : prev.category,
+      condition: aiDetails?.detectedCondition ? (aiDetails.detectedCondition as PartCondition) : prev.condition,
+      description: (!prev.description || prev.description.trim() === '') && aiDetails?.qualityAssessment
+        ? `Inspected automotive component. ${aiDetails.qualityAssessment} Tested and clean with full supplier warranty.`
+        : prev.description
+    }));
+
+    setImageOptimizationMeta({
+      isOptimized: true,
+      detectedPartName: aiDetails?.partName
+    });
+
+    showNotification('Photo AI-Optimized', 'Cropped & compressed for ultra-fast loading across SA mobile networks.', 'success');
   };
 
   return (
@@ -457,36 +490,136 @@ export const AddEditListingModal: React.FC = () => {
             </div>
           </div>
 
-          {/* Image Presets & URL */}
-          <div>
-            <label className="block text-slate-300 font-bold uppercase tracking-wider mb-1 text-[11px] flex items-center justify-between">
-              <span>Part Image URL</span>
-              <span className="text-slate-400 font-normal">Click preset or enter custom image URL</span>
-            </label>
-            <div className="flex gap-2 mb-2 overflow-x-auto pb-1">
-              {SAMPLE_PART_IMAGES.map((img, idx) => (
+          {/* AI-Powered Photo Capture & Optimization Utility */}
+          <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/80 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <label className="block text-slate-200 font-bold uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                  <Camera className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Part Photo & AI Image Optimizer</span>
+                  <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[10px] font-extrabold border border-amber-500/30">
+                    Fast Load
+                  </span>
+                </label>
+                <p className="text-[11px] text-slate-400">
+                  Snap parts via camera or optimize photos to remove clutter and compress for Vodacom/MTN mobile speeds
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
                   type="button"
-                  key={idx}
-                  onClick={() => setFormData(prev => ({ ...prev, images: [img.url] }))}
-                  className={`px-2.5 py-1 rounded-lg border text-[11px] whitespace-nowrap transition-all ${
-                    formData.images[0] === img.url 
-                      ? 'bg-amber-500/20 border-amber-500 text-amber-300 font-bold' 
-                      : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
-                  }`}
+                  onClick={() => {
+                    setCameraInitialImage(undefined);
+                    setIsCameraModalOpen(true);
+                  }}
+                  className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition-all cursor-pointer"
                 >
-                  {img.label}
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>Snap with Camera</span>
                 </button>
-              ))}
+
+                {formData.images[0] && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCameraInitialImage(formData.images[0]);
+                      setIsCameraModalOpen(true);
+                    }}
+                    className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 font-semibold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                    title="Run Gemini AI Auto-Crop on current image"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span>AI Crop & Optimize</span>
+                  </button>
+                )}
+              </div>
             </div>
-            <input
-              type="url"
-              required
-              value={formData.images[0] || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, images: [e.target.value] }))}
-              placeholder="https://images.unsplash.com/..."
-              className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-slate-100 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500 font-mono"
-            />
+
+            {/* Active Image Thumbnail with Optimization Indicators */}
+            {formData.images[0] && (
+              <div className="flex items-center gap-3 p-2.5 bg-slate-950/80 rounded-xl border border-slate-800">
+                <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-700 shrink-0 bg-slate-900">
+                  <img
+                    src={formData.images[0]}
+                    alt="Current Part"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/20" />
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-bold text-slate-200 truncate">
+                      {formData.images[0].startsWith('data:') ? 'Custom Camera / Uploaded Photo' : 'Catalog Image'}
+                    </span>
+                    {imageOptimizationMeta?.isOptimized && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                        <Check className="w-3 h-3" />
+                        AI Auto-Cropped & Compressed
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                    {imageOptimizationMeta?.detectedPartName 
+                      ? `Detected: ${imageOptimizationMeta.detectedPartName}`
+                      : 'Ready for display on marketplace search cards'}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCameraInitialImage(formData.images[0]);
+                    setIsCameraModalOpen(true);
+                  }}
+                  className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors shrink-0 cursor-pointer"
+                  title="Edit crop and compression"
+                >
+                  <Maximize2 className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            {/* Presets & URL Accordion/Toggle */}
+            <div className="pt-2 border-t border-slate-700/60 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+                  Or pick a stock preset / custom URL:
+                </span>
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {SAMPLE_PART_IMAGES.map((img, idx) => (
+                  <button
+                    type="button"
+                    key={idx}
+                    onClick={() => {
+                      setFormData(prev => ({ ...prev, images: [img.url] }));
+                      setImageOptimizationMeta(null);
+                    }}
+                    className={`px-2.5 py-1 rounded-lg border text-[11px] whitespace-nowrap transition-all ${
+                      formData.images[0] === img.url 
+                        ? 'bg-amber-500/20 border-amber-500 text-amber-300 font-bold' 
+                        : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {img.label}
+                  </button>
+                ))}
+              </div>
+              <input
+                type="url"
+                required
+                value={formData.images[0] || ''}
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, images: [e.target.value] }));
+                  setImageOptimizationMeta(null);
+                }}
+                placeholder="https://images.unsplash.com/... or data:image/..."
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-slate-100 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500 font-mono"
+              />
+            </div>
           </div>
 
           {/* Description */}
@@ -596,6 +729,15 @@ export const AddEditListingModal: React.FC = () => {
           </div>
 
         </form>
+
+        {/* AI-Powered Camera & Image Optimizer Utility Modal */}
+        <CameraOptimizerModal
+          isOpen={isCameraModalOpen}
+          onClose={() => setIsCameraModalOpen(false)}
+          onApply={handleApplyOptimizedImage}
+          currentDraftTitle={formData.title}
+          initialImage={cameraInitialImage}
+        />
 
       </div>
     </div>
