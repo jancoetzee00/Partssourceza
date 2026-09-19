@@ -21,7 +21,10 @@ import {
   ClientOutreachStatus,
   OutreachContactMethod,
   ContactHistoryEntry,
-  OwnerProfile
+  OwnerProfile,
+  ActivePageView,
+  BulkEmailLog,
+  BulkEmailTemplate
 } from '../types';
 import { 
   INITIAL_LISTINGS, 
@@ -201,6 +204,14 @@ interface AppContextType {
   activeNotification: { title: string; message: string; type?: 'success' | 'info' | 'warning' } | null;
   showNotification: (title: string, message: string, type?: 'success' | 'info' | 'warning') => void;
   dismissNotification: () => void;
+  activePageView: ActivePageView;
+  setActivePageView: (view: ActivePageView) => void;
+  openBulkEmailPage: (prefilled?: { recipients?: string[]; subject?: string; message?: string }) => void;
+  bulkEmailDraft: { recipients: string; subject: string; message: string } | null;
+  setBulkEmailDraft: React.Dispatch<React.SetStateAction<{ recipients: string; subject: string; message: string } | null>>;
+  bulkEmailLogs: BulkEmailLog[];
+  saveBulkEmailLog: (log: Omit<BulkEmailLog, 'id' | 'sentAt'>) => Promise<BulkEmailLog>;
+  clearBulkEmailLogs: () => void;
 }
 
 const defaultFilters: VehicleFilterState = {
@@ -444,6 +455,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   const openMarketingHub = (initialAudience?: MarketingAudience) => {
+    if (!isAdminAuthenticated && role !== 'admin' && role !== 'owner') {
+      setIsAdminAuthModalOpen(true);
+      showNotification('Administrator Access Required', 'AI Growth Strategy is restricted exclusively to platform administrators.', 'warning');
+      return;
+    }
     if (initialAudience) {
       setMarketingAudienceFilter(initialAudience);
     }
@@ -519,6 +535,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   const openClientOutreach = () => {
+    if (!isAdminAuthenticated && role !== 'admin' && role !== 'owner') {
+      setIsAdminAuthModalOpen(true);
+      showNotification('Administrator Access Required', 'AI Client Outreach is restricted exclusively to platform administrators.', 'warning');
+      return;
+    }
     setIsClientOutreachModalOpen(true);
   };
 
@@ -956,6 +977,104 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     setIsGmailModalOpen(true);
   };
+
+  // Bulk Email Hub State
+  const [activePageView, setActivePageView] = useState<ActivePageView>(() => {
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash;
+      const params = new URLSearchParams(window.location.search);
+      const isAuth = sessionStorage.getItem('partsource_admin_authenticated') === 'true';
+      if ((hash === '#bulk-email' || params.get('page') === 'bulk-email') && isAuth) {
+        return 'bulk-email';
+      }
+    }
+    return 'marketplace';
+  });
+
+  const [bulkEmailDraft, setBulkEmailDraft] = useState<{ recipients: string; subject: string; message: string } | null>(null);
+
+  const [bulkEmailLogs, setBulkEmailLogs] = useState<BulkEmailLog[]>(() => {
+    try {
+      const saved = localStorage.getItem('partsource_bulk_email_logs');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const openBulkEmailPage = (prefilled?: { recipients?: string[]; subject?: string; message?: string }) => {
+    // Restrict access exclusively to authenticated administrators
+    if (!isAdminAuthenticated && role !== 'admin' && role !== 'owner') {
+      setIsAdminAuthModalOpen(true);
+      showNotification('Administrator Access Required', 'Bulk Email manual input & messaging is restricted exclusively to platform administrators.', 'warning');
+      return;
+    }
+
+    if (prefilled) {
+      setBulkEmailDraft({
+        recipients: prefilled.recipients ? prefilled.recipients.join(', ') : '',
+        subject: prefilled.subject || '',
+        message: prefilled.message || '',
+      });
+    }
+    setActivePageView('bulk-email');
+    if (typeof window !== 'undefined') {
+      try {
+        window.history.pushState(null, '', '#bulk-email');
+      } catch {}
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const saveBulkEmailLog = async (logData: Omit<BulkEmailLog, 'id' | 'sentAt'>): Promise<BulkEmailLog> => {
+    const newLog: BulkEmailLog = {
+      ...logData,
+      id: `bulk-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      sentAt: new Date().toISOString()
+    };
+    setBulkEmailLogs(prev => {
+      const updated = [newLog, ...prev.slice(0, 49)];
+      try {
+        localStorage.setItem('partsource_bulk_email_logs', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+    try {
+      await setDoc(doc(db, 'system', `bulk_mail_${newLog.id}`), newLog, { merge: true });
+    } catch (e) {
+      console.warn('Notice saving bulk email log to cloud:', e);
+    }
+    return newLog;
+  };
+
+  const clearBulkEmailLogs = () => {
+    setBulkEmailLogs([]);
+    try {
+      localStorage.removeItem('partsource_bulk_email_logs');
+    } catch {}
+    showNotification('History Cleared', 'Bulk email dispatch history has been reset.', 'info');
+  };
+
+  // Sync hash changes
+  useEffect(() => {
+    const handleHashChange = () => {
+      if (window.location.hash === '#bulk-email') {
+        if (isAdminAuthenticated || role === 'admin' || role === 'owner') {
+          setActivePageView('bulk-email');
+        } else {
+          setActivePageView('marketplace');
+          try {
+            window.location.hash = '#marketplace';
+          } catch {}
+          setIsAdminAuthModalOpen(true);
+        }
+      } else if (activePageView === 'bulk-email' && window.location.hash !== '#bulk-email') {
+        setActivePageView('marketplace');
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [activePageView, isAdminAuthenticated, role, setIsAdminAuthModalOpen]);
 
   // Device & Platform Detection
   const [detectedPlatform, setDetectedPlatform] = useState<'android' | 'ios' | 'windows' | 'mac' | 'linux'>('android');
@@ -2109,7 +2228,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         detectedPlatform,
         activeNotification,
         showNotification,
-        dismissNotification
+        dismissNotification,
+        activePageView,
+        setActivePageView,
+        openBulkEmailPage,
+        bulkEmailDraft,
+        setBulkEmailDraft,
+        bulkEmailLogs,
+        saveBulkEmailLog,
+        clearBulkEmailLogs
       }}
     >
       {children}

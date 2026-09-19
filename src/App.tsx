@@ -27,6 +27,7 @@ import { SellerAuthModal } from './components/SellerAuthModal';
 import { MarketingStrategyModal } from './components/MarketingStrategyModal';
 import { ClientOutreachModal } from './components/ClientOutreachModal';
 import { GmailHubModal } from './components/GmailHubModal';
+import { BulkEmailPage } from './components/BulkEmailPage';
 import { CheckCircle2, AlertCircle, Info, Car, Heart, ShieldCheck, Download, Smartphone, Monitor, Globe, Share2, Link as LinkIcon, X, Sparkles, Users, Mail } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -38,11 +39,10 @@ const MainContent: React.FC = () => {
     setIsInstallModalOpen, 
     setIsSearchEngineModalOpen, 
     setIsWebLinkModalOpen,
-    openMarketingHub,
-    openClientOutreach,
     isGmailModalOpen,
     setIsGmailModalOpen,
-    gmailComposeData
+    gmailComposeData,
+    activePageView
   } = useApp();
 
   return (
@@ -53,9 +53,15 @@ const MainContent: React.FC = () => {
 
       {/* Main Role-based View */}
       <main className="flex-1 pb-20 md:pb-0">
-        {role === 'buyer' && <BuyerCatalog />}
-        {role === 'seller' && <SellerDashboard />}
-        {(role === 'owner' || role === 'admin') && <OwnerAdminDashboard />}
+        {activePageView === 'bulk-email' ? (
+          <BulkEmailPage />
+        ) : (
+          <>
+            {role === 'buyer' && <BuyerCatalog />}
+            {role === 'seller' && <SellerDashboard />}
+            {(role === 'owner' || role === 'admin') && <OwnerAdminDashboard />}
+          </>
+        )}
       </main>
 
       {/* Global Modals */}
@@ -165,24 +171,6 @@ const MainContent: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-[11px]">
-            <button
-              onClick={() => openClientOutreach()}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500/25 via-amber-600/35 to-emerald-600/25 hover:from-amber-500/35 hover:to-emerald-600/35 text-amber-300 border border-amber-500/60 transition-all font-bold shadow-sm cursor-pointer"
-              title="AI Search Prospective Clients & Send Direct WhatsApp / Email Messages"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>AI Client Outreach & Messaging</span>
-            </button>
-
-            <button
-              onClick={() => openMarketingHub('sellers')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500/20 to-amber-600/30 hover:from-amber-500/30 hover:to-amber-600/40 text-amber-300 border border-amber-500/50 transition-all font-bold shadow-sm cursor-pointer"
-              title="AI Marketing Engine (Get Sellers to List & Buyers to Discover)"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>AI Growth Strategy</span>
-            </button>
-
             <button
               onClick={() => setIsWebLinkModalOpen(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition-colors font-medium shadow-sm"

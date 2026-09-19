@@ -21,7 +21,8 @@ import {
   ChevronRight,
   BookmarkPlus,
   Compass,
-  AlertCircle
+  AlertCircle,
+  ShieldCheck
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { 
@@ -179,7 +180,11 @@ export const MarketingStrategyModal: React.FC = () => {
                 <h2 className="text-lg font-bold tracking-tight text-white">
                   AI Marketing & Growth Engine
                 </h2>
-                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                  Admin Hub Exclusive
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30 hidden sm:inline-flex">
                   South Africa Spares Blitz
                 </span>
               </div>

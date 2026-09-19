@@ -18,10 +18,13 @@ export const MobileBottomNav: React.FC = () => {
     setIsCompareOpen, 
     setIsRequestPartOpen,
     openSellerAuth,
-    currentSeller
+    currentSeller,
+    setActivePageView,
+    activePageView
   } = useApp();
 
   const scrollToSearch = () => {
+    setActivePageView('marketplace');
     if (role !== 'buyer') {
       setRole('buyer');
       setTimeout(() => {
@@ -50,11 +53,12 @@ export const MobileBottomNav: React.FC = () => {
         <button
           type="button"
           onClick={() => {
+            setActivePageView('marketplace');
             setRole('buyer');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
           className={`flex flex-col items-center justify-center py-1 rounded-xl transition-all ${
-            role === 'buyer'
+            activePageView === 'marketplace' && role === 'buyer'
               ? 'text-amber-400 font-bold'
               : 'text-slate-400 hover:text-slate-200'
           }`}

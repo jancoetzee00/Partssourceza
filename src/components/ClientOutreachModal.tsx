@@ -316,6 +316,10 @@ export const ClientOutreachModal: React.FC = () => {
                 <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
                   AI Client Discovery & Subscriber Outreach
                 </h3>
+                <span className="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 uppercase tracking-widest hidden sm:inline-flex items-center gap-1">
+                  <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                  Admin Hub Exclusive
+                </span>
                 <span className="px-2 py-0.5 rounded text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 uppercase tracking-widest hidden sm:inline-flex">
                   GEMINI 3.8 FLASH
                 </span>

@@ -44,7 +44,8 @@ import {
   Tag,
   Percent,
   MessageSquare,
-  X
+  X,
+  Send
 } from 'lucide-react';
 import { Listing, AppBankingDetails, SellerTier, UserRole, PlatformUser, Order, OwnerProfile, SouthAfricanProvince } from '../types';
 import { SUBSCRIPTION_PLANS, SA_PROVINCES, ROLE_PERMISSIONS_MATRIX } from '../data/mockData';
@@ -87,7 +88,8 @@ export const OwnerAdminDashboard: React.FC = () => {
     marketingCampaigns,
     openClientOutreach,
     prospectiveClients,
-    openGmailHub
+    openGmailHub,
+    openBulkEmailPage
   } = useApp();
 
   // Inline auth state for direct dashboard access
@@ -398,6 +400,7 @@ export const OwnerAdminDashboard: React.FC = () => {
                 <span className="px-1.5 py-0.2 rounded bg-emerald-500/30 text-emerald-200 text-[9px] font-bold">
                   {prospectiveClients.length} Leads
                 </span>
+                <span className="px-1.5 py-0.2 rounded bg-emerald-500/30 text-emerald-200 text-[9px] font-bold">Admin Only</span>
               </button>
 
               {/* AI Marketing & National Growth Engine Button */}
@@ -408,7 +411,7 @@ export const OwnerAdminDashboard: React.FC = () => {
               >
                 <Sparkles className="w-4 h-4 text-amber-400" />
                 <span>AI Growth Strategy</span>
-                <span className="px-1.5 py-0.2 rounded bg-amber-500/30 text-amber-200 text-[9px] font-bold">AI</span>
+                <span className="px-1.5 py-0.2 rounded bg-amber-500/30 text-amber-200 text-[9px] font-bold">Admin Only</span>
               </button>
 
               {/* Search Engine & SEO Exposure Hub Button */}
@@ -431,6 +434,17 @@ export const OwnerAdminDashboard: React.FC = () => {
                 <Mail className="w-4 h-4 text-red-400" />
                 <span>Gmail Hub</span>
                 <span className="px-1.5 py-0.2 rounded bg-red-500/30 text-red-200 text-[9px] font-bold">Google</span>
+              </button>
+
+              {/* Bulk Email Manual & Broadcast Hub Button */}
+              <button
+                onClick={() => openBulkEmailPage()}
+                className="px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500/20 to-amber-600/30 hover:from-amber-500/30 hover:to-amber-600/40 text-amber-300 border border-amber-500/40 text-xs font-bold transition-all flex items-center gap-2 shadow-sm hover:border-amber-500/60 cursor-pointer"
+                title="Open Bulk Email Dispatcher - Manual Recipient Input & Message Hub"
+              >
+                <Send className="w-4 h-4 text-amber-400" />
+                <span>Bulk Email</span>
+                <span className="px-1.5 py-0.2 rounded bg-amber-500/30 text-amber-200 text-[9px] font-bold">Admin Only</span>
               </button>
 
               {/* Dev App Toggle */}
@@ -682,6 +696,45 @@ export const OwnerAdminDashboard: React.FC = () => {
                 >
                   <span>Moderate & Upgrade Seller Subscription Tiers</span>
                   <Building2 className="w-4 h-4 text-emerald-400" />
+                </button>
+
+                <button
+                  onClick={() => openBulkEmailPage()}
+                  className="w-full p-3 rounded-xl bg-gradient-to-r from-amber-500/10 to-amber-600/15 hover:from-amber-500/20 hover:to-amber-600/25 border border-amber-500/30 text-amber-300 text-left font-semibold flex items-center justify-between transition-all cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <Send className="w-4 h-4 text-amber-400" />
+                    <span>Bulk Email Manual Input & Campaign Dispatcher</span>
+                  </div>
+                  <span className="text-[9px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold uppercase tracking-wider">
+                    Admin Only
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => openClientOutreach()}
+                  className="w-full p-3 rounded-xl bg-gradient-to-r from-emerald-500/10 to-emerald-600/15 hover:from-emerald-500/20 hover:to-emerald-600/25 border border-emerald-500/30 text-emerald-300 text-left font-semibold flex items-center justify-between transition-all cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-emerald-400" />
+                    <span>AI Client Discovery & Subscriber Outreach</span>
+                  </div>
+                  <span className="text-[9px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold uppercase tracking-wider">
+                    Admin Only
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => openMarketingHub('dual_sided')}
+                  className="w-full p-3 rounded-xl bg-gradient-to-r from-amber-500/10 to-amber-600/15 hover:from-amber-500/20 hover:to-amber-600/25 border border-amber-500/30 text-amber-300 text-left font-semibold flex items-center justify-between transition-all cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    <span>AI Growth Strategy & Playbooks Engine</span>
+                  </div>
+                  <span className="text-[9px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold uppercase tracking-wider">
+                    Admin Only
+                  </span>
                 </button>
               </div>
             </div>
@@ -984,6 +1037,24 @@ export const OwnerAdminDashboard: React.FC = () => {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 flex-shrink-0">
+                <button
+                  onClick={() => openClientOutreach()}
+                  className="px-5 py-3 rounded-2xl bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-300 hover:text-white border border-emerald-500/40 font-bold text-xs transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                  title="Open AI Client Outreach & Lead Discovery"
+                >
+                  <Sparkles className="w-4 h-4 text-emerald-400" />
+                  <span>AI Client Outreach (Admin)</span>
+                </button>
+
+                <button
+                  onClick={() => openBulkEmailPage()}
+                  className="px-5 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-amber-300 hover:text-white border border-amber-500/40 font-bold text-xs transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                  title="Open Protected Bulk Email Dispatcher"
+                >
+                  <Send className="w-4 h-4 text-amber-400" />
+                  <span>Bulk Email Dispatcher (Admin)</span>
+                </button>
+
                 <button
                   onClick={() => openMarketingHub('dual_sided')}
                   className="px-5 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-xl shadow-amber-500/20 flex items-center justify-center gap-2 cursor-pointer"

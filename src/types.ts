@@ -364,3 +364,27 @@ export interface ProspectiveClient {
   addedSource: 'ai_search' | 'manual';
   createdAt: string;
 }
+
+export type ActivePageView = 'marketplace' | 'bulk-email';
+
+export interface BulkEmailLog {
+  id: string;
+  subject: string;
+  messagePreview: string;
+  recipientCount: number;
+  recipients: string[];
+  channel: 'gmail_api' | 'mailto_client' | 'copied_bcc';
+  sentAt: string;
+  senderEmail?: string;
+  status: 'sent' | 'partially_sent' | 'drafted';
+}
+
+export interface BulkEmailTemplate {
+  id: string;
+  title: string;
+  category: 'scrap_yard_invite' | 'parts_request' | 'platform_announcement' | 'custom_outreach';
+  subject: string;
+  message: string;
+  targetAudienceDescription: string;
+}
+

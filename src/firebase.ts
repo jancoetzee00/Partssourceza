@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { 
+  initializeFirestore,
   getFirestore, 
   doc, 
   getDocFromServer,
@@ -22,7 +23,12 @@ import firebaseConfig from '../firebase-applet-config.json';
 const app = initializeApp(firebaseConfig);
 
 // CRITICAL: Must pass the firestoreDatabaseId from the configuration
-export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId || 'ai-studio-partsourceza-0798c94a-3733-45c0-b790-a3dbc431cd3c');
+// experimentalAutoDetectLongPolling enables seamless fallback in sandboxed iframe & Cloud Run environments
+const firestoreDbId = (firebaseConfig as any).firestoreDatabaseId || 'ai-studio-partsourceza-0798c94a-3733-45c0-b790-a3dbc431cd3c';
+export const db = initializeFirestore(app, {
+  experimentalAutoDetectLongPolling: true,
+}, firestoreDbId);
+
 export const auth = getAuth(app);
 
 export enum OperationType {
@@ -51,9 +57,17 @@ export interface FirestoreErrorInfo {
   };
 }
 
-export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): never {
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): void {
+  const errMsg = error instanceof Error ? error.message : String(error);
+  const errCode = (error as any)?.code;
+
+  const isPermissionError = 
+    errCode === 'permission-denied' || 
+    errMsg.toLowerCase().includes('permission') || 
+    errMsg.toLowerCase().includes('insufficient');
+
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: errMsg,
     authInfo: {
       userId: auth.currentUser?.uid || null,
       email: auth.currentUser?.email || null,
@@ -68,8 +82,15 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path
   };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+
+  if (isPermissionError) {
+    console.error('Firestore Error: ', JSON.stringify(errInfo));
+    throw new Error(JSON.stringify(errInfo));
+  } else {
+    // For non-permission errors (e.g. offline, connection retry, unavailable),
+    // log notice and allow Firestore's offline cache and persistence to operate smoothly
+    console.warn(`Firestore [${operationType}] at ${path || 'root'} status notice:`, errMsg);
+  }
 }
 
 export async function testConnection(): Promise<boolean> {
@@ -78,10 +99,15 @@ export async function testConnection(): Promise<boolean> {
     console.log('Firebase Firestore connection confirmed.');
     return true;
   } catch (error) {
-    console.info('Firebase connection status: operational / offline cache ready.');
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.error('Please check your Firebase configuration.');
+    } else {
+      console.info('Firebase connection status: operational / offline cache ready.');
+    }
     return false;
   }
 }
 
 // Run connectivity probe safely in background
 testConnection().catch(() => {});
+
