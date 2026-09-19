@@ -442,9 +442,12 @@ export const AdminSubscriptionDiscounts: React.FC = () => {
             className="px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-amber-500"
           >
             <option value="all">All Subscription Plans</option>
+            <option value="single">Single Ad (R49/mo)</option>
+            <option value="duo">Duo Pack (R99/mo)</option>
             <option value="starter">Starter (R299/mo)</option>
             <option value="pro">Pro (R699/mo)</option>
             <option value="enterprise">Enterprise (R1,499/mo)</option>
+            <option value="network">Network (R2,499/mo)</option>
           </select>
 
           <select
@@ -1055,9 +1058,12 @@ export const AdminSubscriptionDiscounts: React.FC = () => {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
                     { id: 'all', label: 'All Tiers (Universal)' },
+                    { id: 'single', label: 'Single (R49)' },
+                    { id: 'duo', label: 'Duo (R99)' },
                     { id: 'starter', label: 'Starter (R299)' },
                     { id: 'pro', label: 'Pro (R699)' },
                     { id: 'enterprise', label: 'Enterprise (R1499)' },
+                    { id: 'network', label: 'Network (R2499)' },
                   ].map(t => {
                     const isChecked = form.applicableTiers.includes(t.id as any);
                     return (

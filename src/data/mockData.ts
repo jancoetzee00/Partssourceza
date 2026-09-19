@@ -49,6 +49,47 @@ export const PRIMARY_PLATFORM_EMAIL = 'partssource-za@outlook.com';
 
 export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
+    id: 'single',
+    name: 'Single Part Ad',
+    tagline: 'Ideal for private sellers, single component stripping & one-off parts',
+    description: 'Advertise 1 active automotive or commercial part on Part Source ZA with verified seller badging and direct WhatsApp buyer inquiries.',
+    priceMonthlyZAR: 49,
+    priceAnnualMonthlyZAR: 39,
+    listingLimit: 1,
+    featuredListingsLimit: 0,
+    commissionFee: '0% (Direct Buyer Contact)',
+    badgeName: 'Single Part Ad',
+    features: [
+      '1 Active Spares Listing',
+      'Direct WhatsApp & Phone Buyer Leads',
+      'Verified Seller Badge',
+      'Standard Search Engine Priority',
+      'Part Photos (Up to 3 per part)',
+      '0% Sales Commission'
+    ]
+  },
+  {
+    id: 'duo',
+    name: 'Dual Parts Package',
+    tagline: 'Ideal for selling a pair of spares or major component sets',
+    description: 'Advertise up to 2 active automotive parts on Part Source ZA with verified seller badging and instant WhatsApp buyer leads.',
+    priceMonthlyZAR: 99,
+    priceAnnualMonthlyZAR: 79,
+    listingLimit: 2,
+    featuredListingsLimit: 1,
+    commissionFee: '0% (Direct Buyer Contact)',
+    badgeName: 'Dual Parts Ad',
+    features: [
+      'Up to 2 Active Spares Listings',
+      '1 Featured Spotlight Listing',
+      'Direct WhatsApp & Phone Buyer Leads',
+      'Verified Seller Badge',
+      'Priority Search Placement',
+      'Part Photos (Up to 3 per part)',
+      '0% Sales Commission'
+    ]
+  },
+  {
     id: 'starter',
     name: 'Starter Supplier',
     tagline: 'Ideal for local scrapyards & independent auto mechanics',

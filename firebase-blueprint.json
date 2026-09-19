@@ -60,7 +60,7 @@
         "rating": { "type": "number" },
         "totalReviews": { "type": "number" },
         "verified": { "type": "boolean" },
-        "subscriptionTier": { "type": "string", "enum": ["starter", "pro", "enterprise"] },
+        "subscriptionTier": { "type": "string", "enum": ["single", "duo", "starter", "pro", "enterprise", "network"] },
         "subscriptionStatus": { "type": "string", "enum": ["active", "past_due", "trial"] },
         "subscriptionRenewsAt": { "type": "string", "maxLength": 50 },
         "joinedDate": { "type": "string", "maxLength": 50 },

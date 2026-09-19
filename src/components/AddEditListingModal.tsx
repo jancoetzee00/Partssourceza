@@ -20,7 +20,7 @@ import {
   Maximize2
 } from 'lucide-react';
 import { Listing, VehicleType, PartCategory, PartCondition, SouthAfricanProvince } from '../types';
-import { SA_PROVINCES, POPULAR_MAKES, CATEGORIES } from '../data/mockData';
+import { SA_PROVINCES, POPULAR_MAKES, CATEGORIES, SUBSCRIPTION_PLANS } from '../data/mockData';
 import { CameraOptimizerModal } from './CameraOptimizerModal';
 import { AIPartAnalysis } from '../utils/imageOptimizer';
 import { SmartCategorizerCard } from './SmartCategorizerCard';
@@ -44,12 +44,18 @@ export const AddEditListingModal: React.FC = () => {
     editingListing, 
     setEditingListing, 
     currentSeller, 
+    listings,
+    setIsSubscriptionModalOpen,
     addListing, 
     updateListing,
     deleteListing,
     role,
     showNotification
   } = useApp();
+
+  const sellerListingsCount = currentSeller ? listings.filter(l => l.sellerId === currentSeller.id).length : 0;
+  const currentPlan = currentSeller ? (SUBSCRIPTION_PLANS.find(p => p.id === currentSeller.subscriptionTier) || SUBSCRIPTION_PLANS[0]) : null;
+  const isLimitReached = !editingListing && currentPlan && sellerListingsCount >= currentPlan.listingLimit;
 
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -159,6 +165,17 @@ export const AddEditListingModal: React.FC = () => {
         originalPriceZAR: formData.originalPriceZAR > 0 ? formData.originalPriceZAR : undefined
       });
     } else {
+      if (currentPlan && sellerListingsCount >= currentPlan.listingLimit) {
+        showNotification(
+          'Listing Limit Reached',
+          `Your active ${currentPlan.name} (R${currentPlan.priceMonthlyZAR}/mo) is capped at ${currentPlan.listingLimit} listing${currentPlan.listingLimit === 1 ? '' : 's'}. Upgrade your subscription plan to publish more spares.`,
+          'warning'
+        );
+        setIsAddEditModalOpen(false);
+        setIsSubscriptionModalOpen(true);
+        return;
+      }
+
       addListing({
         ...formData,
         originalPriceZAR: formData.originalPriceZAR > 0 ? formData.originalPriceZAR : undefined,
@@ -289,6 +306,36 @@ export const AddEditListingModal: React.FC = () => {
         {/* Modal Body / Form */}
         <form onSubmit={handleSubmit} className="overflow-y-auto p-6 space-y-5 flex-1 text-xs">
           
+          {/* Plan Quota Alert if Reached */}
+          {isLimitReached && currentPlan && (
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-amber-600/10 to-transparent border border-amber-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 shrink-0">
+                  <Info className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                    Plan Quota Limit Reached ({sellerListingsCount} / {currentPlan.listingLimit} Active Parts)
+                  </h4>
+                  <p className="text-[11px] text-slate-300 mt-0.5">
+                    Your <span className="text-amber-400 font-semibold">{currentPlan.name} (R{currentPlan.priceMonthlyZAR}/mo)</span> is limited to {currentPlan.listingLimit} listing{currentPlan.listingLimit === 1 ? '' : 's'}. Upgrade your subscription to publish more spares.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAddEditModalOpen(false);
+                  setIsSubscriptionModalOpen(true);
+                }}
+                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-md shrink-0 self-stretch sm:self-auto text-center"
+              >
+                Upgrade Plan
+              </button>
+            </div>
+          )}
+
           {/* AI-Driven Smart Auto-Categorization & Price Estimator */}
           <SmartCategorizerCard
             currentImage={formData.images[0]}

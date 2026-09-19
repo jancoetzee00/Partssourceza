@@ -1801,9 +1801,12 @@ export const OwnerAdminDashboard: React.FC = () => {
                 className="px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-amber-500"
               >
                 <option value="all">All Subscription Plans</option>
-                <option value="starter">Starter (R299/mo)</option>
-                <option value="pro">Pro (R699/mo)</option>
-                <option value="enterprise">Enterprise (R1,499/mo)</option>
+                <option value="single">Single Ad (R49/mo - 1 listing)</option>
+                <option value="duo">Duo Pack (R99/mo - 2 listings)</option>
+                <option value="starter">Starter (R299/mo - 15 listings)</option>
+                <option value="pro">Pro (R699/mo - 75 listings)</option>
+                <option value="enterprise">Enterprise (R1,499/mo - 500 listings)</option>
+                <option value="network">Network (R2,499/mo - Unlimited)</option>
               </select>
             </div>
 
@@ -1876,9 +1879,12 @@ export const OwnerAdminDashboard: React.FC = () => {
                             onChange={(e) => updateSellerSubscription(seller.id, e.target.value as SellerTier)}
                             className="w-full px-2 py-1.5 bg-slate-800 border border-slate-700 rounded text-xs text-white"
                           >
+                            <option value="single">Single (R49/mo - 1 listing)</option>
+                            <option value="duo">Duo (R99/mo - 2 listings)</option>
                             <option value="starter">Starter (R299/mo - 15 listings)</option>
                             <option value="pro">Pro (R699/mo - 75 listings)</option>
                             <option value="enterprise">Enterprise (R1,499/mo - 500 listings)</option>
+                            <option value="network">Network (R2,499/mo - Unlimited)</option>
                           </select>
                         </div>
 

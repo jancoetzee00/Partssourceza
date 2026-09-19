@@ -48,6 +48,7 @@ export const Header: React.FC = () => {
     filters,
     setFilters,
     openGmailHub,
+    setIsSubscriptionModalOpen,
     activePageView,
     setActivePageView
   } = useApp();
@@ -312,6 +313,31 @@ export const Header: React.FC = () => {
 
                   <div className="py-1 space-y-0.5">
                     
+                    {/* Tool: Subscription Plans */}
+                    <button
+                      onClick={() => {
+                        setIsToolsDropdownOpen(false);
+                        setIsSubscriptionModalOpen(true);
+                      }}
+                      className="w-full px-3 py-2 rounded-xl text-left text-xs text-slate-200 hover:text-white hover:bg-slate-800/90 flex items-center justify-between group transition-colors bg-amber-500/10 border border-amber-500/30"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-1.5 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                          <CreditCard className="w-3.5 h-3.5" />
+                        </div>
+                        <div>
+                          <div className="font-bold text-amber-400 group-hover:text-amber-300 flex items-center gap-1.5">
+                            <span>Subscription Plans</span>
+                            <span className="text-[9px] px-1 py-0.2 bg-amber-500 text-slate-950 rounded font-black">NEW</span>
+                          </div>
+                          <div className="text-[10px] text-slate-300">R49 (1 part), R99 (2 parts), Pro & More</div>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-black text-amber-400 font-sans">
+                        From R49
+                      </span>
+                    </button>
+
                     {/* Tool 1: Web Link & QR */}
                     <button
                       onClick={() => {

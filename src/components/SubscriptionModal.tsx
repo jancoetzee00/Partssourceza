@@ -31,6 +31,7 @@ export const SubscriptionModal: React.FC = () => {
     bankingDetails,
     subscriptionDiscounts,
     validateAndApplyPromoCode,
+    openSellerAuth,
     showNotification
   } = useApp();
 
@@ -88,6 +89,17 @@ export const SubscriptionModal: React.FC = () => {
   };
 
   const handleConfirmSubscription = () => {
+    if (!currentSeller) {
+      setIsSubscriptionModalOpen(false);
+      openSellerAuth('register');
+      showNotification(
+        'Supplier Registration Required', 
+        `To activate the ${currentPlan.name} (R${activePayablePrice}/mo), please complete your quick scrap yard / supplier registration.`, 
+        'info'
+      );
+      return;
+    }
+
     updateSellerSubscription(currentSeller.id, selectedTier);
     if (appliedDiscount) {
       showNotification(
@@ -123,7 +135,7 @@ export const SubscriptionModal: React.FC = () => {
                 Seller Monthly Subscription
               </h2>
               <p className="text-xs text-slate-400">
-                Supplier: <span className="text-amber-400 font-semibold">{currentSeller?.businessName}</span>
+                Supplier: <span className="text-amber-400 font-semibold">{currentSeller?.businessName || 'Auto Parts Suppliers & Stripping Yards'}</span>
               </p>
             </div>
           </div>
@@ -203,7 +215,7 @@ export const SubscriptionModal: React.FC = () => {
               </div>
 
               {/* Plans Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {SUBSCRIPTION_PLANS.map(plan => {
                   const isSelected = selectedTier === plan.id;
                   const isCurrent = currentSeller?.subscriptionTier === plan.id;

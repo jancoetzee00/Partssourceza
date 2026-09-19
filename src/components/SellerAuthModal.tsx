@@ -614,7 +614,7 @@ export const SellerAuthModal: React.FC = () => {
                 </div>
 
                 {/* Plans Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {SUBSCRIPTION_PLANS.map(plan => {
                     const isSelected = plan.id === selectedPlanTier;
                     const effectivePrice = calculateEffectivePrice(plan);
